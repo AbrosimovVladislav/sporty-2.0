@@ -78,6 +78,29 @@ export type Database = {
         };
         Relationships: [];
       };
+      join_requests: {
+        Row: {
+          id: string;
+          user_id: string;
+          team_id: string;
+          status: "pending" | "accepted" | "rejected";
+          created_at: string;
+          resolved_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          team_id: string;
+          status?: "pending" | "accepted" | "rejected";
+          created_at?: string;
+          resolved_at?: string | null;
+        };
+        Update: {
+          status?: "pending" | "accepted" | "rejected";
+          resolved_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -88,3 +111,4 @@ export type Database = {
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type Team = Database["public"]["Tables"]["teams"]["Row"];
 export type TeamMembership = Database["public"]["Tables"]["team_memberships"]["Row"];
+export type JoinRequest = Database["public"]["Tables"]["join_requests"]["Row"];
