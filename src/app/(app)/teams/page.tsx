@@ -1,10 +1,30 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 
 type Section = "mine" | "all";
+
+type MyTeam = {
+  id: string;
+  name: string;
+  city: string;
+  sport: string;
+  role: "organizer" | "player";
+};
+
+type PublicTeam = {
+  id: string;
+  name: string;
+  city: string;
+  sport: string;
+  description: string | null;
+};
+
+const SPORT_LABEL: Record<string, string> = {
+  football: "Футбол",
+};
 
 export default function TeamsPage() {
   const auth = useAuth();
@@ -51,7 +71,10 @@ export default function TeamsPage() {
       </div>
 
       {section === "mine" ? (
-        <MineSection onFindTeams={() => setSection("all")} />
+        <MineSection
+          userId={auth.status === "authenticated" ? auth.user.id : null}
+          onFindTeams={() => setSection("all")}
+        />
       ) : (
         <AllSection />
       )}
@@ -59,19 +82,72 @@ export default function TeamsPage() {
   );
 }
 
-function MineSection({ onFindTeams }: { onFindTeams: () => void }) {
+function MineSection({
+  userId,
+  onFindTeams,
+}: {
+  userId: string | null;
+  onFindTeams: () => void;
+}) {
+  const [teams, setTeams] = useState<MyTeam[] | null>(null);
+
+  useEffect(() => {
+    if (!userId) {
+      setTeams([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/users/${userId}/teams`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setTeams(d.teams ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setTeams([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+
   return (
     <div className="flex flex-1 flex-col gap-4">
-      <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        Ты пока не в команде
-      </div>
-
-      <button
-        onClick={onFindTeams}
-        className="w-full bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors hover:bg-primary-hover"
-      >
-        Найти команду
-      </button>
+      {teams === null ? (
+        <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
+          Загружаю…
+        </div>
+      ) : teams.length === 0 ? (
+        <>
+          <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
+            Ты пока не в команде
+          </div>
+          <button
+            onClick={onFindTeams}
+            className="w-full bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors hover:bg-primary-hover"
+          >
+            Найти команду
+          </button>
+        </>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {teams.map((t) => (
+            <li key={t.id}>
+              <Link
+                href={`/team/${t.id}`}
+                className="block bg-background-card border border-border rounded-lg p-4"
+              >
+                <div className="flex items-center justify-between">
+                  <h2 className="font-display font-semibold text-lg">{t.name}</h2>
+                  <RoleBadge role={t.role} />
+                </div>
+                <p className="text-sm text-foreground-secondary mt-1">
+                  {t.city} · {SPORT_LABEL[t.sport] ?? t.sport}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
 
       <div className="mt-auto text-center">
         <Link
@@ -86,20 +162,76 @@ function MineSection({ onFindTeams }: { onFindTeams: () => void }) {
 }
 
 function AllSection() {
+  const [city, setCity] = useState("");
+  const [teams, setTeams] = useState<PublicTeam[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const timer = setTimeout(() => {
+      const params = new URLSearchParams();
+      if (city.trim()) params.set("city", city.trim());
+      fetch(`/api/teams${params.toString() ? `?${params}` : ""}`)
+        .then((r) => r.json())
+        .then((d) => {
+          if (!cancelled) setTeams(d.teams ?? []);
+        })
+        .catch(() => {
+          if (!cancelled) setTeams([]);
+        });
+    }, 250);
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [city]);
+
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label className="text-sm text-foreground-secondary">Город</label>
         <input
           type="text"
+          value={city}
+          onChange={(e) => setCity(e.target.value)}
           placeholder="Любой город"
           className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
         />
       </div>
 
-      <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        Команды появятся здесь
-      </div>
+      {teams === null ? (
+        <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
+          Загружаю…
+        </div>
+      ) : teams.length === 0 ? (
+        <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
+          Команд не найдено
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-3">
+          {teams.map((t) => (
+            <li key={t.id}>
+              <Link
+                href={`/team/${t.id}`}
+                className="block bg-background-card border border-border rounded-lg p-4"
+              >
+                <h2 className="font-display font-semibold text-lg">{t.name}</h2>
+                <p className="text-sm text-foreground-secondary mt-1">
+                  {t.city} · {SPORT_LABEL[t.sport] ?? t.sport}
+                </p>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
+  );
+}
+
+function RoleBadge({ role }: { role: "organizer" | "player" }) {
+  const label = role === "organizer" ? "Организатор" : "Игрок";
+  return (
+    <span className="text-xs uppercase font-display px-2 py-1 rounded bg-primary/10 text-primary">
+      {label}
+    </span>
   );
 }
