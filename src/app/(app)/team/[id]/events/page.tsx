@@ -1,10 +1,6 @@
 "use client";
 
-import { use } from "react";
-
-export default function EventsPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
-
+export default function EventsPage() {
   return (
     <div className="flex flex-1 flex-col p-6 gap-6">
       <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
