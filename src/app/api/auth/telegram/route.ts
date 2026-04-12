@@ -1,15 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
 import { validateTelegramInitData, parseTelegramUser } from "@/lib/telegram-auth";
-import type { Database } from "@/types/database";
-
-// Service role client — bypasses RLS for auth upsert
-function getServiceClient() {
-  return createClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.SUPABASE_SERVICE_ROLE_KEY!
-  );
-}
+import { getServiceClient } from "@/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
   const { initData } = await req.json();

@@ -31,6 +31,53 @@ export type Database = {
         };
         Relationships: [];
       };
+      teams: {
+        Row: {
+          id: string;
+          name: string;
+          sport: string;
+          city: string;
+          description: string | null;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          sport?: string;
+          city: string;
+          description?: string | null;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          sport?: string;
+          city?: string;
+          description?: string | null;
+        };
+        Relationships: [];
+      };
+      team_memberships: {
+        Row: {
+          id: string;
+          user_id: string;
+          team_id: string;
+          role: "organizer" | "player";
+          joined_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          team_id: string;
+          role: "organizer" | "player";
+          joined_at?: string;
+        };
+        Update: {
+          role?: "organizer" | "player";
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -39,3 +86,5 @@ export type Database = {
 };
 
 export type User = Database["public"]["Tables"]["users"]["Row"];
+export type Team = Database["public"]["Tables"]["teams"]["Row"];
+export type TeamMembership = Database["public"]["Tables"]["team_memberships"]["Row"];
