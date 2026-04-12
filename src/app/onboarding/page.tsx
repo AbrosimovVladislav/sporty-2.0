@@ -3,17 +3,11 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
-
-type Step = "role" | "player-form" | "done";
-type Role = "player" | "organizer";
 
 export default function OnboardingPage() {
   const auth = useAuth();
   const router = useRouter();
 
-  const [step, setStep] = useState<Step>("role");
-  const [role, setRole] = useState<Role | null>(null);
   const [name, setName] = useState(auth.status === "authenticated" ? auth.user.name : "");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
@@ -40,62 +34,30 @@ export default function OnboardingPage() {
     setLoading(true);
     setError("");
 
-    const { error: dbError } = await supabase
-      .from("users")
-      .update({ name, city, sport: "football", onboarding_completed: true })
-      .eq("id", auth.user.id);
+    const res = await fetch("/api/onboarding", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: auth.user.id,
+        name,
+        city,
+        sport: "football",
+      }),
+    });
 
-    setLoading(false);
-
-    if (dbError) {
+    if (!res.ok) {
       setError("Что-то пошло не так, попробуй снова");
+      setLoading(false);
       return;
     }
 
-    if (role === "organizer") {
-      router.replace("/onboarding/team");
-    } else {
-      router.replace("/home");
-    }
+    router.replace("/home");
   }
 
-  // Step: role selection
-  if (step === "role") {
-    return (
-      <div className="flex flex-1 flex-col p-6 gap-6">
-        <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-          <h1 className="text-3xl font-display font-bold uppercase">Добро пожаловать</h1>
-          <p className="mt-2 text-foreground-on-dark-muted text-sm">Sporty 2.0</p>
-        </div>
-
-        <div className="flex-1 flex flex-col justify-center gap-4">
-          <p className="text-foreground-secondary text-sm text-center">Зачем ты здесь?</p>
-
-          <button
-            onClick={() => { setRole("player"); setStep("player-form"); }}
-            className="bg-background-card border border-border rounded-lg p-5 text-left"
-          >
-            <p className="font-display font-semibold text-lg uppercase">Я игрок</p>
-            <p className="text-foreground-secondary text-sm mt-1">Ищу команду, хожу на тренировки</p>
-          </button>
-
-          <button
-            onClick={() => { setRole("organizer"); setStep("player-form"); }}
-            className="bg-background-card border border-border rounded-lg p-5 text-left"
-          >
-            <p className="font-display font-semibold text-lg uppercase">Создать команду</p>
-            <p className="text-foreground-secondary text-sm mt-1">Организую игры и управляю составом</p>
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // Step: fill profile
   return (
     <div className="flex flex-1 flex-col p-6 gap-6">
       <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-        <h1 className="text-3xl font-display font-bold uppercase">Профиль</h1>
+        <h1 className="text-3xl font-display font-bold uppercase">Добро пожаловать</h1>
         <p className="mt-2 text-foreground-on-dark-muted text-sm">Заполни основную информацию</p>
       </div>
 

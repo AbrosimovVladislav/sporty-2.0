@@ -1,20 +1,48 @@
 "use client";
 
-import { use } from "react";
+// TODO (итерация 2): загрузить Team + TeamMembership для текущего пользователя,
+// определить роль, отрендерить нужный режим (не-участник / игрок / организатор).
 
-export default function TeamPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = use(params);
+type TeamRole = "organizer" | "player" | "guest";
+
+// Placeholder: до итерации 2 показываем раскладку как для игрока.
+// Роль будет браться из TeamMembership по текущему user + team.
+function getCurrentRole(): TeamRole {
+  return "player";
+}
+
+export default function TeamHomePage() {
+  const role = getCurrentRole();
 
   return (
-    <div className="flex flex-1 flex-col p-6 gap-6">
-      <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-        <p className="text-foreground-on-dark-muted text-sm uppercase font-display">Команда</p>
-        <h1 className="text-3xl font-display font-bold uppercase mt-1">Главная</h1>
-      </div>
+    <>
+      <section className="bg-background-card border border-border rounded-lg p-5">
+        <p className="text-xs uppercase font-display text-foreground-secondary">Состав</p>
+        <p className="text-2xl font-display font-bold mt-1">0 игроков</p>
+      </section>
 
-      <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        Информация о команде появится здесь
-      </div>
-    </div>
+      <section className="bg-background-card border border-border rounded-lg p-5">
+        <p className="text-xs uppercase font-display text-foreground-secondary">Ближайшее событие</p>
+        <p className="text-sm text-foreground-secondary mt-1">Событий пока нет</p>
+      </section>
+
+      {role === "organizer" && (
+        <>
+          <section className="bg-background-card border border-border rounded-lg p-5">
+            <p className="text-xs uppercase font-display text-foreground-secondary">
+              Финансовый баланс
+            </p>
+            <p className="text-2xl font-display font-bold mt-1">0 ₽</p>
+          </section>
+
+          <section className="bg-background-card border border-border rounded-lg p-5">
+            <p className="text-xs uppercase font-display text-foreground-secondary">
+              Входящие заявки
+            </p>
+            <p className="text-sm text-foreground-secondary mt-1">Новых заявок нет</p>
+          </section>
+        </>
+      )}
+    </>
   );
 }

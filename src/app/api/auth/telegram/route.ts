@@ -20,20 +20,34 @@ export async function POST(req: NextRequest) {
   }
 
   const supabase = getServiceClient();
+  const tgName = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ");
 
-  const name = [tgUser.first_name, tgUser.last_name].filter(Boolean).join(" ");
-
-  const { data: user, error } = await supabase
+  // Look up existing user first — мы НЕ хотим перезаписывать поля,
+  // которые пользователь мог изменить в онбординге (name, city, sport).
+  const { data: existing, error: selectError } = await supabase
     .from("users")
-    .upsert(
-      { telegram_id: tgUser.id, name },
-      { onConflict: "telegram_id", ignoreDuplicates: false }
-    )
+    .select()
+    .eq("telegram_id", tgUser.id)
+    .maybeSingle();
+
+  if (selectError) {
+    console.error("Supabase select error:", selectError);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
+
+  if (existing) {
+    return NextResponse.json({ user: existing });
+  }
+
+  // First-time login — insert fresh user with name from Telegram.
+  const { data: user, error: insertError } = await supabase
+    .from("users")
+    .insert({ telegram_id: tgUser.id, name: tgName })
     .select()
     .single();
 
-  if (error) {
-    console.error("Supabase upsert error:", error);
+  if (insertError) {
+    console.error("Supabase insert error:", insertError);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 

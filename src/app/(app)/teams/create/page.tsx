@@ -4,10 +4,9 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 
-export default function OnboardingTeamPage() {
+export default function CreateTeamPage() {
   const auth = useAuth();
   const router = useRouter();
-
   const [teamName, setTeamName] = useState("");
   const [city, setCity] = useState("");
   const [loading, setLoading] = useState(false);
@@ -50,7 +49,7 @@ export default function OnboardingTeamPage() {
   return (
     <div className="flex flex-1 flex-col p-6 gap-6">
       <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-        <h1 className="text-3xl font-display font-bold uppercase">Твоя команда</h1>
+        <h1 className="text-3xl font-display font-bold uppercase">Новая команда</h1>
         <p className="mt-2 text-foreground-on-dark-muted text-sm">Заполни информацию о команде</p>
       </div>
 
