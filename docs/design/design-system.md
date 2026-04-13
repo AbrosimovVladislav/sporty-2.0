@@ -1,6 +1,6 @@
 # Дизайн-система Sporty 2.0
 
-Референс: [docs/design/ref.png](design/ref.png)
+Референс: [ref.png](ref.png)
 
 ## Палитра
 
