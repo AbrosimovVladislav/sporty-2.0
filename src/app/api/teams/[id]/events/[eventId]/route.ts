@@ -92,3 +92,62 @@ export async function GET(
       })),
   });
 }
+
+// PATCH — update event status (organizer only)
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string; eventId: string }> },
+) {
+  const { id: teamId, eventId } = await params;
+  const body = await req.json();
+  const { userId, status } = body;
+
+  if (!userId || !status || !["completed", "cancelled"].includes(status)) {
+    return NextResponse.json(
+      { error: "userId and status (completed/cancelled) are required" },
+      { status: 400 },
+    );
+  }
+
+  const supabase = getServiceClient();
+
+  // Verify organizer role
+  const { data: membership } = await supabase
+    .from("team_memberships")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("team_id", teamId)
+    .maybeSingle();
+
+  if (!membership || membership.role !== "organizer") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  // Verify event exists and is planned
+  const { data: event } = await supabase
+    .from("events")
+    .select("id, status")
+    .eq("id", eventId)
+    .eq("team_id", teamId)
+    .maybeSingle();
+
+  if (!event) {
+    return NextResponse.json({ error: "Event not found" }, { status: 404 });
+  }
+
+  if (event.status !== "planned") {
+    return NextResponse.json({ error: "Only planned events can be updated" }, { status: 400 });
+  }
+
+  const { error } = await supabase
+    .from("events")
+    .update({ status })
+    .eq("id", eventId);
+
+  if (error) {
+    console.error("Event status update error:", error);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
+
+  return NextResponse.json({ status });
+}

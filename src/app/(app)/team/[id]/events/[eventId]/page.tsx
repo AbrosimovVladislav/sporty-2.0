@@ -35,7 +35,9 @@ type AttendanceItem = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
+  attended_confirmed: boolean | null;
   paid: boolean | null;
+  paid_confirmed: boolean | null;
   user: { id: string; name: string };
 };
 
@@ -131,7 +133,7 @@ export default function EventDetailPage({
         </div>
       </section>
 
-      {/* Vote buttons for team members */}
+      {/* Vote buttons for team members (planned only) */}
       {isMember && event.status === "planned" && userId && (
         <VoteButtons
           teamId={teamId}
@@ -142,8 +144,34 @@ export default function EventDetailPage({
         />
       )}
 
-      {/* Organizer finance summary */}
-      {isOrganizer && event.price_per_player > 0 && (
+      {/* Organizer: complete/cancel event */}
+      {isOrganizer && event.status === "planned" && userId && (
+        <EventStatusActions
+          teamId={teamId}
+          eventId={eventId}
+          userId={userId}
+          onChanged={loadEvent}
+        />
+      )}
+
+      {/* Self-mark attendance (completed events, for members) */}
+      {isMember && event.status === "completed" && userId && (
+        <SelfMarkSection
+          teamId={teamId}
+          eventId={eventId}
+          userId={userId}
+          attendance={myAttendance ?? null}
+          onChanged={loadEvent}
+        />
+      )}
+
+      {/* Finance summary (organizer, completed events with price) */}
+      {isOrganizer && event.status === "completed" && event.price_per_player > 0 && (
+        <FinanceSummary attendances={attendances} pricePerPlayer={event.price_per_player} />
+      )}
+
+      {/* Planned event — simple finance estimate for organizer */}
+      {isOrganizer && event.status === "planned" && event.price_per_player > 0 && (
         <section className="bg-background-card border border-border rounded-lg p-5">
           <p className="text-xs uppercase font-display text-foreground-secondary">Финансы</p>
           <p className="text-sm mt-1">
@@ -154,46 +182,22 @@ export default function EventDetailPage({
       )}
 
       {/* Attendees list */}
-      <section>
-        <p className="text-xs uppercase font-display text-foreground-secondary mb-2">
-          Голоса ({attendances.length})
-        </p>
-
-        {yesVotes.length > 0 && (
-          <div className="mb-3">
-            <p className="text-xs text-green-600 font-medium mb-1">Придут ({yesVotes.length})</p>
-            <ul className="flex flex-col gap-1">
-              {yesVotes.map((a) => (
-                <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-2 text-sm">
-                  {a.user.name}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {noVotes.length > 0 && (
-          <div>
-            <p className="text-xs text-red-500 font-medium mb-1">Не придут ({noVotes.length})</p>
-            <ul className="flex flex-col gap-1">
-              {noVotes.map((a) => (
-                <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-2 text-sm text-foreground-secondary">
-                  {a.user.name}
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {attendances.length === 0 && (
-          <div className="bg-background-card border border-border rounded-lg p-4 text-center text-foreground-secondary text-sm">
-            Пока никто не проголосовал
-          </div>
-        )}
-      </section>
+      {event.status === "completed" && isOrganizer ? (
+        <OrganizerAttendanceList
+          teamId={teamId}
+          eventId={eventId}
+          userId={userId!}
+          attendances={attendances}
+          onChanged={loadEvent}
+        />
+      ) : (
+        <SimpleAttendanceList attendances={attendances} yesVotes={yesVotes} noVotes={noVotes} />
+      )}
     </>
   );
 }
+
+/* ─── Vote Buttons (planned) ─── */
 
 function VoteButtons({
   teamId,
@@ -252,6 +256,324 @@ function VoteButtons({
     </div>
   );
 }
+
+/* ─── Event Status Actions (organizer) ─── */
+
+function EventStatusActions({
+  teamId,
+  eventId,
+  userId,
+  onChanged,
+}: {
+  teamId: string;
+  eventId: string;
+  userId: string;
+  onChanged: () => void;
+}) {
+  const [sending, setSending] = useState(false);
+
+  async function handleStatus(status: "completed" | "cancelled") {
+    if (sending) return;
+    setSending(true);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, status }),
+      });
+      if (res.ok) onChanged();
+    } finally {
+      setSending(false);
+    }
+  }
+
+  return (
+    <div className="flex gap-3">
+      <button
+        onClick={() => handleStatus("completed")}
+        disabled={sending}
+        className="flex-1 bg-green-600 text-white font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors disabled:opacity-50"
+      >
+        Завершить
+      </button>
+      <button
+        onClick={() => handleStatus("cancelled")}
+        disabled={sending}
+        className="flex-1 border border-border text-foreground-secondary font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors disabled:opacity-50"
+      >
+        Отменить
+      </button>
+    </div>
+  );
+}
+
+/* ─── Self-mark (player marks attended/paid) ─── */
+
+function SelfMarkSection({
+  teamId,
+  eventId,
+  userId,
+  attendance,
+  onChanged,
+}: {
+  teamId: string;
+  eventId: string;
+  userId: string;
+  attendance: AttendanceItem | null;
+  onChanged: () => void;
+}) {
+  const [sending, setSending] = useState(false);
+
+  async function toggle(field: "attended" | "paid") {
+    if (sending) return;
+    setSending(true);
+    try {
+      const currentValue = attendance?.[field] ?? false;
+      const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, [field]: !currentValue }),
+      });
+      if (res.ok) onChanged();
+    } finally {
+      setSending(false);
+    }
+  }
+
+  const attended = attendance?.attended ?? false;
+  const paid = attendance?.paid ?? false;
+
+  return (
+    <section className="bg-background-card border border-border rounded-lg p-5">
+      <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Ваша отметка</p>
+      <div className="flex gap-3">
+        <button
+          onClick={() => toggle("attended")}
+          disabled={sending}
+          className={`flex-1 font-display font-semibold uppercase rounded-full px-4 py-2.5 text-sm transition-colors disabled:opacity-50 ${
+            attended
+              ? "bg-green-600 text-white"
+              : "border border-border text-foreground"
+          }`}
+        >
+          {attended ? "Был(а)" : "Был(а)?"}
+        </button>
+        <button
+          onClick={() => toggle("paid")}
+          disabled={sending}
+          className={`flex-1 font-display font-semibold uppercase rounded-full px-4 py-2.5 text-sm transition-colors disabled:opacity-50 ${
+            paid
+              ? "bg-green-600 text-white"
+              : "border border-border text-foreground"
+          }`}
+        >
+          {paid ? "Сдал(а)" : "Сдал(а)?"}
+        </button>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Finance Summary (completed event) ─── */
+
+function FinanceSummary({
+  attendances,
+  pricePerPlayer,
+}: {
+  attendances: AttendanceItem[];
+  pricePerPlayer: number;
+}) {
+  const confirmedAttended = attendances.filter(
+    (a) => a.attended_confirmed === true || (a.attended_confirmed === null && a.attended === true),
+  );
+  const confirmedPaid = attendances.filter(
+    (a) => a.paid_confirmed === true || (a.paid_confirmed === null && a.paid === true),
+  );
+
+  const expected = confirmedAttended.length * pricePerPlayer;
+  const actual = confirmedPaid.length * pricePerPlayer;
+  const diff = actual - expected;
+
+  return (
+    <section className="bg-background-card border border-border rounded-lg p-5">
+      <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Финансы</p>
+      <div className="flex flex-col gap-1 text-sm">
+        <div className="flex justify-between">
+          <span className="text-foreground-secondary">Были на событии</span>
+          <span className="font-medium">{confirmedAttended.length}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-foreground-secondary">Ожидаемый сбор</span>
+          <span className="font-medium">{expected} ₽</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-foreground-secondary">Сдали деньги</span>
+          <span className="font-medium">{confirmedPaid.length} из {confirmedAttended.length}</span>
+        </div>
+        <div className="flex justify-between">
+          <span className="text-foreground-secondary">Фактический сбор</span>
+          <span className="font-medium">{actual} ₽</span>
+        </div>
+        <div className="flex justify-between pt-1 border-t border-border mt-1">
+          <span className="text-foreground-secondary">Разница</span>
+          <span className={`font-medium ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
+            {diff >= 0 ? "+" : ""}{diff} ₽
+          </span>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ─── Organizer Attendance List (with confirm toggles) ─── */
+
+function OrganizerAttendanceList({
+  teamId,
+  eventId,
+  userId,
+  attendances,
+  onChanged,
+}: {
+  teamId: string;
+  eventId: string;
+  userId: string;
+  attendances: AttendanceItem[];
+  onChanged: () => void;
+}) {
+  const [processing, setProcessing] = useState<string | null>(null);
+
+  async function toggleConfirm(targetUserId: string, field: "attended_confirmed" | "paid_confirmed", currentValue: boolean | null) {
+    if (processing) return;
+    setProcessing(targetUserId + field);
+    try {
+      const newValue = currentValue === true ? false : true;
+      const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, targetUserId, [field]: newValue }),
+      });
+      if (res.ok) onChanged();
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  return (
+    <section>
+      <p className="text-xs uppercase font-display text-foreground-secondary mb-2">
+        Участники ({attendances.length})
+      </p>
+      {attendances.length === 0 ? (
+        <div className="bg-background-card border border-border rounded-lg p-4 text-center text-foreground-secondary text-sm">
+          Нет участников
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-2">
+          {attendances.map((a) => {
+            const attendedStatus = a.attended_confirmed ?? a.attended;
+            const paidStatus = a.paid_confirmed ?? a.paid;
+
+            return (
+              <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-3">
+                <p className="font-medium text-sm mb-2">{a.user.name}</p>
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => toggleConfirm(a.user_id, "attended_confirmed", a.attended_confirmed)}
+                    disabled={processing !== null}
+                    className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
+                      attendedStatus === true
+                        ? "bg-green-600 text-white"
+                        : attendedStatus === false
+                        ? "bg-red-500/10 text-red-500"
+                        : "border border-border text-foreground-secondary"
+                    }`}
+                  >
+                    {attendedStatus === true ? "Был" : attendedStatus === false ? "Не был" : "Был?"}
+                  </button>
+                  <button
+                    onClick={() => toggleConfirm(a.user_id, "paid_confirmed", a.paid_confirmed)}
+                    disabled={processing !== null}
+                    className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
+                      paidStatus === true
+                        ? "bg-green-600 text-white"
+                        : paidStatus === false
+                        ? "bg-red-500/10 text-red-500"
+                        : "border border-border text-foreground-secondary"
+                    }`}
+                  >
+                    {paidStatus === true ? "Сдал" : paidStatus === false ? "Не сдал" : "Сдал?"}
+                  </button>
+                </div>
+                {/* Show player's own marks if different from confirmed */}
+                {(a.attended !== null || a.paid !== null) && (
+                  <p className="text-xs text-foreground-secondary mt-1.5">
+                    Отметка игрока:
+                    {a.attended !== null && (a.attended ? " был" : " не был")}
+                    {a.paid !== null && (a.paid ? ", сдал" : ", не сдал")}
+                  </p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
+  );
+}
+
+/* ─── Simple Attendance List (non-organizer or planned) ─── */
+
+function SimpleAttendanceList({
+  attendances,
+  yesVotes,
+  noVotes,
+}: {
+  attendances: AttendanceItem[];
+  yesVotes: AttendanceItem[];
+  noVotes: AttendanceItem[];
+}) {
+  return (
+    <section>
+      <p className="text-xs uppercase font-display text-foreground-secondary mb-2">
+        Голоса ({attendances.length})
+      </p>
+
+      {yesVotes.length > 0 && (
+        <div className="mb-3">
+          <p className="text-xs text-green-600 font-medium mb-1">Придут ({yesVotes.length})</p>
+          <ul className="flex flex-col gap-1">
+            {yesVotes.map((a) => (
+              <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-2 text-sm">
+                {a.user.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {noVotes.length > 0 && (
+        <div>
+          <p className="text-xs text-red-500 font-medium mb-1">Не придут ({noVotes.length})</p>
+          <ul className="flex flex-col gap-1">
+            {noVotes.map((a) => (
+              <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-2 text-sm text-foreground-secondary">
+                {a.user.name}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {attendances.length === 0 && (
+        <div className="bg-background-card border border-border rounded-lg p-4 text-center text-foreground-secondary text-sm">
+          Пока никто не проголосовал
+        </div>
+      )}
+    </section>
+  );
+}
+
+/* ─── Helpers ─── */
 
 function formatDate(iso: string): string {
   const d = new Date(iso);

@@ -92,5 +92,23 @@ export async function GET(
     pendingRequestsCount = count ?? 0;
   }
 
-  return NextResponse.json({ team, members, currentRole, joinRequestStatus, pendingRequestsCount });
+  // Team event stats
+  const { count: completedEventsCount } = await supabase
+    .from("events")
+    .select("*", { count: "exact", head: true })
+    .eq("team_id", id)
+    .eq("status", "completed");
+
+  const { count: plannedEventsCount } = await supabase
+    .from("events")
+    .select("*", { count: "exact", head: true })
+    .eq("team_id", id)
+    .eq("status", "planned");
+
+  const teamStats = {
+    completedEvents: completedEventsCount ?? 0,
+    plannedEvents: plannedEventsCount ?? 0,
+  };
+
+  return NextResponse.json({ team, members, currentRole, joinRequestStatus, pendingRequestsCount, teamStats });
 }

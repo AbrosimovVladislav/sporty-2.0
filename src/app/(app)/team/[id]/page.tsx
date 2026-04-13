@@ -23,7 +23,7 @@ export default function TeamHomePage() {
     return null;
   }
 
-  const { members, role, pendingRequestsCount } = team;
+  const { members, role, pendingRequestsCount, teamStats } = team;
   const playersCount = members.filter((m) => m.role === "player").length;
   const organizersCount = members.filter((m) => m.role === "organizer").length;
 
@@ -42,6 +42,22 @@ export default function TeamHomePage() {
       </section>
 
       <NextEventBlock teamId={team.team.id} />
+
+      {(teamStats.completedEvents > 0 || teamStats.plannedEvents > 0) && (
+        <section className="bg-background-card border border-border rounded-lg p-5">
+          <p className="text-xs uppercase font-display text-foreground-secondary">Статистика</p>
+          <div className="flex gap-6 mt-2">
+            <div>
+              <p className="text-2xl font-display font-bold">{teamStats.completedEvents}</p>
+              <p className="text-xs text-foreground-secondary">проведено</p>
+            </div>
+            <div>
+              <p className="text-2xl font-display font-bold">{teamStats.plannedEvents}</p>
+              <p className="text-xs text-foreground-secondary">запланировано</p>
+            </div>
+          </div>
+        </section>
+      )}
 
       {role === "organizer" && (
         <>

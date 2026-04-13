@@ -19,6 +19,11 @@ export type TeamMember = {
   };
 };
 
+export type TeamStats = {
+  completedEvents: number;
+  plannedEvents: number;
+};
+
 export type TeamState =
   | { status: "loading" }
   | { status: "not_found" }
@@ -30,6 +35,7 @@ export type TeamState =
       role: TeamRole;
       joinRequestStatus: JoinRequestStatus;
       pendingRequestsCount: number;
+      teamStats: TeamStats;
       reload: () => void;
     };
 
@@ -71,6 +77,7 @@ export function TeamProvider({ teamId, children }: { teamId: string; children: R
           role: data.currentRole,
           joinRequestStatus: data.joinRequestStatus ?? "none",
           pendingRequestsCount: data.pendingRequestsCount ?? 0,
+          teamStats: data.teamStats ?? { completedEvents: 0, plannedEvents: 0 },
           reload,
         });
       } catch {
