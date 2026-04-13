@@ -8,7 +8,14 @@ type AuthState =
   | { status: "authenticated"; user: User }
   | { status: "unauthenticated" };
 
-const AuthContext = createContext<AuthState>({ status: "loading" });
+type AuthContextValue = AuthState & {
+  updateUser: (updates: Partial<User>) => void;
+};
+
+const AuthContext = createContext<AuthContextValue>({
+  status: "loading",
+  updateUser: () => {},
+});
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<AuthState>({ status: "loading" });
@@ -46,7 +53,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     authenticate();
   }, []);
 
-  return <AuthContext.Provider value={state}>{children}</AuthContext.Provider>;
+  function updateUser(updates: Partial<User>) {
+    setState((current) => {
+      if (current.status !== "authenticated") {
+        return current;
+      }
+
+      return {
+        status: "authenticated",
+        user: {
+          ...current.user,
+          ...updates,
+        },
+      };
+    });
+  }
+
+  return <AuthContext.Provider value={{ ...state, updateUser }}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

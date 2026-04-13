@@ -46,7 +46,13 @@ export async function validateTelegramInitData(initData: string): Promise<boolea
   return expectedHash === hash;
 }
 
-export function parseTelegramUser(initData: string): { id: number; first_name: string; last_name?: string; username?: string } | null {
+export function parseTelegramUser(initData: string): {
+  id: number;
+  first_name: string;
+  last_name?: string;
+  username?: string;
+  photo_url?: string;
+} | null {
   try {
     const params = new URLSearchParams(initData);
     const userStr = params.get("user");

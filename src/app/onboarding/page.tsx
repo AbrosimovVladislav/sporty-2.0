@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseClient } from "@/lib/supabase";
 
 type Step = "role" | "player-form" | "done";
 type Role = "player" | "organizer";
@@ -14,8 +14,17 @@ export default function OnboardingPage() {
 
   const [step, setStep] = useState<Step>("role");
   const [role, setRole] = useState<Role | null>(null);
-  const [name, setName] = useState(auth.status === "authenticated" ? auth.user.name : "");
-  const [city, setCity] = useState("");
+  const initialFirstName =
+    auth.status === "authenticated" ? auth.user.first_name ?? auth.user.name.split(" ")[0] ?? "" : "";
+  const initialLastName =
+    auth.status === "authenticated"
+      ? auth.user.last_name ?? auth.user.name.split(" ").slice(1).join(" ")
+      : "";
+  const initialCity = auth.status === "authenticated" ? auth.user.city ?? "" : "";
+
+  const [firstName, setFirstName] = useState(initialFirstName);
+  const [lastName, setLastName] = useState(initialLastName);
+  const [city, setCity] = useState(initialCity);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -40,10 +49,31 @@ export default function OnboardingPage() {
     setLoading(true);
     setError("");
 
-    const { error: dbError } = await supabase
+    const resolvedFirstName = firstName.trim() || initialFirstName;
+    const resolvedLastName = lastName.trim() || initialLastName;
+    const resolvedCity = city.trim() || initialCity;
+    const fullName = [resolvedFirstName, resolvedLastName].filter(Boolean).join(" ");
+
+    let dbError: Error | null = null;
+
+    try {
+      const supabase = getSupabaseClient();
+      const result = await supabase
       .from("users")
-      .update({ name, city, sport: "football", onboarding_completed: true })
+      .update({
+        name: fullName,
+        first_name: resolvedFirstName || null,
+        last_name: resolvedLastName || null,
+        city: resolvedCity,
+        sport: "football",
+        onboarding_completed: true,
+      })
       .eq("id", auth.user.id);
+
+      dbError = result.error;
+    } catch (clientError) {
+      dbError = clientError instanceof Error ? clientError : new Error("Supabase client error");
+    }
 
     setLoading(false);
 
@@ -51,6 +81,15 @@ export default function OnboardingPage() {
       setError("Что-то пошло не так, попробуй снова");
       return;
     }
+
+    auth.updateUser({
+      name: fullName,
+      first_name: resolvedFirstName || null,
+      last_name: resolvedLastName || null,
+      city: resolvedCity,
+      sport: "football",
+      onboarding_completed: true,
+    });
 
     if (role === "organizer") {
       router.replace("/onboarding/team");
@@ -104,21 +143,32 @@ export default function OnboardingPage() {
           <label className="text-sm text-foreground-secondary">Имя</label>
           <input
             type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
+            value={firstName || initialFirstName}
+            onChange={(e) => setFirstName(e.target.value)}
             className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-            placeholder="Как тебя зовут?"
+            placeholder="Иван"
           />
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Город</label>
+          <label className="text-sm text-foreground-secondary">Фамилия</label>
           <input
             type="text"
-            value={city}
+            value={lastName || initialLastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
+            placeholder="Иванов"
+          />
+        </div>
+
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-foreground-secondary">Город или район</label>
+          <input
+            type="text"
+            value={city || initialCity}
             onChange={(e) => setCity(e.target.value)}
             className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-            placeholder="Москва"
+            placeholder="Москва / Хамовники"
           />
         </div>
 
@@ -135,7 +185,7 @@ export default function OnboardingPage() {
       <div className="mt-auto">
         <button
           onClick={completeOnboarding}
-          disabled={!name.trim() || !city.trim() || loading}
+          disabled={!(firstName.trim() || initialFirstName) || !(city.trim() || initialCity) || loading}
           className="w-full bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-6 py-3 disabled:opacity-50 transition-colors hover:bg-primary-hover"
         >
           {loading ? "Сохраняем..." : "Продолжить"}

@@ -18,6 +18,16 @@
   --primary-hover: #5e7129;
   --primary-foreground: #ffffff;
 
+  /* Semantic status */
+  --status-success: #6f9a3d;
+  --status-success-soft: rgba(111, 154, 61, 0.18);
+  --status-info: #4a8de8;
+  --status-info-soft: rgba(74, 141, 232, 0.18);
+  --status-warning: #d0a14b;
+  --status-warning-soft: rgba(208, 161, 75, 0.2);
+  --status-muted: #767676;
+  --status-muted-soft: rgba(118, 118, 118, 0.16);
+
   /* Borders & Dividers */
   --border: #e5e5e0;
   --border-dark: #333333;
@@ -43,6 +53,15 @@
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+
+  --color-status-success: var(--status-success);
+  --color-status-success-soft: var(--status-success-soft);
+  --color-status-info: var(--status-info);
+  --color-status-info-soft: var(--status-info-soft);
+  --color-status-warning: var(--status-warning);
+  --color-status-warning-soft: var(--status-warning-soft);
+  --color-status-muted: var(--status-muted);
+  --color-status-muted-soft: var(--status-muted-soft);
 
   --color-border: var(--border);
   --color-border-dark: var(--border-dark);

@@ -5,7 +5,10 @@ import { useAuth } from "@/lib/auth-context";
 export default function HomePage() {
   const auth = useAuth();
 
-  const name = auth.status === "authenticated" ? auth.user.name : "";
+  const name =
+    auth.status === "authenticated"
+      ? [auth.user.first_name, auth.user.last_name].filter(Boolean).join(" ") || auth.user.name
+      : "";
 
   return (
     <div className="flex flex-1 flex-col p-6 gap-6">

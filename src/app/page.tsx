@@ -57,6 +57,12 @@ export default function RootPage() {
             >
               Открыть экран команды
             </Link>
+            <Link
+              href="/profile"
+              className="block w-full bg-background-card border border-border font-display font-semibold uppercase rounded-full px-6 py-3 text-center transition-colors hover:border-primary"
+            >
+              Открыть профиль игрока
+            </Link>
           </div>
         </div>
       </div>
