@@ -101,6 +101,100 @@ export type Database = {
         };
         Relationships: [];
       };
+      venues: {
+        Row: {
+          id: string;
+          name: string;
+          address: string;
+          city: string;
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          address: string;
+          city: string;
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          name?: string;
+          address?: string;
+          city?: string;
+        };
+        Relationships: [];
+      };
+      events: {
+        Row: {
+          id: string;
+          team_id: string;
+          venue_id: string | null;
+          type: "game" | "training" | "gathering" | "other";
+          date: string;
+          price_per_player: number;
+          min_players: number;
+          description: string | null;
+          status: "planned" | "completed" | "cancelled";
+          created_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          venue_id?: string | null;
+          type: "game" | "training" | "gathering" | "other";
+          date: string;
+          price_per_player?: number;
+          min_players?: number;
+          description?: string | null;
+          status?: "planned" | "completed" | "cancelled";
+          created_by: string;
+          created_at?: string;
+        };
+        Update: {
+          venue_id?: string | null;
+          type?: "game" | "training" | "gathering" | "other";
+          date?: string;
+          price_per_player?: number;
+          min_players?: number;
+          description?: string | null;
+          status?: "planned" | "completed" | "cancelled";
+        };
+        Relationships: [];
+      };
+      event_attendances: {
+        Row: {
+          id: string;
+          event_id: string;
+          user_id: string;
+          vote: "yes" | "no" | null;
+          attended: boolean | null;
+          attended_confirmed: boolean | null;
+          paid: boolean | null;
+          paid_confirmed: boolean | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          event_id: string;
+          user_id: string;
+          vote?: "yes" | "no" | null;
+          attended?: boolean | null;
+          attended_confirmed?: boolean | null;
+          paid?: boolean | null;
+          paid_confirmed?: boolean | null;
+          created_at?: string;
+        };
+        Update: {
+          vote?: "yes" | "no" | null;
+          attended?: boolean | null;
+          attended_confirmed?: boolean | null;
+          paid?: boolean | null;
+          paid_confirmed?: boolean | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -112,3 +206,6 @@ export type User = Database["public"]["Tables"]["users"]["Row"];
 export type Team = Database["public"]["Tables"]["teams"]["Row"];
 export type TeamMembership = Database["public"]["Tables"]["team_memberships"]["Row"];
 export type JoinRequest = Database["public"]["Tables"]["join_requests"]["Row"];
+export type Venue = Database["public"]["Tables"]["venues"]["Row"];
+export type Event = Database["public"]["Tables"]["events"]["Row"];
+export type EventAttendance = Database["public"]["Tables"]["event_attendances"]["Row"];

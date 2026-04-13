@@ -1,9 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "./team-context";
+
+const TYPE_LABEL: Record<string, string> = {
+  game: "Игра",
+  training: "Тренировка",
+  gathering: "Сбор",
+  other: "Другое",
+};
 
 export default function TeamHomePage() {
   const team = useTeam();
@@ -34,10 +41,7 @@ export default function TeamHomePage() {
         )}
       </section>
 
-      <section className="bg-background-card border border-border rounded-lg p-5">
-        <p className="text-xs uppercase font-display text-foreground-secondary">Ближайшее событие</p>
-        <p className="text-sm text-foreground-secondary mt-1">Событий пока нет</p>
-      </section>
+      <NextEventBlock teamId={team.team.id} />
 
       {role === "organizer" && (
         <>
@@ -223,6 +227,73 @@ function IncomingRequestsBlock({
         </ul>
       )}
     </section>
+  );
+}
+
+type NextEvent = {
+  id: string;
+  type: string;
+  date: string;
+  venue: { name: string } | null;
+  yesCount: number;
+};
+
+function NextEventBlock({ teamId }: { teamId: string }) {
+  const [event, setEvent] = useState<NextEvent | null | undefined>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/teams/${teamId}/events`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (cancelled) return;
+        const planned = (d.events ?? []).filter((e: { status: string }) => e.status === "planned");
+        setEvent(planned.length > 0 ? planned[0] : null);
+      })
+      .catch(() => {
+        if (!cancelled) setEvent(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId]);
+
+  if (event === undefined) {
+    return (
+      <section className="bg-background-card border border-border rounded-lg p-5">
+        <p className="text-xs uppercase font-display text-foreground-secondary">Ближайшее событие</p>
+        <div className="h-6 w-40 rounded bg-border mt-2 animate-pulse" />
+      </section>
+    );
+  }
+
+  if (event === null) {
+    return (
+      <section className="bg-background-card border border-border rounded-lg p-5">
+        <p className="text-xs uppercase font-display text-foreground-secondary">Ближайшее событие</p>
+        <p className="text-sm text-foreground-secondary mt-1">Событий пока нет</p>
+      </section>
+    );
+  }
+
+  const d = new Date(event.date);
+  const dateStr = d.toLocaleDateString("ru-RU", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
+
+  return (
+    <Link href={`/team/${teamId}/events/${event.id}`}>
+      <section className="bg-background-card border border-border rounded-lg p-5">
+        <p className="text-xs uppercase font-display text-foreground-secondary">Ближайшее событие</p>
+        <p className="text-lg font-display font-bold mt-1">
+          {TYPE_LABEL[event.type] ?? event.type} — {dateStr}
+        </p>
+        {event.venue && (
+          <p className="text-sm text-foreground-secondary mt-1">{event.venue.name}</p>
+        )}
+        <p className="text-sm text-foreground-secondary mt-1">
+          Придут: {event.yesCount}
+        </p>
+      </section>
+    </Link>
   );
 }
 
