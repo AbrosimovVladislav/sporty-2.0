@@ -121,9 +121,11 @@ export function PlayerCard({
             ) : (
               <ul className="flex flex-col gap-2">
                 {data.history.map((h) => {
-                  const date = new Date(h.date).toLocaleDateString("ru-RU", {
+                  const date = new Date(h.date).toLocaleString("ru-RU", {
                     day: "numeric",
                     month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
                   });
                   const status = h.attended
                     ? h.paid

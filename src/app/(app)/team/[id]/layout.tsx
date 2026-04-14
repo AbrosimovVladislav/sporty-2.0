@@ -76,7 +76,7 @@ function TeamSubNav({ id }: { id: string }) {
 
   return (
     <nav className="px-4 pb-2 sticky top-0 z-10 bg-background">
-      <div className="flex gap-1.5 overflow-x-auto">
+      <div className="flex justify-center gap-2 overflow-x-auto">
         {visibleTabs.map((tab) => {
           const href = tab.href(id);
           const isActive = tab.exact
@@ -87,7 +87,7 @@ function TeamSubNav({ id }: { id: string }) {
               key={href}
               href={href}
               onClick={() => reload?.()}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "bg-background-card text-foreground border border-border"
