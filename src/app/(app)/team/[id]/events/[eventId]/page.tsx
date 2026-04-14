@@ -549,25 +549,21 @@ function OrganizerAttendanceList({
                         : "border border-border text-foreground-secondary"
                     }`}
                   >
-                    {paidStatus === true
-                      ? a.paid_amount != null
-                        ? `Сдал ${a.paid_amount} ₽`
-                        : "Сдал"
-                      : paidStatus === false
-                      ? "Не сдал"
-                      : "Сдал?"}
+                    {paidStatus === true ? "Сдал" : paidStatus === false ? "Не сдал" : "Сдал?"}
                   </button>
+                </div>
+                {paidStatus === true && amountFor !== a.user_id && (
                   <button
                     onClick={() => {
                       setAmountFor(a.user_id);
                       setAmountInput(String(a.paid_amount ?? pricePerPlayer));
                     }}
                     disabled={processing !== null}
-                    className="text-xs text-primary font-display font-semibold uppercase px-2 py-1.5"
+                    className="text-xs text-foreground-secondary mt-2 underline underline-offset-2"
                   >
-                    Сумма
+                    Сумма: {a.paid_amount ?? pricePerPlayer} ₽ — изменить
                   </button>
-                </div>
+                )}
                 {amountFor === a.user_id && (
                   <div className="flex items-center gap-2 mt-2">
                     <input

@@ -11,6 +11,8 @@ type EventWithVenue = {
   min_players: number;
   description: string | null;
   status: string;
+  venue_cost: number;
+  venue_paid: number;
   created_by: string;
   created_at: string;
   venues: { id: string; name: string; address: string } | null;
@@ -40,9 +42,9 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, status, created_by, created_at, venues(id, name, address)")
+    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, created_by, created_at, venues(id, name, address)")
     .eq("team_id", teamId)
-    .order("date", { ascending: true });
+    .order("date", { ascending: false });
 
   if (error) {
     console.error("Events fetch error:", error);
@@ -93,6 +95,8 @@ export async function GET(
       min_players: e.min_players,
       description: e.description,
       status: e.status,
+      venue_cost: e.venue_cost,
+      venue_paid: e.venue_paid,
       venue: e.venues,
       yesCount,
       noCount,

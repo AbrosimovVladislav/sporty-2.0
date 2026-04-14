@@ -72,10 +72,11 @@ function TeamSubNav({ id }: { id: string }) {
   const team = useTeam();
   const isOrganizer = team.status === "ready" && team.role === "organizer";
   const visibleTabs = subTabs.filter((tab) => !tab.organizerOnly || isOrganizer);
+  const reload = team.status === "ready" ? team.reload : null;
 
   return (
-    <nav className="px-6 pb-2 sticky top-0 z-10 bg-background">
-      <div className="flex gap-2 overflow-x-auto">
+    <nav className="px-4 pb-2 sticky top-0 z-10 bg-background">
+      <div className="flex gap-1.5 overflow-x-auto">
         {visibleTabs.map((tab) => {
           const href = tab.href(id);
           const isActive = tab.exact
@@ -85,7 +86,8 @@ function TeamSubNav({ id }: { id: string }) {
             <Link
               key={href}
               href={href}
-              className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+              onClick={() => reload?.()}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "bg-background-card text-foreground border border-border"

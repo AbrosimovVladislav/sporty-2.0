@@ -20,6 +20,8 @@ type EventItem = {
   min_players: number;
   description: string | null;
   status: string;
+  venue_cost: number;
+  venue_paid: number;
   venue: { id: string; name: string; address: string } | null;
   yesCount: number;
   noCount: number;
@@ -169,6 +171,13 @@ function EventGroup({
                   {e.status === "completed"
                     ? `Сбор: ${e.actualCollected} из ${e.expectedCollected} ₽`
                     : `Ожидаемый сбор: ${e.yesCount * e.price_per_player} ₽`}
+                </p>
+              )}
+
+              {isOrganizer && e.venue_cost > 0 && (
+                <p className="text-xs text-foreground-secondary mt-1">
+                  Площадка: {e.venue_cost} ₽
+                  {e.venue_paid > 0 && ` (оплачено ${e.venue_paid})`}
                 </p>
               )}
 
