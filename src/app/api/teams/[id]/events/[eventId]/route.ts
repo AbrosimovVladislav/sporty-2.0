@@ -10,6 +10,8 @@ type EventWithVenue = {
   min_players: number;
   description: string | null;
   status: string;
+  venue_cost: number;
+  venue_paid: number;
   created_by: string;
   created_at: string;
   venues: { id: string; name: string; address: string } | null;
@@ -23,6 +25,7 @@ type AttendanceWithUser = {
   attended_confirmed: boolean | null;
   paid: boolean | null;
   paid_confirmed: boolean | null;
+  paid_amount: number | null;
   users: { id: string; name: string } | null;
 };
 
@@ -37,7 +40,7 @@ export async function GET(
 
   const { data: rawEvent, error: eventErr } = await supabase
     .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, status, created_by, created_at, venues(id, name, address)")
+    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, created_by, created_at, venues(id, name, address)")
     .eq("id", eventId)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -54,7 +57,7 @@ export async function GET(
 
   const { data: rawAttendances, error: attErr } = await supabase
     .from("event_attendances")
-    .select("id, user_id, vote, attended, attended_confirmed, paid, paid_confirmed, users(id, name)")
+    .select("id, user_id, vote, attended, attended_confirmed, paid, paid_confirmed, paid_amount, users(id, name)")
     .eq("event_id", eventId);
 
   if (attErr) {
@@ -74,6 +77,8 @@ export async function GET(
       min_players: event.min_players,
       description: event.description,
       status: event.status,
+      venue_cost: event.venue_cost,
+      venue_paid: event.venue_paid,
       created_by: event.created_by,
       created_at: event.created_at,
       venue: event.venues,
@@ -88,30 +93,39 @@ export async function GET(
         attended_confirmed: a.attended_confirmed,
         paid: a.paid,
         paid_confirmed: a.paid_confirmed,
+        paid_amount: a.paid_amount,
         user: a.users!,
       })),
   });
 }
 
-// PATCH — update event status (organizer only)
+// PATCH — update event (organizer only). Supports status transition and venue_cost/venue_paid edits.
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; eventId: string }> },
 ) {
   const { id: teamId, eventId } = await params;
   const body = await req.json();
-  const { userId, status } = body;
+  const { userId, status, venue_cost, venue_paid } = body;
 
-  if (!userId || !status || !["completed", "cancelled"].includes(status)) {
-    return NextResponse.json(
-      { error: "userId and status (completed/cancelled) are required" },
-      { status: 400 },
-    );
+  if (!userId) {
+    return NextResponse.json({ error: "userId required" }, { status: 400 });
+  }
+
+  const hasStatus = status !== undefined;
+  const hasVenueCost = venue_cost !== undefined;
+  const hasVenuePaid = venue_paid !== undefined;
+
+  if (!hasStatus && !hasVenueCost && !hasVenuePaid) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  if (hasStatus && !["completed", "cancelled"].includes(status)) {
+    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
   }
 
   const supabase = getServiceClient();
 
-  // Verify organizer role
   const { data: membership } = await supabase
     .from("team_memberships")
     .select("role")
@@ -123,7 +137,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Verify event exists and is planned
   const { data: event } = await supabase
     .from("events")
     .select("id, status")
@@ -135,19 +148,40 @@ export async function PATCH(
     return NextResponse.json({ error: "Event not found" }, { status: 404 });
   }
 
-  if (event.status !== "planned") {
-    return NextResponse.json({ error: "Only planned events can be updated" }, { status: 400 });
+  if (hasStatus && event.status !== "planned") {
+    return NextResponse.json({ error: "Only planned events can change status" }, { status: 400 });
+  }
+
+  const update: {
+    status?: "completed" | "cancelled";
+    venue_cost?: number;
+    venue_paid?: number;
+  } = {};
+  if (hasStatus) update.status = status;
+  if (hasVenueCost) {
+    const v = Number(venue_cost);
+    if (!Number.isFinite(v) || v < 0) {
+      return NextResponse.json({ error: "venue_cost must be >= 0" }, { status: 400 });
+    }
+    update.venue_cost = v;
+  }
+  if (hasVenuePaid) {
+    const v = Number(venue_paid);
+    if (!Number.isFinite(v) || v < 0) {
+      return NextResponse.json({ error: "venue_paid must be >= 0" }, { status: 400 });
+    }
+    update.venue_paid = v;
   }
 
   const { error } = await supabase
     .from("events")
-    .update({ status })
+    .update(update)
     .eq("id", eventId);
 
   if (error) {
-    console.error("Event status update error:", error);
+    console.error("Event update error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  return NextResponse.json({ status });
+  return NextResponse.json(update);
 }

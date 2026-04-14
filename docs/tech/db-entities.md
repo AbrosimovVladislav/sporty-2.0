@@ -93,6 +93,8 @@
 | min_players | integer | Мин. кол-во игроков |
 | description | text? | Описание |
 | status | enum | `planned` / `completed` / `cancelled` |
+| venue_cost | numeric | Стоимость аренды площадки (default 0) |
+| venue_paid | numeric | Сколько уже перечислено площадке (default 0) |
 | created_by | uuid | FK → User (организатор) |
 | created_at | timestamp | Дата создания |
 
@@ -112,6 +114,7 @@
 | attended_confirmed | boolean? | Подтверждение организатора |
 | paid | boolean? | Сдал деньги (отметка игрока) |
 | paid_confirmed | boolean? | Подтверждение организатора |
+| paid_amount | numeric? | Произвольная сумма оплаты. Если null — fallback на `price_per_player` события |
 
 **Unique constraint:** (event_id, user_id)
 

@@ -5,17 +5,20 @@ import { usePathname } from "next/navigation";
 import { use } from "react";
 import { TeamProvider, useTeam } from "./team-context";
 
+
 type TeamSubTab = {
   label: string;
   href: (id: string) => string;
   /** Active when pathname matches exactly this resolved href. */
   exact?: boolean;
+  organizerOnly?: boolean;
 };
 
 const subTabs: TeamSubTab[] = [
   { label: "Главная", href: (id) => `/team/${id}`, exact: true },
   { label: "Состав", href: (id) => `/team/${id}/roster` },
   { label: "События", href: (id) => `/team/${id}/events` },
+  { label: "Финансы", href: (id) => `/team/${id}/finances`, organizerOnly: true },
 ];
 
 const SPORT_LABEL: Record<string, string> = {
@@ -64,6 +67,39 @@ function TeamHeader() {
   );
 }
 
+function TeamSubNav({ id }: { id: string }) {
+  const pathname = usePathname();
+  const team = useTeam();
+  const isOrganizer = team.status === "ready" && team.role === "organizer";
+  const visibleTabs = subTabs.filter((tab) => !tab.organizerOnly || isOrganizer);
+
+  return (
+    <nav className="px-6 pb-2 sticky top-0 z-10 bg-background">
+      <div className="flex gap-2 overflow-x-auto">
+        {visibleTabs.map((tab) => {
+          const href = tab.href(id);
+          const isActive = tab.exact
+            ? pathname === href
+            : pathname === href || pathname.startsWith(href + "/");
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+                isActive
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background-card text-foreground border border-border"
+              }`}
+            >
+              {tab.label}
+            </Link>
+          );
+        })}
+      </div>
+    </nav>
+  );
+}
+
 export default function TeamLayout({
   children,
   params,
@@ -72,7 +108,6 @@ export default function TeamLayout({
   params: Promise<{ id: string }>;
 }) {
   const { id } = use(params);
-  const pathname = usePathname();
 
   return (
     <TeamProvider teamId={id}>
@@ -81,29 +116,7 @@ export default function TeamLayout({
           <TeamHeader />
         </div>
 
-        <nav className="px-6 pb-2 sticky top-0 z-10 bg-background">
-          <div className="flex gap-2 overflow-x-auto">
-            {subTabs.map((tab) => {
-              const href = tab.href(id);
-              const isActive = tab.exact
-                ? pathname === href
-                : pathname === href || pathname.startsWith(href + "/");
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  className={`rounded-full px-4 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-background-card text-foreground border border-border"
-                  }`}
-                >
-                  {tab.label}
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
+        <TeamSubNav id={id} />
 
         <div className="flex flex-1 flex-col px-6 py-4 gap-4">{children}</div>
       </div>

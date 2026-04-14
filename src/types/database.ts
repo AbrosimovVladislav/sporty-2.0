@@ -136,6 +136,8 @@ export type Database = {
           min_players: number;
           description: string | null;
           status: "planned" | "completed" | "cancelled";
+          venue_cost: number;
+          venue_paid: number;
           created_by: string;
           created_at: string;
         };
@@ -149,6 +151,8 @@ export type Database = {
           min_players?: number;
           description?: string | null;
           status?: "planned" | "completed" | "cancelled";
+          venue_cost?: number;
+          venue_paid?: number;
           created_by: string;
           created_at?: string;
         };
@@ -160,6 +164,8 @@ export type Database = {
           min_players?: number;
           description?: string | null;
           status?: "planned" | "completed" | "cancelled";
+          venue_cost?: number;
+          venue_paid?: number;
         };
         Relationships: [];
       };
@@ -173,6 +179,7 @@ export type Database = {
           attended_confirmed: boolean | null;
           paid: boolean | null;
           paid_confirmed: boolean | null;
+          paid_amount: number | null;
           created_at: string;
         };
         Insert: {
@@ -184,6 +191,7 @@ export type Database = {
           attended_confirmed?: boolean | null;
           paid?: boolean | null;
           paid_confirmed?: boolean | null;
+          paid_amount?: number | null;
           created_at?: string;
         };
         Update: {
@@ -192,6 +200,7 @@ export type Database = {
           attended_confirmed?: boolean | null;
           paid?: boolean | null;
           paid_confirmed?: boolean | null;
+          paid_amount?: number | null;
         };
         Relationships: [];
       };

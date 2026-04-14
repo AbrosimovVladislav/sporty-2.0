@@ -2,10 +2,15 @@
 
 import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { PlayerCard } from "@/components/PlayerCard";
 import { useTeam, type TeamMember } from "../team-context";
 
 export default function RosterPage() {
   const team = useTeam();
+  const auth = useAuth();
+  const [openPlayerId, setOpenPlayerId] = useState<string | null>(null);
+
+  const requesterId = auth.status === "authenticated" ? auth.user.id : null;
 
   if (team.status === "loading") {
     return (
@@ -21,6 +26,7 @@ export default function RosterPage() {
 
   const organizers = team.members.filter((m) => m.role === "organizer");
   const players = team.members.filter((m) => m.role === "player");
+  const isOrganizer = team.role === "organizer";
 
   if (team.members.length === 0) {
     return (
@@ -37,10 +43,11 @@ export default function RosterPage() {
           title="Организаторы"
           items={organizers}
           teamId={team.team.id}
-          isOrganizer={team.role === "organizer"}
+          isOrganizer={isOrganizer}
           showPromote={false}
-          showRemove={team.role === "organizer" && organizers.length > 1}
+          showRemove={isOrganizer && organizers.length > 1}
           onChanged={team.reload}
+          onOpenPlayer={isOrganizer ? setOpenPlayerId : null}
         />
       )}
       {players.length > 0 && (
@@ -48,10 +55,19 @@ export default function RosterPage() {
           title="Игроки"
           items={players}
           teamId={team.team.id}
-          isOrganizer={team.role === "organizer"}
-          showPromote={team.role === "organizer"}
-          showRemove={team.role === "organizer"}
+          isOrganizer={isOrganizer}
+          showPromote={isOrganizer}
+          showRemove={isOrganizer}
           onChanged={team.reload}
+          onOpenPlayer={isOrganizer ? setOpenPlayerId : null}
+        />
+      )}
+      {requesterId && openPlayerId && (
+        <PlayerCard
+          teamId={team.team.id}
+          requesterId={requesterId}
+          targetUserId={openPlayerId}
+          onClose={() => setOpenPlayerId(null)}
         />
       )}
     </>
@@ -66,6 +82,7 @@ function RosterGroup({
   showPromote,
   showRemove,
   onChanged,
+  onOpenPlayer,
 }: {
   title: string;
   items: TeamMember[];
@@ -74,6 +91,7 @@ function RosterGroup({
   showPromote: boolean;
   showRemove: boolean;
   onChanged: () => void;
+  onOpenPlayer: ((userId: string) => void) | null;
 }) {
   return (
     <section>
@@ -88,6 +106,7 @@ function RosterGroup({
             showPromote={showPromote}
             showRemove={showRemove}
             onChanged={onChanged}
+            onOpenPlayer={onOpenPlayer}
           />
         ))}
       </ul>
@@ -102,6 +121,7 @@ function MemberRow({
   showPromote,
   showRemove,
   onChanged,
+  onOpenPlayer,
 }: {
   member: TeamMember;
   teamId: string;
@@ -109,6 +129,7 @@ function MemberRow({
   showPromote: boolean;
   showRemove: boolean;
   onChanged: () => void;
+  onOpenPlayer: ((userId: string) => void) | null;
 }) {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
@@ -144,15 +165,29 @@ function MemberRow({
     }
   }
 
+  const canOpenCard = onOpenPlayer !== null;
+
   return (
     <li className="bg-background-card border border-border rounded-lg px-4 py-3">
       <div className="flex items-center justify-between">
-        <div>
-          <span className="font-medium">{member.user.name}</span>
-          {member.user.city && (
-            <span className="text-xs text-foreground-secondary ml-2">{member.user.city}</span>
-          )}
-        </div>
+        {canOpenCard ? (
+          <button
+            onClick={() => onOpenPlayer!(member.user.id)}
+            className="text-left flex-1"
+          >
+            <span className="font-medium">{member.user.name}</span>
+            {member.user.city && (
+              <span className="text-xs text-foreground-secondary ml-2">{member.user.city}</span>
+            )}
+          </button>
+        ) : (
+          <div>
+            <span className="font-medium">{member.user.name}</span>
+            {member.user.city && (
+              <span className="text-xs text-foreground-secondary ml-2">{member.user.city}</span>
+            )}
+          </div>
+        )}
         {isOrganizer && !isSelf && (showPromote || showRemove) && (
           <div className="flex gap-2">
             {showPromote && (

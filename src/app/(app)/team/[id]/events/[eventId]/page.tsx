@@ -2,6 +2,12 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import {
+  getExpectedAmount,
+  getPaidAmount,
+  isAttendanceAttended,
+  isAttendancePaid,
+} from "@/lib/finances";
 import { useTeam } from "../../team-context";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -26,6 +32,8 @@ type EventDetail = {
   min_players: number;
   description: string | null;
   status: string;
+  venue_cost: number;
+  venue_paid: number;
   created_by: string;
   venue: { id: string; name: string; address: string } | null;
 };
@@ -38,6 +46,7 @@ type AttendanceItem = {
   attended_confirmed: boolean | null;
   paid: boolean | null;
   paid_confirmed: boolean | null;
+  paid_amount: number | null;
   user: { id: string; name: string };
 };
 
@@ -165,6 +174,18 @@ export default function EventDetailPage({
         />
       )}
 
+      {/* Venue costs (organizer) */}
+      {isOrganizer && userId && (
+        <VenueCostsBlock
+          teamId={teamId}
+          eventId={eventId}
+          userId={userId}
+          venueCost={event.venue_cost}
+          venuePaid={event.venue_paid}
+          onChanged={loadEvent}
+        />
+      )}
+
       {/* Finance summary (organizer, completed events with price) */}
       {isOrganizer && event.status === "completed" && event.price_per_player > 0 && (
         <FinanceSummary attendances={attendances} pricePerPlayer={event.price_per_player} />
@@ -188,6 +209,7 @@ export default function EventDetailPage({
           eventId={eventId}
           userId={userId!}
           attendances={attendances}
+          pricePerPlayer={event.price_per_player}
           onChanged={loadEvent}
         />
       ) : (
@@ -383,15 +405,11 @@ function FinanceSummary({
   attendances: AttendanceItem[];
   pricePerPlayer: number;
 }) {
-  const confirmedAttended = attendances.filter(
-    (a) => a.attended_confirmed === true || (a.attended_confirmed === null && a.attended === true),
-  );
-  const confirmedPaid = attendances.filter(
-    (a) => a.paid_confirmed === true || (a.paid_confirmed === null && a.paid === true),
-  );
+  const confirmedAttended = attendances.filter(isAttendanceAttended);
+  const confirmedPaid = attendances.filter(isAttendancePaid);
 
-  const expected = confirmedAttended.length * pricePerPlayer;
-  const actual = confirmedPaid.length * pricePerPlayer;
+  const expected = attendances.reduce((sum, a) => sum + getExpectedAmount(a, pricePerPlayer), 0);
+  const actual = attendances.reduce((sum, a) => sum + getPaidAmount(a, pricePerPlayer), 0);
   const diff = actual - expected;
 
   return (
@@ -432,27 +450,57 @@ function OrganizerAttendanceList({
   eventId,
   userId,
   attendances,
+  pricePerPlayer,
   onChanged,
 }: {
   teamId: string;
   eventId: string;
   userId: string;
   attendances: AttendanceItem[];
+  pricePerPlayer: number;
   onChanged: () => void;
 }) {
   const [processing, setProcessing] = useState<string | null>(null);
+  const [amountFor, setAmountFor] = useState<string | null>(null);
+  const [amountInput, setAmountInput] = useState("");
 
-  async function toggleConfirm(targetUserId: string, field: "attended_confirmed" | "paid_confirmed", currentValue: boolean | null) {
+  async function toggleConfirm(targetUserId: string, field: "attended_confirmed" | "paid_confirmed", mergedStatus: boolean | null) {
     if (processing) return;
     setProcessing(targetUserId + field);
     try {
-      const newValue = currentValue === true ? false : true;
+      const newValue = !mergedStatus;
       const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId, targetUserId, [field]: newValue }),
       });
       if (res.ok) onChanged();
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  async function saveAmount(targetUserId: string) {
+    if (processing) return;
+    const v = parseFloat(amountInput);
+    if (!Number.isFinite(v) || v < 0) return;
+    setProcessing(targetUserId + "amount");
+    try {
+      const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          targetUserId,
+          paid_confirmed: true,
+          paid_amount: v,
+        }),
+      });
+      if (res.ok) {
+        setAmountFor(null);
+        setAmountInput("");
+        onChanged();
+      }
     } finally {
       setProcessing(null);
     }
@@ -478,7 +526,7 @@ function OrganizerAttendanceList({
                 <p className="font-medium text-sm mb-2">{a.user.name}</p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => toggleConfirm(a.user_id, "attended_confirmed", a.attended_confirmed)}
+                    onClick={() => toggleConfirm(a.user_id, "attended_confirmed", attendedStatus)}
                     disabled={processing !== null}
                     className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
                       attendedStatus === true
@@ -491,7 +539,7 @@ function OrganizerAttendanceList({
                     {attendedStatus === true ? "Был" : attendedStatus === false ? "Не был" : "Был?"}
                   </button>
                   <button
-                    onClick={() => toggleConfirm(a.user_id, "paid_confirmed", a.paid_confirmed)}
+                    onClick={() => toggleConfirm(a.user_id, "paid_confirmed", paidStatus)}
                     disabled={processing !== null}
                     className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
                       paidStatus === true
@@ -501,9 +549,54 @@ function OrganizerAttendanceList({
                         : "border border-border text-foreground-secondary"
                     }`}
                   >
-                    {paidStatus === true ? "Сдал" : paidStatus === false ? "Не сдал" : "Сдал?"}
+                    {paidStatus === true
+                      ? a.paid_amount != null
+                        ? `Сдал ${a.paid_amount} ₽`
+                        : "Сдал"
+                      : paidStatus === false
+                      ? "Не сдал"
+                      : "Сдал?"}
+                  </button>
+                  <button
+                    onClick={() => {
+                      setAmountFor(a.user_id);
+                      setAmountInput(String(a.paid_amount ?? pricePerPlayer));
+                    }}
+                    disabled={processing !== null}
+                    className="text-xs text-primary font-display font-semibold uppercase px-2 py-1.5"
+                  >
+                    Сумма
                   </button>
                 </div>
+                {amountFor === a.user_id && (
+                  <div className="flex items-center gap-2 mt-2">
+                    <input
+                      type="number"
+                      min="0"
+                      value={amountInput}
+                      onChange={(e) => setAmountInput(e.target.value)}
+                      className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:border-primary"
+                      placeholder="Сумма ₽"
+                      autoFocus
+                    />
+                    <button
+                      onClick={() => saveAmount(a.user_id)}
+                      disabled={processing !== null}
+                      className="text-xs font-display font-semibold uppercase px-3 py-2 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+                    >
+                      Ок
+                    </button>
+                    <button
+                      onClick={() => {
+                        setAmountFor(null);
+                        setAmountInput("");
+                      }}
+                      className="text-xs text-foreground-secondary px-2"
+                    >
+                      ×
+                    </button>
+                  </div>
+                )}
                 {/* Show player's own marks if different from confirmed */}
                 {(a.attended !== null || a.paid !== null) && (
                   <p className="text-xs text-foreground-secondary mt-1.5">
@@ -569,6 +662,143 @@ function SimpleAttendanceList({
           Пока никто не проголосовал
         </div>
       )}
+    </section>
+  );
+}
+
+/* ─── Venue Costs Block (organizer only) ─── */
+
+function VenueCostsBlock({
+  teamId,
+  eventId,
+  userId,
+  venueCost,
+  venuePaid,
+  onChanged,
+}: {
+  teamId: string;
+  eventId: string;
+  userId: string;
+  venueCost: number;
+  venuePaid: number;
+  onChanged: () => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [costInput, setCostInput] = useState(String(venueCost));
+  const [paidInput, setPaidInput] = useState(String(venuePaid));
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setCostInput(String(venueCost));
+    setPaidInput(String(venuePaid));
+  }, [venueCost, venuePaid]);
+
+  async function save() {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          venue_cost: parseFloat(costInput) || 0,
+          venue_paid: parseFloat(paidInput) || 0,
+        }),
+      });
+      if (res.ok) {
+        setEditing(false);
+        onChanged();
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const remain = venueCost - venuePaid;
+
+  if (!editing) {
+    return (
+      <section className="bg-background-card border border-border rounded-lg p-5">
+        <div className="flex justify-between items-baseline mb-2">
+          <p className="text-xs uppercase font-display text-foreground-secondary">Площадка — расходы</p>
+          <button
+            onClick={() => setEditing(true)}
+            className="text-xs text-primary font-display font-semibold uppercase"
+          >
+            Изменить
+          </button>
+        </div>
+        {venueCost === 0 ? (
+          <p className="text-sm text-foreground-secondary">Не указаны</p>
+        ) : (
+          <>
+            <div className="flex justify-between text-sm">
+              <span className="text-foreground-secondary">Стоимость</span>
+              <span className="font-medium">{venueCost} ₽</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-foreground-secondary">Оплачено</span>
+              <span className="font-medium">{venuePaid} ₽</span>
+            </div>
+            <div className="flex justify-between text-sm pt-1 border-t border-border mt-1">
+              <span className="text-foreground-secondary">Остаток</span>
+              <span className={`font-medium ${remain > 0 ? "text-red-500" : "text-green-600"}`}>
+                {remain > 0 ? `${remain} ₽` : "оплачено"}
+              </span>
+            </div>
+          </>
+        )}
+      </section>
+    );
+  }
+
+  return (
+    <section className="bg-background-card border border-border rounded-lg p-5">
+      <p className="text-xs uppercase font-display text-foreground-secondary mb-3">
+        Площадка — расходы
+      </p>
+      <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-foreground-secondary">Стоимость, ₽</label>
+          <input
+            type="number"
+            min="0"
+            value={costInput}
+            onChange={(e) => setCostInput(e.target.value)}
+            className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary"
+          />
+        </div>
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-foreground-secondary">Оплачено, ₽</label>
+          <input
+            type="number"
+            min="0"
+            value={paidInput}
+            onChange={(e) => setPaidInput(e.target.value)}
+            className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary"
+          />
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex-1 bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-4 py-2 disabled:opacity-50"
+          >
+            {saving ? "Сохраняю…" : "Сохранить"}
+          </button>
+          <button
+            onClick={() => {
+              setEditing(false);
+              setCostInput(String(venueCost));
+              setPaidInput(String(venuePaid));
+            }}
+            className="px-4 py-2 rounded-full border border-border text-foreground-secondary font-display font-semibold uppercase"
+          >
+            Отмена
+          </button>
+        </div>
+      </div>
     </section>
   );
 }

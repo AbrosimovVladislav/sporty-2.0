@@ -8,7 +8,7 @@ export async function PATCH(
 ) {
   const { id: teamId, eventId } = await params;
   const body = await req.json();
-  const { userId, targetUserId, attended, paid, attended_confirmed, paid_confirmed } = body;
+  const { userId, targetUserId, attended, paid, attended_confirmed, paid_confirmed, paid_amount } = body;
 
   if (!userId) {
     return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -58,12 +58,14 @@ export async function PATCH(
     attended_confirmed?: boolean | null;
     paid?: boolean | null;
     paid_confirmed?: boolean | null;
+    paid_amount?: number | null;
   } = {};
 
   if (isOrganizer && effectiveTargetId !== userId) {
     // Organizer confirming for another user
     if (attended_confirmed !== undefined) update.attended_confirmed = attended_confirmed;
     if (paid_confirmed !== undefined) update.paid_confirmed = paid_confirmed;
+    if (paid_amount !== undefined) update.paid_amount = paid_amount === null ? null : Number(paid_amount);
   } else {
     // Player marking self
     if (attended !== undefined) update.attended = attended;
@@ -72,7 +74,13 @@ export async function PATCH(
     if (isOrganizer) {
       if (attended_confirmed !== undefined) update.attended_confirmed = attended_confirmed;
       if (paid_confirmed !== undefined) update.paid_confirmed = paid_confirmed;
+      if (paid_amount !== undefined) update.paid_amount = paid_amount === null ? null : Number(paid_amount);
     }
+  }
+
+  // When unmarking paid, drop the explicit amount
+  if (update.paid_confirmed === false || update.paid === false) {
+    update.paid_amount = null;
   }
 
   if (Object.keys(update).length === 0) {

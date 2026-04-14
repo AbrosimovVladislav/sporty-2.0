@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { getExpectedAmount, getPaidAmount } from "@/lib/finances";
 
 type EventWithVenue = {
   id: string;
@@ -13,6 +14,17 @@ type EventWithVenue = {
   created_by: string;
   created_at: string;
   venues: { id: string; name: string; address: string } | null;
+};
+
+type AttendanceRow = {
+  event_id: string;
+  user_id: string;
+  vote: "yes" | "no" | null;
+  attended: boolean | null;
+  attended_confirmed: boolean | null;
+  paid: boolean | null;
+  paid_confirmed: boolean | null;
+  paid_amount: number | null;
 };
 
 // GET — list team events
@@ -38,48 +50,57 @@ export async function GET(
   }
 
   const events = (data ?? []) as unknown as EventWithVenue[];
+  const eventIds = events.map((e) => e.id);
 
-  // For each event, get vote counts + current user's vote
-  const enriched = await Promise.all(
-    events.map(async (e) => {
-      const { count: yesCount } = await supabase
+  // Single batch fetch for all attendances of these events
+  const { data: attRaw } = eventIds.length
+    ? await supabase
         .from("event_attendances")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", e.id)
-        .eq("vote", "yes");
+        .select("event_id, user_id, vote, attended, attended_confirmed, paid, paid_confirmed, paid_amount")
+        .in("event_id", eventIds)
+    : { data: [] as AttendanceRow[] };
 
-      const { count: noCount } = await supabase
-        .from("event_attendances")
-        .select("*", { count: "exact", head: true })
-        .eq("event_id", e.id)
-        .eq("vote", "no");
+  const attendances = (attRaw ?? []) as unknown as AttendanceRow[];
+  const byEvent = new Map<string, AttendanceRow[]>();
+  for (const a of attendances) {
+    const list = byEvent.get(a.event_id) ?? [];
+    list.push(a);
+    byEvent.set(a.event_id, list);
+  }
 
-      let myVote: "yes" | "no" | null = null;
-      if (userId) {
-        const { data: att } = await supabase
-          .from("event_attendances")
-          .select("vote")
-          .eq("event_id", e.id)
-          .eq("user_id", userId)
-          .maybeSingle();
-        if (att) myVote = att.vote as "yes" | "no" | null;
-      }
+  const enriched = events.map((e) => {
+    const list = byEvent.get(e.id) ?? [];
+    const yesCount = list.filter((a) => a.vote === "yes").length;
+    const noCount = list.filter((a) => a.vote === "no").length;
+    const myVote = userId
+      ? (list.find((a) => a.user_id === userId)?.vote ?? null)
+      : null;
 
-      return {
-        id: e.id,
-        type: e.type,
-        date: e.date,
-        price_per_player: e.price_per_player,
-        min_players: e.min_players,
-        description: e.description,
-        status: e.status,
-        venue: e.venues,
-        yesCount: yesCount ?? 0,
-        noCount: noCount ?? 0,
-        myVote,
-      };
-    }),
-  );
+    const expectedCollected = list.reduce(
+      (sum, a) => sum + getExpectedAmount(a, e.price_per_player),
+      0,
+    );
+    const actualCollected = list.reduce(
+      (sum, a) => sum + getPaidAmount(a, e.price_per_player),
+      0,
+    );
+
+    return {
+      id: e.id,
+      type: e.type,
+      date: e.date,
+      price_per_player: e.price_per_player,
+      min_players: e.min_players,
+      description: e.description,
+      status: e.status,
+      venue: e.venues,
+      yesCount,
+      noCount,
+      myVote,
+      expectedCollected,
+      actualCollected,
+    };
+  });
 
   return NextResponse.json({ events: enriched });
 }
@@ -91,7 +112,7 @@ export async function POST(
 ) {
   const { id: teamId } = await params;
   const body = await req.json();
-  const { userId, type, date, price_per_player, min_players, description, venue } = body;
+  const { userId, type, date, price_per_player, min_players, description, venue, venue_cost } = body;
 
   if (!userId || !type || !date) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -137,6 +158,7 @@ export async function POST(
       price_per_player: price_per_player ?? 0,
       min_players: min_players ?? 1,
       description: description ?? null,
+      venue_cost: venue_cost != null ? Number(venue_cost) : 0,
       created_by: userId,
     })
     .select()

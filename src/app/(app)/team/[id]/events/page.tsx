@@ -24,6 +24,8 @@ type EventItem = {
   yesCount: number;
   noCount: number;
   myVote: "yes" | "no" | null;
+  expectedCollected: number;
+  actualCollected: number;
 };
 
 export default function EventsPage() {
@@ -164,7 +166,9 @@ function EventGroup({
 
               {isOrganizer && e.price_per_player > 0 && (
                 <p className="text-xs text-foreground-secondary mt-2">
-                  Сбор: {e.yesCount * e.price_per_player} из {e.min_players * e.price_per_player} ₽
+                  {e.status === "completed"
+                    ? `Сбор: ${e.actualCollected} из ${e.expectedCollected} ₽`
+                    : `Ожидаемый сбор: ${e.yesCount * e.price_per_player} ₽`}
                 </p>
               )}
 
@@ -204,6 +208,7 @@ function CreateEventForm({
   const [description, setDescription] = useState("");
   const [venueName, setVenueName] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
+  const [venueCost, setVenueCost] = useState("");
   const [sending, setSending] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -228,6 +233,7 @@ function CreateEventForm({
             venueName && venueAddress
               ? { name: venueName, address: venueAddress }
               : undefined,
+          venue_cost: venueCost ? parseFloat(venueCost) : 0,
         }),
       });
       if (res.ok) onCreated();
@@ -317,16 +323,29 @@ function CreateEventForm({
       </div>
 
       {venueName && (
-        <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Площадка — адрес</label>
-          <input
-            type="text"
-            value={venueAddress}
-            onChange={(e) => setVenueAddress(e.target.value)}
-            placeholder="Адрес"
-            className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-          />
-        </div>
+        <>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-foreground-secondary">Площадка — адрес</label>
+            <input
+              type="text"
+              value={venueAddress}
+              onChange={(e) => setVenueAddress(e.target.value)}
+              placeholder="Адрес"
+              className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-foreground-secondary">Стоимость площадки, ₽</label>
+            <input
+              type="number"
+              value={venueCost}
+              onChange={(e) => setVenueCost(e.target.value)}
+              min="0"
+              placeholder="0"
+              className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
+            />
+          </div>
+        </>
       )}
 
       <div className="flex flex-col gap-1">

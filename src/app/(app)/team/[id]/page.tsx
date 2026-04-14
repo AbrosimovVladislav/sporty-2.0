@@ -61,12 +61,7 @@ export default function TeamHomePage() {
 
       {role === "organizer" && (
         <>
-          <section className="bg-background-card border border-border rounded-lg p-5">
-            <p className="text-xs uppercase font-display text-foreground-secondary">
-              Финансовый баланс
-            </p>
-            <p className="text-2xl font-display font-bold mt-1">0 ₽</p>
-          </section>
+          <FinanceBalanceBlock teamId={team.team.id} />
 
           <IncomingRequestsBlock
             teamId={team.team.id}
@@ -308,6 +303,66 @@ function NextEventBlock({ teamId }: { teamId: string }) {
         <p className="text-sm text-foreground-secondary mt-1">
           Придут: {event.yesCount}
         </p>
+      </section>
+    </Link>
+  );
+}
+
+function FinanceBalanceBlock({ teamId }: { teamId: string }) {
+  const auth = useAuth();
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const [data, setData] = useState<{
+    realBalance: number;
+    playersDebt: number;
+    venueOutstanding: number;
+  } | null>(null);
+
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    fetch(`/api/teams/${teamId}/finances?userId=${userId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (cancelled || !d) return;
+        setData({
+          realBalance: d.metrics.realBalance,
+          playersDebt: d.metrics.playersDebt,
+          venueOutstanding: d.metrics.venueOutstanding,
+        });
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId, userId]);
+
+  return (
+    <Link href={`/team/${teamId}/finances`}>
+      <section className="bg-background-card border border-border rounded-lg p-5">
+        <p className="text-xs uppercase font-display text-foreground-secondary">
+          Финансовый баланс
+        </p>
+        {data === null ? (
+          <div className="h-7 w-24 rounded bg-border mt-2 animate-pulse" />
+        ) : (
+          <>
+            <p
+              className={`text-2xl font-display font-bold mt-1 ${
+                data.realBalance >= 0 ? "text-green-600" : "text-red-500"
+              }`}
+            >
+              {data.realBalance >= 0 ? "+" : ""}
+              {data.realBalance} ₽
+            </p>
+            {(data.playersDebt > 0 || data.venueOutstanding > 0) && (
+              <p className="text-xs text-foreground-secondary mt-1">
+                {data.playersDebt > 0 && `Долги игроков: ${data.playersDebt} ₽`}
+                {data.playersDebt > 0 && data.venueOutstanding > 0 && " · "}
+                {data.venueOutstanding > 0 && `К оплате площадкам: ${data.venueOutstanding} ₽`}
+              </p>
+            )}
+          </>
+        )}
       </section>
     </Link>
   );
