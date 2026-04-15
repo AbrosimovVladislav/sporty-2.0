@@ -1,17 +1,15 @@
 type AttendanceLike = {
   attended: boolean | null;
-  attended_confirmed: boolean | null;
   paid: boolean | null;
-  paid_confirmed: boolean | null;
   paid_amount?: number | null;
 };
 
 export function isAttendanceAttended(a: AttendanceLike): boolean {
-  return (a.attended_confirmed ?? a.attended) === true;
+  return a.attended === true;
 }
 
 export function isAttendancePaid(a: AttendanceLike): boolean {
-  return (a.paid_confirmed ?? a.paid) === true;
+  return a.paid === true;
 }
 
 export function getExpectedAmount(a: AttendanceLike, pricePerPlayer: number): number {

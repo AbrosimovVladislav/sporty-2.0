@@ -17,9 +17,7 @@ type AttendanceRow = {
   event_id: string;
   user_id: string;
   attended: boolean | null;
-  attended_confirmed: boolean | null;
   paid: boolean | null;
-  paid_confirmed: boolean | null;
   paid_amount: number | null;
   users: { id: string; name: string } | null;
 };
@@ -67,7 +65,7 @@ export async function GET(
   if (completedEventIds.length > 0) {
     const { data: rawAtt, error: attErr } = await supabase
       .from("event_attendances")
-      .select("event_id, user_id, attended, attended_confirmed, paid, paid_confirmed, paid_amount, users(id, name)")
+      .select("event_id, user_id, attended, paid, paid_amount, users(id, name)")
       .in("event_id", completedEventIds);
 
     if (attErr) {

@@ -198,6 +198,8 @@ function EventGroup({
   );
 }
 
+type VenueOption = { id: string; name: string; address: string; city: string | null };
+
 function CreateEventForm({
   teamId,
   userId,
@@ -215,10 +217,20 @@ function CreateEventForm({
   const [price, setPrice] = useState("");
   const [minPlayers, setMinPlayers] = useState("");
   const [description, setDescription] = useState("");
+  const [venueMode, setVenueMode] = useState<"none" | "existing" | "new">("none");
+  const [venueOptions, setVenueOptions] = useState<VenueOption[]>([]);
+  const [selectedVenueId, setSelectedVenueId] = useState("");
   const [venueName, setVenueName] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
   const [venueCost, setVenueCost] = useState("");
   const [sending, setSending] = useState(false);
+
+  useEffect(() => {
+    fetch("/api/venues")
+      .then((r) => r.json())
+      .then((data) => setVenueOptions(data.venues ?? []))
+      .catch(() => setVenueOptions([]));
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -238,8 +250,9 @@ function CreateEventForm({
           price_per_player: price ? parseFloat(price) : 0,
           min_players: minPlayers ? parseInt(minPlayers, 10) : 1,
           description: description || null,
+          venue_id: venueMode === "existing" && selectedVenueId ? selectedVenueId : undefined,
           venue:
-            venueName && venueAddress
+            venueMode === "new" && venueName && venueAddress
               ? { name: venueName, address: venueAddress }
               : undefined,
           venue_cost: venueCost ? parseFloat(venueCost) : 0,
@@ -321,20 +334,48 @@ function CreateEventForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm text-foreground-secondary">Площадка — название</label>
-        <input
-          type="text"
-          value={venueName}
-          onChange={(e) => setVenueName(e.target.value)}
-          placeholder="Не указана"
+        <label className="text-sm text-foreground-secondary">Площадка</label>
+        <select
+          value={venueMode === "existing" ? selectedVenueId : venueMode}
+          onChange={(e) => {
+            const v = e.target.value;
+            if (v === "none") {
+              setVenueMode("none");
+              setSelectedVenueId("");
+            } else if (v === "__new__") {
+              setVenueMode("new");
+              setSelectedVenueId("");
+            } else {
+              setVenueMode("existing");
+              setSelectedVenueId(v);
+            }
+          }}
           className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-        />
+        >
+          <option value="none">Не указана</option>
+          {venueOptions.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name} — {v.address}
+            </option>
+          ))}
+          <option value="__new__">+ Новая площадка</option>
+        </select>
       </div>
 
-      {venueName && (
+      {venueMode === "new" && (
         <>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-foreground-secondary">Площадка — адрес</label>
+            <label className="text-sm text-foreground-secondary">Название</label>
+            <input
+              type="text"
+              value={venueName}
+              onChange={(e) => setVenueName(e.target.value)}
+              placeholder="Например, Лужники"
+              className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-foreground-secondary">Адрес</label>
             <input
               type="text"
               value={venueAddress}
@@ -343,18 +384,21 @@ function CreateEventForm({
               className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
             />
           </div>
-          <div className="flex flex-col gap-1">
-            <label className="text-sm text-foreground-secondary">Стоимость площадки, ₽</label>
-            <input
-              type="number"
-              value={venueCost}
-              onChange={(e) => setVenueCost(e.target.value)}
-              min="0"
-              placeholder="0"
-              className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-            />
-          </div>
         </>
+      )}
+
+      {venueMode !== "none" && (
+        <div className="flex flex-col gap-1">
+          <label className="text-sm text-foreground-secondary">Стоимость площадки, ₽</label>
+          <input
+            type="number"
+            value={venueCost}
+            onChange={(e) => setVenueCost(e.target.value)}
+            min="0"
+            placeholder="0"
+            className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
+          />
+        </div>
       )}
 
       <div className="flex flex-col gap-1">

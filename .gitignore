@@ -36,6 +36,12 @@ yarn-error.log*
 # vercel
 .vercel
 
+# design reference images (keep on disk, don't commit)
+docs/design/*.png
+docs/design/*.jpg
+docs/design/*.jpeg
+docs/design/*.gif
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts

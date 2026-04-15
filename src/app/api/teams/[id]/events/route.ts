@@ -23,9 +23,7 @@ type AttendanceRow = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
-  attended_confirmed: boolean | null;
   paid: boolean | null;
-  paid_confirmed: boolean | null;
   paid_amount: number | null;
 };
 
@@ -58,7 +56,7 @@ export async function GET(
   const { data: attRaw } = eventIds.length
     ? await supabase
         .from("event_attendances")
-        .select("event_id, user_id, vote, attended, attended_confirmed, paid, paid_confirmed, paid_amount")
+        .select("event_id, user_id, vote, attended, paid, paid_amount")
         .in("event_id", eventIds)
     : { data: [] as AttendanceRow[] };
 
@@ -116,7 +114,7 @@ export async function POST(
 ) {
   const { id: teamId } = await params;
   const body = await req.json();
-  const { userId, type, date, price_per_player, min_players, description, venue, venue_cost } = body;
+  const { userId, type, date, price_per_player, min_players, description, venue, venue_id, venue_cost } = body;
 
   if (!userId || !type || !date) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -136,9 +134,9 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Create venue if provided
-  let venueId: string | null = null;
-  if (venue && venue.name && venue.address) {
+  // Pick an existing venue, or create a new one from the form
+  let venueId: string | null = venue_id ?? null;
+  if (!venueId && venue && venue.name && venue.address) {
     const { data: v, error: vErr } = await supabase
       .from("venues")
       .insert({ name: venue.name, address: venue.address, city: venue.city ?? "", created_by: userId })

@@ -176,9 +176,7 @@ export type Database = {
           user_id: string;
           vote: "yes" | "no" | null;
           attended: boolean | null;
-          attended_confirmed: boolean | null;
           paid: boolean | null;
-          paid_confirmed: boolean | null;
           paid_amount: number | null;
           created_at: string;
         };
@@ -188,18 +186,14 @@ export type Database = {
           user_id: string;
           vote?: "yes" | "no" | null;
           attended?: boolean | null;
-          attended_confirmed?: boolean | null;
           paid?: boolean | null;
-          paid_confirmed?: boolean | null;
           paid_amount?: number | null;
           created_at?: string;
         };
         Update: {
           vote?: "yes" | "no" | null;
           attended?: boolean | null;
-          attended_confirmed?: boolean | null;
           paid?: boolean | null;
-          paid_confirmed?: boolean | null;
           paid_amount?: number | null;
         };
         Relationships: [];

@@ -1,14 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
 
-// PATCH — player marks self (attended, paid) or organizer confirms
+// PATCH — mark attendance (player for self, organizer for anyone)
 export async function PATCH(
   req: NextRequest,
   { params }: { params: Promise<{ id: string; eventId: string }> },
 ) {
   const { id: teamId, eventId } = await params;
   const body = await req.json();
-  const { userId, targetUserId, attended, paid, attended_confirmed, paid_confirmed, paid_amount } = body;
+  const { userId, targetUserId, attended, paid, paid_amount } = body;
 
   if (!userId) {
     return NextResponse.json({ error: "userId is required" }, { status: 400 });
@@ -16,7 +16,6 @@ export async function PATCH(
 
   const supabase = getServiceClient();
 
-  // Verify caller is a team member
   const { data: membership } = await supabase
     .from("team_memberships")
     .select("role")
@@ -28,7 +27,6 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Verify event exists and is completed
   const { data: event } = await supabase
     .from("events")
     .select("id, status")
@@ -47,39 +45,25 @@ export async function PATCH(
   const isOrganizer = membership.role === "organizer";
   const effectiveTargetId = targetUserId ?? userId;
 
-  // Only organizer can modify other users or confirm fields
+  // Only organizer can modify other users
   if (effectiveTargetId !== userId && !isOrganizer) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Build update object
   const update: {
     attended?: boolean | null;
-    attended_confirmed?: boolean | null;
     paid?: boolean | null;
-    paid_confirmed?: boolean | null;
     paid_amount?: number | null;
   } = {};
 
-  if (isOrganizer && effectiveTargetId !== userId) {
-    // Organizer confirming for another user
-    if (attended_confirmed !== undefined) update.attended_confirmed = attended_confirmed;
-    if (paid_confirmed !== undefined) update.paid_confirmed = paid_confirmed;
-    if (paid_amount !== undefined) update.paid_amount = paid_amount === null ? null : Number(paid_amount);
-  } else {
-    // Player marking self
-    if (attended !== undefined) update.attended = attended;
-    if (paid !== undefined) update.paid = paid;
-    // Organizer can also mark confirmed fields for themselves
-    if (isOrganizer) {
-      if (attended_confirmed !== undefined) update.attended_confirmed = attended_confirmed;
-      if (paid_confirmed !== undefined) update.paid_confirmed = paid_confirmed;
-      if (paid_amount !== undefined) update.paid_amount = paid_amount === null ? null : Number(paid_amount);
-    }
+  if (attended !== undefined) update.attended = attended;
+  if (paid !== undefined) update.paid = paid;
+  if (paid_amount !== undefined) {
+    update.paid_amount = paid_amount === null ? null : Number(paid_amount);
   }
 
-  // When unmarking paid, drop the explicit amount
-  if (update.paid_confirmed === false || update.paid === false) {
+  // Unmarking paid clears the explicit amount
+  if (update.paid === false) {
     update.paid_amount = null;
   }
 
@@ -87,7 +71,6 @@ export async function PATCH(
     return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
-  // Find or create attendance record
   const { data: existing } = await supabase
     .from("event_attendances")
     .select("id")

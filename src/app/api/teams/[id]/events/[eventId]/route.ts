@@ -22,9 +22,7 @@ type AttendanceWithUser = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
-  attended_confirmed: boolean | null;
   paid: boolean | null;
-  paid_confirmed: boolean | null;
   paid_amount: number | null;
   users: { id: string; name: string } | null;
 };
@@ -57,7 +55,7 @@ export async function GET(
 
   const { data: rawAttendances, error: attErr } = await supabase
     .from("event_attendances")
-    .select("id, user_id, vote, attended, attended_confirmed, paid, paid_confirmed, paid_amount, users(id, name)")
+    .select("id, user_id, vote, attended, paid, paid_amount, users(id, name)")
     .eq("event_id", eventId);
 
   if (attErr) {
@@ -90,9 +88,7 @@ export async function GET(
         user_id: a.user_id,
         vote: a.vote,
         attended: a.attended,
-        attended_confirmed: a.attended_confirmed,
         paid: a.paid,
-        paid_confirmed: a.paid_confirmed,
         paid_amount: a.paid_amount,
         user: a.users!,
       })),

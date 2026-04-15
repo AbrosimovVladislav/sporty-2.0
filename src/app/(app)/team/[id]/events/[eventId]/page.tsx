@@ -43,9 +43,7 @@ type AttendanceItem = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
-  attended_confirmed: boolean | null;
   paid: boolean | null;
-  paid_confirmed: boolean | null;
   paid_amount: number | null;
   user: { id: string; name: string };
 };
@@ -464,11 +462,11 @@ function OrganizerAttendanceList({
   const [amountFor, setAmountFor] = useState<string | null>(null);
   const [amountInput, setAmountInput] = useState("");
 
-  async function toggleConfirm(targetUserId: string, field: "attended_confirmed" | "paid_confirmed", mergedStatus: boolean | null) {
+  async function toggleField(targetUserId: string, field: "attended" | "paid", current: boolean | null) {
     if (processing) return;
     setProcessing(targetUserId + field);
     try {
-      const newValue = !mergedStatus;
+      const newValue = !current;
       const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -492,7 +490,7 @@ function OrganizerAttendanceList({
         body: JSON.stringify({
           userId,
           targetUserId,
-          paid_confirmed: true,
+          paid: true,
           paid_amount: v,
         }),
       });
@@ -518,15 +516,15 @@ function OrganizerAttendanceList({
       ) : (
         <ul className="flex flex-col gap-2">
           {attendances.map((a) => {
-            const attendedStatus = a.attended_confirmed ?? a.attended;
-            const paidStatus = a.paid_confirmed ?? a.paid;
+            const attendedStatus = a.attended;
+            const paidStatus = a.paid;
 
             return (
               <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-3">
                 <p className="font-medium text-sm mb-2">{a.user.name}</p>
                 <div className="flex gap-2">
                   <button
-                    onClick={() => toggleConfirm(a.user_id, "attended_confirmed", attendedStatus)}
+                    onClick={() => toggleField(a.user_id, "attended", attendedStatus)}
                     disabled={processing !== null}
                     className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
                       attendedStatus === true
@@ -539,7 +537,7 @@ function OrganizerAttendanceList({
                     {attendedStatus === true ? "Был" : attendedStatus === false ? "Не был" : "Был?"}
                   </button>
                   <button
-                    onClick={() => toggleConfirm(a.user_id, "paid_confirmed", paidStatus)}
+                    onClick={() => toggleField(a.user_id, "paid", paidStatus)}
                     disabled={processing !== null}
                     className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
                       paidStatus === true
@@ -681,26 +679,20 @@ function VenueCostsBlock({
 }) {
   const [editing, setEditing] = useState(false);
   const [costInput, setCostInput] = useState(String(venueCost));
-  const [paidInput, setPaidInput] = useState(String(venuePaid));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     setCostInput(String(venueCost));
-    setPaidInput(String(venuePaid));
-  }, [venueCost, venuePaid]);
+  }, [venueCost]);
 
-  async function save() {
+  async function patch(body: Record<string, unknown>) {
     if (saving) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/teams/${teamId}/events/${eventId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          venue_cost: parseFloat(costInput) || 0,
-          venue_paid: parseFloat(paidInput) || 0,
-        }),
+        body: JSON.stringify({ userId, ...body }),
       });
       if (res.ok) {
         setEditing(false);
@@ -711,90 +703,84 @@ function VenueCostsBlock({
     }
   }
 
-  const remain = venueCost - venuePaid;
+  const paid = venueCost > 0 && venuePaid >= venueCost;
 
-  if (!editing) {
+  if (editing) {
     return (
       <section className="bg-background-card border border-border rounded-lg p-5">
-        <div className="flex justify-between items-baseline mb-2">
-          <p className="text-xs uppercase font-display text-foreground-secondary">Площадка — расходы</p>
-          <button
-            onClick={() => setEditing(true)}
-            className="text-xs text-primary font-display font-semibold uppercase"
-          >
-            Изменить
-          </button>
+        <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Площадка — расходы</p>
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-foreground-secondary">Стоимость, ₽</label>
+            <input
+              type="number"
+              min="0"
+              value={costInput}
+              onChange={(e) => setCostInput(e.target.value)}
+              className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary"
+            />
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={() => patch({ venue_cost: parseFloat(costInput) || 0 })}
+              disabled={saving}
+              className="flex-1 bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-4 py-2 disabled:opacity-50"
+            >
+              {saving ? "Сохраняю…" : "Сохранить"}
+            </button>
+            <button
+              onClick={() => {
+                setEditing(false);
+                setCostInput(String(venueCost));
+              }}
+              className="px-4 py-2 rounded-full border border-border text-foreground-secondary font-display font-semibold uppercase"
+            >
+              Отмена
+            </button>
+          </div>
         </div>
-        {venueCost === 0 ? (
-          <p className="text-sm text-foreground-secondary">Не указаны</p>
-        ) : (
-          <>
-            <div className="flex justify-between text-sm">
-              <span className="text-foreground-secondary">Стоимость</span>
-              <span className="font-medium">{venueCost} ₽</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-foreground-secondary">Оплачено</span>
-              <span className="font-medium">{venuePaid} ₽</span>
-            </div>
-            <div className="flex justify-between text-sm pt-1 border-t border-border mt-1">
-              <span className="text-foreground-secondary">Остаток</span>
-              <span className={`font-medium ${remain > 0 ? "text-red-500" : "text-green-600"}`}>
-                {remain > 0 ? `${remain} ₽` : "оплачено"}
-              </span>
-            </div>
-          </>
-        )}
       </section>
     );
   }
 
   return (
     <section className="bg-background-card border border-border rounded-lg p-5">
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-3">
-        Площадка — расходы
-      </p>
-      <div className="flex flex-col gap-3">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Стоимость, ₽</label>
-          <input
-            type="number"
-            min="0"
-            value={costInput}
-            onChange={(e) => setCostInput(e.target.value)}
-            className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary"
-          />
-        </div>
-        <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Оплачено, ₽</label>
-          <input
-            type="number"
-            min="0"
-            value={paidInput}
-            onChange={(e) => setPaidInput(e.target.value)}
-            className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary"
-          />
-        </div>
-        <div className="flex gap-2">
-          <button
-            onClick={save}
-            disabled={saving}
-            className="flex-1 bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-4 py-2 disabled:opacity-50"
-          >
-            {saving ? "Сохраняю…" : "Сохранить"}
-          </button>
-          <button
-            onClick={() => {
-              setEditing(false);
-              setCostInput(String(venueCost));
-              setPaidInput(String(venuePaid));
-            }}
-            className="px-4 py-2 rounded-full border border-border text-foreground-secondary font-display font-semibold uppercase"
-          >
-            Отмена
-          </button>
-        </div>
+      <div className="flex justify-between items-baseline mb-2">
+        <p className="text-xs uppercase font-display text-foreground-secondary">Площадка — расходы</p>
+        <button
+          onClick={() => setEditing(true)}
+          className="text-xs text-primary font-display font-semibold uppercase"
+        >
+          {venueCost === 0 ? "Указать" : "Изменить"}
+        </button>
       </div>
+      {venueCost === 0 ? (
+        <p className="text-sm text-foreground-secondary">Стоимость не указана</p>
+      ) : (
+        <div className="flex items-center justify-between gap-3">
+          <span className="text-sm">
+            <span className="text-foreground-secondary">Стоимость:</span>{" "}
+            <span className="font-medium">{venueCost} ₽</span>
+          </span>
+          {paid ? (
+            <button
+              onClick={() => patch({ venue_paid: 0 })}
+              disabled={saving}
+              className="text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full bg-green-600 text-white disabled:opacity-50"
+            >
+              ✓ Оплачено
+            </button>
+          ) : (
+            <button
+              onClick={() => patch({ venue_paid: venueCost })}
+              disabled={saving}
+              className="text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+            >
+              Оплачено полностью
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }
