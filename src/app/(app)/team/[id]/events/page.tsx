@@ -414,8 +414,9 @@ function CreateEventForm({
         />
       </div>
 
-      <label className="flex items-center gap-3 cursor-pointer">
-        <div
+      <div className="flex items-center gap-3">
+        <button
+          type="button"
           onClick={() => setIsPublic((v) => !v)}
           className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
             isPublic ? "bg-primary" : "bg-border"
@@ -426,12 +427,12 @@ function CreateEventForm({
               isPublic ? "translate-x-6" : "translate-x-1"
             }`}
           />
-        </div>
+        </button>
         <div>
           <p className="text-sm font-medium">Публичное событие</p>
           <p className="text-xs text-foreground-secondary">Видно всем в поиске</p>
         </div>
-      </label>
+      </div>
 
       <div className="flex gap-3">
         <button

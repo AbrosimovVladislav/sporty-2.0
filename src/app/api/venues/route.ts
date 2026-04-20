@@ -5,6 +5,7 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const city = searchParams.get("city")?.trim();
   const name = searchParams.get("name")?.trim();
+  const q = searchParams.get("q")?.trim();
 
   const supabase = getServiceClient();
   let query = supabase
@@ -12,8 +13,12 @@ export async function GET(req: NextRequest) {
     .select("id, name, address, city")
     .order("name", { ascending: true });
 
-  if (city) query = query.ilike("city", `%${city}%`);
-  if (name) query = query.ilike("name", `%${name}%`);
+  if (q) {
+    query = query.or(`name.ilike.%${q}%,city.ilike.%${q}%`);
+  } else {
+    if (city) query = query.ilike("city", `%${city}%`);
+    if (name) query = query.ilike("name", `%${name}%`);
+  }
 
   const { data, error } = await query;
   if (error) {

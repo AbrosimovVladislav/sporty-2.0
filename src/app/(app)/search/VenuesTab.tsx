@@ -18,7 +18,7 @@ export default function VenuesTab() {
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       const q = query.trim();
-      if (q) params.set("name", q);
+      if (q) params.set("q", q);
       fetch(`/api/venues${params.toString() ? `?${params}` : ""}`)
         .then((r) => r.json())
         .then((d) => {
