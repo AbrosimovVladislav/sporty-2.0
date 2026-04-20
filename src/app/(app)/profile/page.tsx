@@ -29,7 +29,6 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 type JoinRequestItem = {
   id: string;
   status: "pending" | "accepted" | "rejected";
-  created_at: string;
   team: { id: string; name: string; city: string; sport: string };
 };
 
@@ -47,6 +46,8 @@ type Stats = {
   }[];
 };
 
+/* ─── Root ─────────────────────────────────────────────────── */
+
 export default function ProfilePage() {
   const auth = useAuth();
 
@@ -57,11 +58,12 @@ export default function ProfilePage() {
       </div>
     );
   }
-
   if (auth.status !== "authenticated") return null;
 
   return <ProfileContent initialUser={auth.user} />;
 }
+
+/* ─── Profile shell ────────────────────────────────────────── */
 
 function ProfileContent({ initialUser }: { initialUser: User }) {
   const [user, setUser] = useState(initialUser);
@@ -85,10 +87,6 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
     }
   }
 
-  async function toggleLookingForTeam() {
-    await saveField("looking_for_team", !user.looking_for_team);
-  }
-
   const tabs: { id: Tab; label: string }[] = [
     { id: "about", label: "Обо мне" },
     { id: "results", label: "Результаты" },
@@ -96,43 +94,43 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   ];
 
   return (
-    <div className="flex flex-1 flex-col p-4 gap-4">
-      {/* Header */}
-      <div className="bg-background-dark text-foreground-on-dark rounded-lg p-5">
-        <p className="text-foreground-on-dark-muted text-xs uppercase font-display tracking-wide">Профиль</p>
-        <h1 className="text-3xl font-display font-bold uppercase mt-1">{user.name}</h1>
+    <div className="flex flex-1 flex-col">
+      {/* Hero header */}
+      <div className="bg-background-dark text-foreground-on-dark px-5 pt-10 pb-5">
+        <h1 className="text-4xl font-display font-bold uppercase leading-none">{user.name}</h1>
         <div className="flex flex-wrap items-center gap-2 mt-3">
-          {user.city && (
-            <span className="text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-              {user.city}
+          {user.position && (
+            <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
+              <span className="opacity-60">◎</span> {user.position.split(",")[0].trim()}
             </span>
           )}
-          {user.sport && (
-            <span className="text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-              {SPORT_LABEL[user.sport] ?? user.sport}
+          {user.city && (
+            <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
+              <span className="opacity-60">⊙</span> {user.city}
             </span>
           )}
           <button
-            onClick={toggleLookingForTeam}
+            onClick={() => saveField("looking_for_team", !user.looking_for_team)}
             disabled={savingField === "looking_for_team"}
-            className={`text-xs rounded-full px-3 py-1 font-medium transition-colors disabled:opacity-50 ${
+            className={`flex items-center gap-1 text-xs rounded-full px-3 py-1 font-medium transition-colors disabled:opacity-50 ${
               user.looking_for_team
                 ? "bg-primary text-primary-foreground"
                 : "bg-background-dark-elevated text-foreground-on-dark-muted"
             }`}
           >
-            {user.looking_for_team ? "Ищу команду" : "Не ищу команду"}
+            <span className="opacity-80">⚑</span>
+            {user.looking_for_team ? "Ищет команду" : "Не ищет команду"}
           </button>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-2 px-4 py-3 bg-background overflow-x-auto">
         {tabs.map(({ id, label }) => (
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            className={`shrink-0 rounded-full px-5 py-2 text-sm font-medium transition-colors ${
               tab === id
                 ? "bg-primary text-primary-foreground"
                 : "bg-background-card text-foreground border border-border"
@@ -144,14 +142,36 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
       </div>
 
       {/* Tab content */}
-      {tab === "about" && (
-        <AboutTab user={user} savingField={savingField} onSave={saveField} />
-      )}
-      {tab === "results" && <ResultsTab userId={user.id} />}
-      {tab === "reliability" && <ReliabilityTab userId={user.id} />}
+      <div className="flex flex-col gap-4 px-4 pb-6">
+        {tab === "about" && (
+          <AboutTab user={user} savingField={savingField} onSave={saveField} />
+        )}
+        {tab === "results" && <ResultsTab userId={user.id} />}
+        {tab === "reliability" && <ReliabilityTab userId={user.id} />}
 
-      {/* Join requests — always below tabs */}
-      <MyJoinRequests userId={user.id} />
+        <MyJoinRequests userId={user.id} />
+      </div>
+    </div>
+  );
+}
+
+/* ─── Stat card (reusable) ─────────────────────────────────── */
+
+function StatCard({
+  label,
+  children,
+  className = "",
+}: {
+  label: string;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <div className={`bg-background-card border border-border rounded-lg p-4 ${className}`}>
+      <p className="text-xs uppercase font-display text-foreground-secondary tracking-wide mb-2">
+        {label}
+      </p>
+      {children}
     </div>
   );
 }
@@ -167,137 +187,251 @@ function AboutTab({
   savingField: string | null;
   onSave: (field: string, value: unknown) => Promise<void>;
 }) {
-  function calcAge(birthDate: string): number | null {
-    const d = new Date(birthDate);
-    if (isNaN(d.getTime())) return null;
-    const now = new Date();
-    let age = now.getFullYear() - d.getFullYear();
-    if (
-      now.getMonth() < d.getMonth() ||
-      (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())
-    )
-      age--;
-    return age;
-  }
-
   const age = user.birth_date ? calcAge(user.birth_date) : null;
-
-  const fields: { key: string; label: string; value: string | null; placeholder: string; type?: string }[] = [
-    { key: "bio", label: "О себе", value: user.bio, placeholder: "Расскажи о себе…" },
-    { key: "position", label: "Позиция", value: user.position, placeholder: "Нападающий, вратарь…" },
-    { key: "skill_level", label: "Уровень", value: user.skill_level, placeholder: "Любитель, полупрофи…" },
-    { key: "preferred_time", label: "Время тренировок", value: user.preferred_time, placeholder: "Вечер буднями, выходные…" },
-    {
-      key: "birth_date",
-      label: age !== null ? `Возраст — ${age} лет` : "Дата рождения",
-      value: user.birth_date,
-      placeholder: "ГГГГ-ММ-ДД",
-      type: "date",
-    },
-  ];
+  const positionChips = user.position
+    ? user.position.split(",").map((s) => s.trim()).filter(Boolean)
+    : [];
 
   return (
-    <div className="flex flex-col gap-3">
-      {fields.map(({ key, label, value, placeholder, type }) => (
-        <InlineField
-          key={key}
-          fieldKey={key}
-          label={label}
-          value={value}
-          placeholder={placeholder}
-          inputType={type}
-          saving={savingField === key}
+    <div className="flex flex-col gap-3 pt-1">
+      <BioField value={user.bio} saving={savingField === "bio"} onSave={onSave} />
+
+      {(user.skill_level || age !== null) && (
+        <div className="grid grid-cols-2 gap-3">
+          {user.skill_level && (
+            <StatCard label="Уровень">
+              <InlineField
+                fieldKey="skill_level"
+                value={user.skill_level}
+                placeholder="Любитель…"
+                saving={savingField === "skill_level"}
+                onSave={onSave}
+                renderValue={(v) => (
+                  <p className="text-xl font-display font-bold">{v}</p>
+                )}
+              />
+            </StatCard>
+          )}
+          {age !== null && (
+            <StatCard label="Возраст">
+              <p className="text-3xl font-display font-bold leading-none">
+                {age}{" "}
+                <span className="text-base font-sans font-normal text-foreground-secondary">лет</span>
+              </p>
+            </StatCard>
+          )}
+        </div>
+      )}
+
+      {positionChips.length > 0 && (
+        <div>
+          <p className="text-xs uppercase font-display text-foreground-secondary tracking-wide mb-2">
+            На поле
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {positionChips.map((chip) => (
+              <span
+                key={chip}
+                className="bg-background-card border border-border rounded-full px-4 py-1.5 text-sm font-medium"
+              >
+                {chip}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Editable fields without values */}
+      <div className="flex flex-col gap-2">
+        {!user.skill_level && (
+          <InlineFieldRow
+            label="Уровень"
+            fieldKey="skill_level"
+            value={user.skill_level}
+            placeholder="Любитель, полупрофи…"
+            saving={savingField === "skill_level"}
+            onSave={onSave}
+          />
+        )}
+        <InlineFieldRow
+          label="Позиция (через запятую)"
+          fieldKey="position"
+          value={user.position}
+          placeholder="Нападающий, Универсал, Левая нога"
+          saving={savingField === "position"}
           onSave={onSave}
         />
-      ))}
+        <InlineFieldRow
+          label="Время тренировок"
+          fieldKey="preferred_time"
+          value={user.preferred_time}
+          placeholder="Вечер буднями, выходные…"
+          saving={savingField === "preferred_time"}
+          onSave={onSave}
+        />
+        <InlineFieldRow
+          label="Дата рождения"
+          fieldKey="birth_date"
+          value={user.birth_date}
+          placeholder="ГГГГ-ММ-ДД"
+          inputType="date"
+          saving={savingField === "birth_date"}
+          onSave={onSave}
+        />
+      </div>
     </div>
+  );
+}
+
+function BioField({
+  value,
+  saving,
+  onSave,
+}: {
+  value: string | null;
+  saving: boolean;
+  onSave: (field: string, value: unknown) => Promise<void>;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (editing) ref.current?.focus();
+  }, [editing]);
+
+  async function commit() {
+    setEditing(false);
+    const next = draft.trim() || null;
+    if (next !== value) await onSave("bio", next);
+  }
+
+  const placeholder = "Расскажи о себе: игровой стиль, опыт…";
+  const isLong = (value?.length ?? 0) > 120;
+  const displayText = !expanded && isLong ? value!.slice(0, 120) + "…" : value;
+
+  return (
+    <StatCard label="Био">
+      {editing ? (
+        <textarea
+          ref={ref}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          placeholder={placeholder}
+          rows={4}
+          className="w-full text-sm bg-transparent focus:outline-none resize-none"
+        />
+      ) : saving ? (
+        <p className="text-sm text-foreground-secondary">Сохраняю…</p>
+      ) : value ? (
+        <div>
+          <p className="text-sm leading-relaxed cursor-pointer" onClick={() => setEditing(true)}>
+            {displayText}
+          </p>
+          {isLong && (
+            <button
+              onClick={() => setExpanded((v) => !v)}
+              className="text-sm text-primary font-medium mt-1"
+            >
+              {expanded ? "Скрыть ↑" : "Ещё ↓"}
+            </button>
+          )}
+        </div>
+      ) : (
+        <button onClick={() => setEditing(true)} className="text-sm text-foreground-secondary">
+          {placeholder}
+        </button>
+      )}
+    </StatCard>
   );
 }
 
 function InlineField({
   fieldKey,
+  value,
+  placeholder,
+  inputType = "text",
+  saving,
+  onSave,
+  renderValue,
+}: {
+  fieldKey: string;
+  value: string | null;
+  placeholder: string;
+  inputType?: string;
+  saving: boolean;
+  onSave: (field: string, value: unknown) => Promise<void>;
+  renderValue?: (v: string) => React.ReactNode;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(value ?? "");
+  const ref = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editing) ref.current?.focus();
+  }, [editing]);
+
+  async function commit() {
+    setEditing(false);
+    const next = draft.trim() || null;
+    if (next !== value) await onSave(fieldKey, next);
+  }
+
+  if (editing) {
+    return (
+      <input
+        ref={ref}
+        type={inputType}
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
+        placeholder={placeholder}
+        className="w-full text-sm bg-transparent focus:outline-none"
+      />
+    );
+  }
+  if (saving) return <p className="text-sm text-foreground-secondary">Сохраняю…</p>;
+
+  return (
+    <div onClick={() => setEditing(true)} className="cursor-pointer">
+      {value
+        ? renderValue ? renderValue(value) : <p className="text-sm">{value}</p>
+        : <p className="text-sm text-foreground-secondary">{placeholder}</p>}
+    </div>
+  );
+}
+
+function InlineFieldRow({
   label,
+  fieldKey,
   value,
   placeholder,
   inputType = "text",
   saving,
   onSave,
 }: {
-  fieldKey: string;
   label: string;
+  fieldKey: string;
   value: string | null;
   placeholder: string;
   inputType?: string;
   saving: boolean;
   onSave: (field: string, value: unknown) => Promise<void>;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value ?? "");
-  const inputRef = useRef<HTMLInputElement | HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (editing) inputRef.current?.focus();
-  }, [editing]);
-
-  function startEdit() {
-    setDraft(value ?? "");
-    setEditing(true);
-  }
-
-  async function commit() {
-    setEditing(false);
-    const trimmed = draft.trim();
-    const next = trimmed === "" ? null : trimmed;
-    if (next !== value) await onSave(fieldKey, next);
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === "Enter" && fieldKey !== "bio") commit();
-    if (e.key === "Escape") setEditing(false);
-  }
-
   return (
     <div className="bg-background-card border border-border rounded-lg px-4 py-3">
       <p className="text-xs text-foreground-secondary mb-1">{label}</p>
-      {editing ? (
-        fieldKey === "bio" ? (
-          <textarea
-            ref={inputRef as React.RefObject<HTMLTextAreaElement>}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            rows={3}
-            className="w-full text-sm bg-transparent focus:outline-none resize-none"
-          />
-        ) : (
-          <input
-            ref={inputRef as React.RefObject<HTMLInputElement>}
-            type={inputType}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={handleKeyDown}
-            placeholder={placeholder}
-            className="w-full text-sm bg-transparent focus:outline-none"
-          />
-        )
-      ) : (
-        <button
-          onClick={startEdit}
-          disabled={saving}
-          className="w-full text-left text-sm disabled:opacity-50"
-        >
-          {saving ? (
-            <span className="text-foreground-secondary">Сохраняю…</span>
-          ) : value ? (
-            <span>{value}</span>
-          ) : (
-            <span className="text-foreground-secondary">{placeholder}</span>
-          )}
-        </button>
-      )}
+      <InlineField
+        fieldKey={fieldKey}
+        value={value}
+        placeholder={placeholder}
+        inputType={inputType}
+        saving={saving}
+        onSave={onSave}
+      />
     </div>
   );
 }
@@ -316,38 +450,45 @@ function ResultsTab({ userId }: { userId: string }) {
     return () => { cancelled = true; };
   }, [userId]);
 
-  const grid = [
-    { label: "Сыграно", value: stats?.playedCount ?? null, soon: false },
-    { label: "Победы", value: null, soon: true },
-    { label: "Передачи", value: null, soon: true },
-    { label: "Карточки", value: null, soon: true },
+  if (stats === undefined) {
+    return <div className="h-40 animate-pulse bg-border rounded-lg mt-1" />;
+  }
+
+  const secondary: { label: string; value: string | number }[] = [
+    { label: "Голы", value: "—" },
+    { label: "Передачи", value: "—" },
+    { label: "Жёлтые", value: "—" },
+    { label: "MVP", value: "—" },
   ];
 
   return (
-    <section className="bg-background-card border border-border rounded-lg p-5">
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Результаты</p>
-      {stats === undefined ? (
-        <div className="h-16 animate-pulse bg-border rounded" />
-      ) : (
-        <div className="grid grid-cols-2 gap-4">
-          {grid.map(({ label, value, soon }) => (
-            <div key={label}>
-              <p className="text-2xl font-display font-bold">
-                {soon || value === null ? "—" : value}
-              </p>
-              <p className="text-xs text-foreground-secondary">
-                {label}
-                {soon && <span className="ml-1 opacity-50">скоро</span>}
-              </p>
-            </div>
-          ))}
-        </div>
-      )}
-    </section>
+    <div className="flex flex-col gap-3 pt-1">
+      <StatCard label="Сыгранные матчи">
+        <p className="text-6xl font-display font-bold leading-none mt-1">
+          {stats?.playedCount ?? 0}
+        </p>
+      </StatCard>
+
+      <div className="grid grid-cols-2 gap-3">
+        {secondary.map(({ label, value }) => (
+          <StatCard key={label} label={label}>
+            <p className="text-3xl font-display font-bold leading-none mt-1">{value}</p>
+            <p className="text-xs text-foreground-secondary mt-1">скоро</p>
+          </StatCard>
+        ))}
+      </div>
+    </div>
   );
 }
 
 /* ─── Надёжность ───────────────────────────────────────────── */
+
+function reliabilityLabel(r: number): string {
+  if (r >= 90) return "Стабильный игрок";
+  if (r >= 70) return "Надёжный";
+  if (r >= 50) return "Средняя надёжность";
+  return "Низкая надёжность";
+}
 
 function ReliabilityTab({ userId }: { userId: string }) {
   const [stats, setStats] = useState<Stats | null | undefined>(undefined);
@@ -362,74 +503,113 @@ function ReliabilityTab({ userId }: { userId: string }) {
   }, [userId]);
 
   if (stats === undefined) {
-    return <div className="h-32 animate-pulse bg-border rounded-lg" />;
+    return <div className="h-40 animate-pulse bg-border rounded-lg mt-1" />;
   }
 
   const reliability = stats?.reliability ?? null;
   const hasData = stats && stats.votedYesCount > 0;
+  const missed = hasData ? stats.votedYesCount - stats.attendedCount : 0;
+  const missRate = hasData && stats.votedYesCount > 0
+    ? Math.round(((stats.votedYesCount - stats.attendedCount) / stats.votedYesCount) * 100)
+    : 0;
+  const attendedPct = hasData && stats.votedYesCount > 0
+    ? Math.round((stats.attendedCount / stats.votedYesCount) * 100)
+    : 0;
 
   return (
-    <div className="flex flex-col gap-4">
-      <section className="bg-background-card border border-border rounded-lg p-5">
-        <p className="text-xs uppercase font-display text-foreground-secondary mb-4">Надёжность</p>
+    <div className="flex flex-col gap-3 pt-1">
+      {/* Индекс надёжности */}
+      <StatCard label="Индекс надёжности">
         {!hasData ? (
           <p className="text-sm text-foreground-secondary">
-            Данных пока нет. Надёжность считается после первых завершённых событий.
+            Появится после первых завершённых событий
           </p>
         ) : (
-          <div className="flex items-center gap-6">
-            <div className="relative shrink-0">
-              <CircularProgress value={reliability ?? 0} size={96} strokeWidth={8} />
-              <div className="absolute inset-0 flex items-center justify-center">
-                <span className="text-xl font-display font-bold">
-                  {reliability !== null ? `${reliability}%` : "—"}
-                </span>
-              </div>
-            </div>
+          <div className="flex items-center justify-between">
             <div>
-              <p className="text-2xl font-display font-bold">{reliability !== null ? `${reliability}%` : "—"}</p>
-              <p className="text-sm text-foreground-secondary mt-1">
-                {stats.attendedCount} из {stats.votedYesCount} событий
+              <p className="text-5xl font-display font-bold leading-none">
+                {reliability !== null ? reliability : "—"}
+                <span className="text-2xl ml-1 text-foreground-secondary">%</span>
               </p>
-              <p className="text-xs text-foreground-secondary mt-0.5">
-                где записался — пришёл
-              </p>
+              {reliability !== null && (
+                <p className="text-sm text-foreground-secondary mt-1">
+                  {reliabilityLabel(reliability)}
+                </p>
+              )}
+            </div>
+            <div className="relative shrink-0">
+              <CircularProgress value={reliability ?? 0} size={72} strokeWidth={7} />
             </div>
           </div>
         )}
-      </section>
+      </StatCard>
+
+      {hasData && (
+        <>
+          <div className="grid grid-cols-2 gap-3">
+            <StatCard label="Неприходы">
+              <p className={`text-3xl font-display font-bold leading-none mt-1 ${missed === 0 ? "text-primary" : "text-foreground"}`}>
+                {missed}
+              </p>
+            </StatCard>
+            <StatCard label="Отмены">
+              <p className={`text-3xl font-display font-bold leading-none mt-1 ${missRate === 0 ? "text-primary" : "text-foreground"}`}>
+                {missRate}%
+              </p>
+            </StatCard>
+          </div>
+
+          <StatCard label="Посещаемость">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm" />
+              <span className="text-sm font-medium">
+                {stats.attendedCount} / {stats.votedYesCount}
+              </span>
+            </div>
+            <div className="h-2 bg-border rounded-full overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all"
+                style={{ width: `${attendedPct}%` }}
+              />
+            </div>
+            <p className="text-xs text-foreground-secondary mt-1">{attendedPct}%</p>
+          </StatCard>
+        </>
+      )}
 
       {stats && stats.recentEvents.length > 0 && (
-        <section className="bg-background-card border border-border rounded-lg p-5">
-          <p className="text-xs uppercase font-display text-foreground-secondary mb-3">
+        <div>
+          <p className="text-xs uppercase font-display text-foreground-secondary tracking-wide mb-2">
             Последние события
           </p>
-          <ul className="flex flex-col gap-2">
-            {stats.recentEvents.map((e) => (
-              <li key={e.event_id} className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">{EVENT_TYPE_LABEL[e.type] ?? e.type}</p>
-                  <p className="text-xs text-foreground-secondary">
-                    {new Date(e.date).toLocaleDateString("ru-RU", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
-                  </p>
+          <div className="bg-background-card border border-border rounded-lg divide-y divide-border">
+            {stats.recentEvents.map((e) => {
+              const dotColor =
+                e.attended === true
+                  ? "bg-primary"
+                  : e.attended === false
+                  ? "bg-red-500"
+                  : "bg-foreground-secondary";
+              const label =
+                e.attended === true
+                  ? e.type === "training" ? "Был на тренировке" : "Сыграл матч"
+                  : e.attended === false
+                  ? e.type === "training" ? "Пропустил тренировку" : "Пропустил матч"
+                  : `Записался — ${EVENT_TYPE_LABEL[e.type] ?? e.type}`;
+              return (
+                <div key={e.event_id} className="flex items-center justify-between px-4 py-3">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-2.5 h-2.5 rounded-full shrink-0 ${dotColor}`} />
+                    <span className="text-sm">{label}</span>
+                  </div>
+                  <span className="text-xs text-foreground-secondary shrink-0 ml-3">
+                    {formatRelativeDate(e.date)}
+                  </span>
                 </div>
-                <span
-                  className={`text-xs font-medium rounded-full px-2.5 py-1 ${
-                    e.attended
-                      ? "bg-green-100 text-green-700"
-                      : "bg-red-100 text-red-600"
-                  }`}
-                >
-                  {e.attended ? "Был" : "Не пришёл"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
+              );
+            })}
+          </div>
+        </div>
       )}
     </div>
   );
@@ -452,36 +632,56 @@ function MyJoinRequests({ userId }: { userId: string }) {
   if (requests !== null && requests.length === 0) return null;
 
   return (
-    <section>
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-2">Мои заявки</p>
+    <div>
+      <p className="text-xs uppercase font-display text-foreground-secondary tracking-wide mb-2">
+        Мои заявки
+      </p>
       {requests === null ? (
-        <div className="bg-background-card border border-border rounded-lg p-5 text-center text-foreground-secondary text-sm">
-          Загружаю…
-        </div>
+        <div className="h-14 animate-pulse bg-border rounded-lg" />
       ) : (
-        <ul className="flex flex-col gap-2">
+        <div className="bg-background-card border border-border rounded-lg divide-y divide-border">
           {requests.map((r) => (
-            <li key={r.id}>
-              <Link
-                href={`/team/${r.team.id}`}
-                className="block bg-background-card border border-border rounded-lg px-4 py-3"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="font-medium">{r.team.name}</p>
-                    <p className="text-xs text-foreground-secondary mt-0.5">
-                      {r.team.city} · {SPORT_LABEL[r.team.sport] ?? r.team.sport}
-                    </p>
-                  </div>
-                  <span className={`text-xs font-display font-semibold uppercase px-2 py-1 rounded ${STATUS_STYLE[r.status] ?? ""}`}>
-                    {STATUS_LABEL[r.status] ?? r.status}
-                  </span>
-                </div>
-              </Link>
-            </li>
+            <Link key={r.id} href={`/team/${r.team.id}`} className="flex items-center justify-between px-4 py-3">
+              <div>
+                <p className="font-medium text-sm">{r.team.name}</p>
+                <p className="text-xs text-foreground-secondary mt-0.5">
+                  {r.team.city} · {SPORT_LABEL[r.team.sport] ?? r.team.sport}
+                </p>
+              </div>
+              <span className={`text-xs font-display font-semibold uppercase px-2 py-1 rounded ${STATUS_STYLE[r.status] ?? ""}`}>
+                {STATUS_LABEL[r.status] ?? r.status}
+              </span>
+            </Link>
           ))}
-        </ul>
+        </div>
       )}
-    </section>
+    </div>
   );
+}
+
+/* ─── Utils ────────────────────────────────────────────────── */
+
+function calcAge(birthDate: string): number | null {
+  const d = new Date(birthDate);
+  if (isNaN(d.getTime())) return null;
+  const now = new Date();
+  let age = now.getFullYear() - d.getFullYear();
+  if (
+    now.getMonth() < d.getMonth() ||
+    (now.getMonth() === d.getMonth() && now.getDate() < d.getDate())
+  )
+    age--;
+  return age;
+}
+
+function formatRelativeDate(iso: string): string {
+  const d = new Date(iso);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return "Сегодня";
+  if (diffDays === 1) return "Вчера";
+  if (diffDays < 7) return `${diffDays} дн. назад`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} нед. назад`;
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }
