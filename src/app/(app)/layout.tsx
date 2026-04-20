@@ -1,9 +1,11 @@
 import { BottomTabs, type Tab } from "@/components/BottomTabs";
-import { HomeIcon, ShieldIcon, UserIcon } from "@/components/Icons";
+import { HomeIcon, SearchIcon, ShieldIcon, UsersIcon, UserIcon } from "@/components/Icons";
 
 const globalTabs: Tab[] = [
-  { label: "Главная", href: "/home", icon: <HomeIcon /> },
-  { label: "Команды", href: "/teams", icon: <ShieldIcon />, matchPaths: ["/team"] },
+  { label: "Главная",  href: "/home",    icon: <HomeIcon /> },
+  { label: "Поиск",   href: "/search",  icon: <SearchIcon /> },
+  { label: "Команды", href: "/teams",   icon: <ShieldIcon />, matchPaths: ["/team"] },
+  { label: "Игроки",  href: "/players", icon: <UsersIcon /> },
   { label: "Профиль", href: "/profile", icon: <UserIcon /> },
 ];
 
