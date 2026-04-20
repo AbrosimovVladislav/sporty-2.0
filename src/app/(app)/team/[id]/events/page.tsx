@@ -224,6 +224,7 @@ function CreateEventForm({
   const [venueAddress, setVenueAddress] = useState("");
   const [venueCost, setVenueCost] = useState("");
   const [sending, setSending] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
     fetch("/api/venues")
@@ -256,6 +257,7 @@ function CreateEventForm({
               ? { name: venueName, address: venueAddress }
               : undefined,
           venue_cost: venueCost ? parseFloat(venueCost) : 0,
+          is_public: isPublic,
         }),
       });
       if (res.ok) onCreated();
@@ -411,6 +413,25 @@ function CreateEventForm({
           className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors resize-none"
         />
       </div>
+
+      <label className="flex items-center gap-3 cursor-pointer">
+        <div
+          onClick={() => setIsPublic((v) => !v)}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+            isPublic ? "bg-primary" : "bg-border"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              isPublic ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </div>
+        <div>
+          <p className="text-sm font-medium">Публичное событие</p>
+          <p className="text-xs text-foreground-secondary">Видно всем в поиске</p>
+        </div>
+      </label>
 
       <div className="flex gap-3">
         <button
