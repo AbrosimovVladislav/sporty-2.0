@@ -61,7 +61,7 @@ export function BottomTabs({ tabs }: { tabs: Tab[] }) {
             <Link
               key={tab.href}
               href={tab.href}
-              className={`flex-1 flex flex-col items-center gap-1 py-3 text-xs transition-colors ${
+              className={`flex-1 flex flex-col items-center gap-0.5 py-2 text-[10px] transition-colors ${
                 isActive ? "text-primary" : "text-foreground-secondary"
               }`}
             >

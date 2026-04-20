@@ -1,6 +1,6 @@
 // Simple SVG icons for bottom tabs (24x24)
 
-const iconProps = { width: 24, height: 24, fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
+const iconProps = { width: 20, height: 20, fill: "none", stroke: "currentColor", strokeWidth: 2, strokeLinecap: "round" as const, strokeLinejoin: "round" as const };
 
 export function HomeIcon() {
   return (
