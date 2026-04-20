@@ -38,6 +38,7 @@ export type Database = {
           sport: string;
           city: string;
           description: string | null;
+          looking_for_players: boolean;
           created_by: string;
           created_at: string;
         };
@@ -47,6 +48,7 @@ export type Database = {
           sport?: string;
           city: string;
           description?: string | null;
+          looking_for_players?: boolean;
           created_by: string;
           created_at?: string;
         };
@@ -55,6 +57,7 @@ export type Database = {
           sport?: string;
           city?: string;
           description?: string | null;
+          looking_for_players?: boolean;
         };
         Relationships: [];
       };
@@ -140,6 +143,7 @@ export type Database = {
           venue_paid: number;
           created_by: string;
           created_at: string;
+          is_public: boolean;
         };
         Insert: {
           id?: string;
@@ -155,6 +159,7 @@ export type Database = {
           venue_paid?: number;
           created_by: string;
           created_at?: string;
+          is_public?: boolean;
         };
         Update: {
           venue_id?: string | null;
@@ -166,6 +171,7 @@ export type Database = {
           status?: "planned" | "completed" | "cancelled";
           venue_cost?: number;
           venue_paid?: number;
+          is_public?: boolean;
         };
         Relationships: [];
       };
