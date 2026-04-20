@@ -112,3 +112,41 @@ export async function GET(
 
   return NextResponse.json({ team, members, currentRole, joinRequestStatus, pendingRequestsCount, teamStats });
 }
+
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  const { userId, looking_for_players } = await req.json();
+
+  if (!userId || typeof looking_for_players !== "boolean") {
+    return NextResponse.json({ error: "userId and looking_for_players required" }, { status: 400 });
+  }
+
+  const supabase = getServiceClient();
+
+  // Verify caller is organizer
+  const { data: membership } = await supabase
+    .from("team_memberships")
+    .select("role")
+    .eq("user_id", userId)
+    .eq("team_id", id)
+    .maybeSingle();
+
+  if (!membership || membership.role !== "organizer") {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  }
+
+  const { error } = await supabase
+    .from("teams")
+    .update({ looking_for_players })
+    .eq("id", id);
+
+  if (error) {
+    console.error("Team update error:", error);
+    return NextResponse.json({ error: "Database error" }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true });
+}
