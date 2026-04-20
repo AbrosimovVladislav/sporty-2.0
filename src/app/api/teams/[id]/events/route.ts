@@ -114,7 +114,7 @@ export async function POST(
 ) {
   const { id: teamId } = await params;
   const body = await req.json();
-  const { userId, type, date, price_per_player, min_players, description, venue, venue_id, venue_cost } = body;
+  const { userId, type, date, price_per_player, min_players, description, venue, venue_id, venue_cost, is_public } = body;
 
   if (!userId || !type || !date) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -161,6 +161,7 @@ export async function POST(
       min_players: min_players ?? 1,
       description: description ?? null,
       venue_cost: venue_cost != null ? Number(venue_cost) : 0,
+      is_public: is_public === true,
       created_by: userId,
     })
     .select()
