@@ -68,9 +68,9 @@ export default function TeamFinancesPage() {
     if (!teamId || !showDeposit || members.length > 0) return;
     fetch(`/api/teams/${teamId}`)
       .then((r) => r.json())
-      .then((d) => setMembers((d.members ?? []).map((m: { user_id: string; users: { name: string } }) => ({
-        user_id: m.user_id,
-        name: m.users?.name ?? m.user_id,
+      .then((d) => setMembers((d.members ?? []).map((m: { user: { id: string; name: string } }) => ({
+        user_id: m.user.id,
+        name: m.user.name,
       }))));
   }, [teamId, showDeposit, members.length]);
 
