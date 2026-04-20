@@ -70,27 +70,35 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   const [user, setUser] = useState(initialUser);
   const [tab, setTab] = useState<Tab>("about");
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
     setUploading(true);
+    setUploadError(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
       const res = await fetch(`/api/users/${user.id}/avatar`, { method: "POST", body: fd });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setUser(data.user);
+      } else {
+        setUploadError(data.error ?? "Ошибка загрузки");
       }
+    } catch {
+      setUploadError("Ошибка сети");
     } finally {
       setUploading(false);
       e.target.value = "";
     }
   }
 
-  async function saveProfile(fields: Partial<Pick<User, "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team">>) {
+  async function saveProfile(
+    fields: Partial<Pick<User, "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team">>
+  ) {
     const res = await fetch(`/api/users/${user.id}/profile`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
@@ -118,103 +126,114 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
 
   return (
     <div className="flex flex-1 flex-col">
-      {/* Hero header */}
-      <div className="bg-background-dark text-foreground-on-dark px-5 pt-10 pb-6">
-        <div className="flex items-end gap-4">
-          {/* Avatar */}
-          <div className="relative shrink-0">
-            <button
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
-              className="relative w-20 h-20 rounded-full overflow-hidden bg-background-dark-elevated flex items-center justify-center group"
-            >
-              {user.avatar_url ? (
-                <Image
-                  src={user.avatar_url}
-                  alt={user.name}
-                  fill
-                  className="object-cover"
-                  sizes="80px"
-                />
-              ) : (
-                <span className="text-2xl font-display font-bold text-foreground-on-dark-muted">
-                  {initials}
-                </span>
-              )}
-              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                {uploading ? (
-                  <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-                ) : (
-                  <CameraIcon />
-                )}
-              </div>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleAvatarChange}
-            />
+      {/* Hero — full-width cover photo */}
+      <div className="relative h-72 bg-background-dark overflow-hidden">
+        {user.avatar_url ? (
+          <Image
+            src={user.avatar_url}
+            alt={user.name}
+            fill
+            className="object-cover"
+            sizes="100vw"
+            priority
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <span className="text-6xl font-display font-bold text-foreground-on-dark-muted/40 select-none">
+              {initials}
+            </span>
           </div>
+        )}
 
-          {/* Name + badges */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl font-display font-bold uppercase leading-none truncate">
-              {user.name}
-            </h1>
-            <div className="flex flex-wrap items-center gap-2 mt-3">
-              {user.city && (
-                <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-                  <span className="opacity-60">⊙</span> {user.city}
-                </span>
-              )}
-              {user.sport && (
-                <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-                  {SPORT_LABEL[user.sport] ?? user.sport}
-                </span>
-              )}
-              {user.looking_for_team && (
-                <span className="flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded-full px-3 py-1 font-medium">
-                  <span className="opacity-80">⚑</span> Ищет команду
-                </span>
-              )}
-            </div>
+        {/* gradient overlay */}
+        <div className="absolute inset-0 bg-linear-to-t from-background-dark via-background-dark/30 to-transparent" />
+
+        {/* camera button */}
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={uploading}
+          className="absolute top-4 right-4 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm disabled:opacity-50"
+          aria-label="Загрузить фото"
+        >
+          {uploading ? (
+            <div className="w-4 h-4 rounded-full border-2 border-white border-t-transparent animate-spin" />
+          ) : (
+            <CameraIcon />
+          )}
+        </button>
+
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          className="hidden"
+          onChange={handleAvatarChange}
+        />
+
+        {/* name + badges at bottom */}
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-5 text-foreground-on-dark">
+          {uploadError && (
+            <p className="text-xs text-red-400 mb-2">{uploadError}</p>
+          )}
+          <h1 className="text-3xl font-display font-bold uppercase leading-none">
+            {user.name}
+          </h1>
+          <div className="flex flex-wrap items-center gap-2 mt-3">
+            {user.position && (
+              <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
+                <span className="opacity-60">◎</span> {user.position.split(",")[0].trim()}
+              </span>
+            )}
+            {user.city && (
+              <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
+                <span className="opacity-60">⊙</span> {user.city}
+              </span>
+            )}
+            {user.looking_for_team && (
+              <span className="flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded-full px-3 py-1 font-medium">
+                <span className="opacity-80">⚑</span> Ищет команду
+              </span>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-2 px-4 py-3 bg-background overflow-x-auto">
-        {tabs.map(({ id, label }) => (
-          <button
-            key={id}
-            onClick={() => setTab(id)}
-            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-              tab === id
-                ? "bg-primary text-primary-foreground"
-                : "bg-background-card text-foreground border border-border"
-            }`}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
+      {/* Tabs — same pattern as team layout */}
+      <nav className="px-4 py-3 bg-background">
+        <div className="flex justify-center gap-1.5">
+          {tabs.map(({ id, label }) => (
+            <button
+              key={id}
+              onClick={() => setTab(id)}
+              className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+                tab === id
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-background-card text-foreground border border-border"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {/* Tab content */}
       <div className="flex flex-col gap-4 px-4 pb-6">
-        {tab === "about" && <AboutTab user={user} />}
+        {tab === "about" && (
+          <>
+            <AboutTab user={user} />
+            <MyJoinRequests userId={user.id} />
+          </>
+        )}
         {tab === "results" && <ResultsTab userId={user.id} />}
         {tab === "reliability" && <ReliabilityTab userId={user.id} />}
         {tab === "settings" && <SettingsTab user={user} onSave={saveProfile} />}
-
-        <MyJoinRequests userId={user.id} />
       </div>
     </div>
   );
 }
 
-/* ─── Stat card (reusable) ─────────────────────────────────── */
+/* ─── Stat card ─────────────────────────────────────────────── */
 
 function StatCard({
   label,
@@ -238,26 +257,42 @@ function StatCard({
 /* ─── Обо мне (read-only) ──────────────────────────────────── */
 
 function AboutTab({ user }: { user: User }) {
+  const [bioExpanded, setBioExpanded] = useState(false);
   const age = user.birth_date ? calcAge(user.birth_date) : null;
   const positionChips = user.position
     ? user.position.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
-  const isEmpty = !user.bio && !user.skill_level && !user.position && !user.preferred_time && age === null;
+  const isEmpty =
+    !user.bio && !user.skill_level && !user.position && !user.preferred_time && age === null;
 
   if (isEmpty) {
     return (
-      <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+      <div className="flex flex-col items-center justify-center gap-2 py-12 text-center">
         <p className="text-foreground-secondary text-sm">Профиль ещё не заполнен</p>
-        <p className="text-xs text-foreground-secondary">Перейди в Настройки, чтобы добавить информацию о себе</p>
+        <p className="text-xs text-foreground-secondary">
+          Перейди в Настройки, чтобы добавить информацию о себе
+        </p>
       </div>
     );
   }
+
+  const isLong = (user.bio?.length ?? 0) > 120;
+  const displayBio =
+    !bioExpanded && isLong ? user.bio!.slice(0, 120) + "…" : user.bio;
 
   return (
     <div className="flex flex-col gap-3 pt-1">
       {user.bio && (
         <StatCard label="Био">
-          <p className="text-sm leading-relaxed">{user.bio}</p>
+          <p className="text-sm leading-relaxed">{displayBio}</p>
+          {isLong && (
+            <button
+              onClick={() => setBioExpanded((v) => !v)}
+              className="text-sm text-primary font-medium mt-1"
+            >
+              {bioExpanded ? "Скрыть ↑" : "Ещё ↓"}
+            </button>
+          )}
         </StatCard>
       )}
 
@@ -272,7 +307,9 @@ function AboutTab({ user }: { user: User }) {
             <StatCard label="Возраст">
               <p className="text-3xl font-display font-bold leading-none">
                 {age}{" "}
-                <span className="text-base font-sans font-normal text-foreground-secondary">лет</span>
+                <span className="text-base font-sans font-normal text-foreground-secondary">
+                  лет
+                </span>
               </p>
             </StatCard>
           )}
@@ -315,20 +352,26 @@ function ResultsTab({ userId }: { userId: string }) {
     let cancelled = false;
     fetch(`/api/users/${userId}/stats`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (!cancelled) setStats(d ?? null); })
-      .catch(() => { if (!cancelled) setStats(null); });
-    return () => { cancelled = true; };
+      .then((d) => {
+        if (!cancelled) setStats(d ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   if (stats === undefined) {
     return <div className="h-40 animate-pulse bg-border rounded-lg mt-1" />;
   }
 
-  const secondary: { label: string; value: string | number }[] = [
-    { label: "Голы", value: "—" },
-    { label: "Передачи", value: "—" },
-    { label: "Жёлтые", value: "—" },
-    { label: "MVP", value: "—" },
+  const secondary: { label: string }[] = [
+    { label: "Голы" },
+    { label: "Передачи" },
+    { label: "Жёлтые" },
+    { label: "MVP" },
   ];
 
   return (
@@ -340,9 +383,9 @@ function ResultsTab({ userId }: { userId: string }) {
       </StatCard>
 
       <div className="grid grid-cols-2 gap-3">
-        {secondary.map(({ label, value }) => (
+        {secondary.map(({ label }) => (
           <StatCard key={label} label={label}>
-            <p className="text-3xl font-display font-bold leading-none mt-1">{value}</p>
+            <p className="text-3xl font-display font-bold leading-none mt-1">—</p>
             <p className="text-xs text-foreground-secondary mt-1">скоро</p>
           </StatCard>
         ))}
@@ -367,9 +410,15 @@ function ReliabilityTab({ userId }: { userId: string }) {
     let cancelled = false;
     fetch(`/api/users/${userId}/stats`)
       .then((r) => (r.ok ? r.json() : null))
-      .then((d) => { if (!cancelled) setStats(d ?? null); })
-      .catch(() => { if (!cancelled) setStats(null); });
-    return () => { cancelled = true; };
+      .then((d) => {
+        if (!cancelled) setStats(d ?? null);
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   if (stats === undefined) {
@@ -381,7 +430,9 @@ function ReliabilityTab({ userId }: { userId: string }) {
   const missed = hasData ? stats.votedYesCount - stats.attendedCount : 0;
   const missRate =
     hasData && stats.votedYesCount > 0
-      ? Math.round(((stats.votedYesCount - stats.attendedCount) / stats.votedYesCount) * 100)
+      ? Math.round(
+          ((stats.votedYesCount - stats.attendedCount) / stats.votedYesCount) * 100
+        )
       : 0;
   const attendedPct =
     hasData && stats.votedYesCount > 0
@@ -419,12 +470,20 @@ function ReliabilityTab({ userId }: { userId: string }) {
         <>
           <div className="grid grid-cols-2 gap-3">
             <StatCard label="Неприходы">
-              <p className={`text-3xl font-display font-bold leading-none mt-1 ${missed === 0 ? "text-primary" : "text-foreground"}`}>
+              <p
+                className={`text-3xl font-display font-bold leading-none mt-1 ${
+                  missed === 0 ? "text-primary" : "text-foreground"
+                }`}
+              >
                 {missed}
               </p>
             </StatCard>
             <StatCard label="Отмены">
-              <p className={`text-3xl font-display font-bold leading-none mt-1 ${missRate === 0 ? "text-primary" : "text-foreground"}`}>
+              <p
+                className={`text-3xl font-display font-bold leading-none mt-1 ${
+                  missRate === 0 ? "text-primary" : "text-foreground"
+                }`}
+              >
                 {missRate}%
               </p>
             </StatCard>
@@ -463,9 +522,13 @@ function ReliabilityTab({ userId }: { userId: string }) {
                   : "bg-foreground-secondary";
               const label =
                 e.attended === true
-                  ? e.type === "training" ? "Был на тренировке" : "Сыграл матч"
+                  ? e.type === "training"
+                    ? "Был на тренировке"
+                    : "Сыграл матч"
                   : e.attended === false
-                  ? e.type === "training" ? "Пропустил тренировку" : "Пропустил матч"
+                  ? e.type === "training"
+                    ? "Пропустил тренировку"
+                    : "Пропустил матч"
                   : `Записался — ${EVENT_TYPE_LABEL[e.type] ?? e.type}`;
               return (
                 <div key={e.event_id} className="flex items-center justify-between px-4 py-3">
@@ -493,7 +556,14 @@ function SettingsTab({
   onSave,
 }: {
   user: User;
-  onSave: (fields: Partial<Pick<User, "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team">>) => Promise<void>;
+  onSave: (
+    fields: Partial<
+      Pick<
+        User,
+        "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team"
+      >
+    >
+  ) => Promise<void>;
 }) {
   const [bio, setBio] = useState(user.bio ?? "");
   const [position, setPosition] = useState(user.position ?? "");
@@ -583,7 +653,6 @@ function SettingsTab({
         />
       </div>
 
-      {/* Looking for team toggle */}
       <button
         type="button"
         onClick={() => setLookingForTeam((v) => !v)}
@@ -630,9 +699,15 @@ function MyJoinRequests({ userId }: { userId: string }) {
     let cancelled = false;
     fetch(`/api/users/${userId}/join-requests`)
       .then((r) => r.json())
-      .then((d) => { if (!cancelled) setRequests(d.requests ?? []); })
-      .catch(() => { if (!cancelled) setRequests([]); });
-    return () => { cancelled = true; };
+      .then((d) => {
+        if (!cancelled) setRequests(d.requests ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setRequests([]);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
   if (requests !== null && requests.length === 0) return null;
@@ -647,14 +722,20 @@ function MyJoinRequests({ userId }: { userId: string }) {
       ) : (
         <div className="bg-background-card border border-border rounded-lg divide-y divide-border">
           {requests.map((r) => (
-            <Link key={r.id} href={`/team/${r.team.id}`} className="flex items-center justify-between px-4 py-3">
+            <Link
+              key={r.id}
+              href={`/team/${r.team.id}`}
+              className="flex items-center justify-between px-4 py-3"
+            >
               <div>
                 <p className="font-medium text-sm">{r.team.name}</p>
                 <p className="text-xs text-foreground-secondary mt-0.5">
                   {r.team.city} · {SPORT_LABEL[r.team.sport] ?? r.team.sport}
                 </p>
               </div>
-              <span className={`text-xs font-display font-semibold uppercase px-2 py-1 rounded ${STATUS_STYLE[r.status] ?? ""}`}>
+              <span
+                className={`text-xs font-display font-semibold uppercase px-2 py-1 rounded ${STATUS_STYLE[r.status] ?? ""}`}
+              >
                 {STATUS_LABEL[r.status] ?? r.status}
               </span>
             </Link>
@@ -669,7 +750,16 @@ function MyJoinRequests({ userId }: { userId: string }) {
 
 function CameraIcon() {
   return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
       <circle cx="12" cy="13" r="4" />
     </svg>
