@@ -15,22 +15,10 @@ export async function POST(
 
   const supabase = getServiceClient();
 
-  // Verify user is a team member
-  const { data: membership } = await supabase
-    .from("team_memberships")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("team_id", teamId)
-    .maybeSingle();
-
-  if (!membership) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
-
   // Verify event exists and is planned
   const { data: event } = await supabase
     .from("events")
-    .select("id, status")
+    .select("id, status, is_public")
     .eq("id", eventId)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -41,6 +29,20 @@ export async function POST(
 
   if (event.status !== "planned") {
     return NextResponse.json({ error: "Event is not open for voting" }, { status: 400 });
+  }
+
+  // For non-public events, require team membership
+  if (!event.is_public) {
+    const { data: membership } = await supabase
+      .from("team_memberships")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("team_id", teamId)
+      .maybeSingle();
+
+    if (!membership) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
   }
 
   // Upsert attendance record

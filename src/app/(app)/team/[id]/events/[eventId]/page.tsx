@@ -34,6 +34,7 @@ type EventDetail = {
   status: string;
   venue_cost: number;
   venue_paid: number;
+  is_public: boolean;
   created_by: string;
   venue: { id: string; name: string; address: string } | null;
 };
@@ -140,8 +141,8 @@ export default function EventDetailPage({
         </div>
       </section>
 
-      {/* Vote buttons for team members (planned only) */}
-      {isMember && event.status === "planned" && userId && (
+      {/* Vote buttons for team members and guests on public events (planned only) */}
+      {(isMember || event.is_public) && event.status === "planned" && userId && (
         <VoteButtons
           teamId={teamId}
           eventId={eventId}

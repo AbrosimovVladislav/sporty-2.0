@@ -13,6 +13,7 @@ type EventWithVenue = {
   status: string;
   venue_cost: number;
   venue_paid: number;
+  is_public: boolean;
   created_by: string;
   created_at: string;
   venues: { id: string; name: string; address: string } | null;
@@ -38,11 +39,28 @@ export async function GET(
 
   const supabase = getServiceClient();
 
-  const { data, error } = await supabase
+  let isGuestAccess = true;
+  if (userId) {
+    const { data: membership } = await supabase
+      .from("team_memberships")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("team_id", teamId)
+      .maybeSingle();
+    if (membership) isGuestAccess = false;
+  }
+
+  let eventsQuery = supabase
     .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, created_by, created_at, venues(id, name, address)")
+    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address)")
     .eq("team_id", teamId)
     .order("date", { ascending: false });
+
+  if (isGuestAccess) {
+    eventsQuery = eventsQuery.eq("is_public", true);
+  }
+
+  const { data, error } = await eventsQuery;
 
   if (error) {
     console.error("Events fetch error:", error);
@@ -95,6 +113,7 @@ export async function GET(
       status: e.status,
       venue_cost: e.venue_cost,
       venue_paid: e.venue_paid,
+      is_public: e.is_public,
       venue: e.venues,
       yesCount,
       noCount,

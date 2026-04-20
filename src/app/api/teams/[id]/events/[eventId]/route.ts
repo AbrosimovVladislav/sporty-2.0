@@ -12,6 +12,7 @@ type EventWithVenue = {
   status: string;
   venue_cost: number;
   venue_paid: number;
+  is_public: boolean;
   created_by: string;
   created_at: string;
   venues: { id: string; name: string; address: string } | null;
@@ -38,7 +39,7 @@ export async function GET(
 
   const { data: rawEvent, error: eventErr } = await supabase
     .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, created_by, created_at, venues(id, name, address)")
+    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address)")
     .eq("id", eventId)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -77,6 +78,7 @@ export async function GET(
       status: event.status,
       venue_cost: event.venue_cost,
       venue_paid: event.venue_paid,
+      is_public: event.is_public,
       created_by: event.created_by,
       created_at: event.created_at,
       venue: event.venues,

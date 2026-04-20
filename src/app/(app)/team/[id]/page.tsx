@@ -255,11 +255,14 @@ type NextEvent = {
 };
 
 function NextEventBlock({ teamId }: { teamId: string }) {
+  const auth = useAuth();
   const [event, setEvent] = useState<NextEvent | null | undefined>(undefined);
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/teams/${teamId}/events`)
+    const params = userId ? `?userId=${userId}` : "";
+    fetch(`/api/teams/${teamId}/events${params}`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
@@ -272,7 +275,7 @@ function NextEventBlock({ teamId }: { teamId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [teamId]);
+  }, [teamId, userId]);
 
   if (event === undefined) {
     return (
