@@ -46,29 +46,33 @@ export async function GET(
 
   if (teamIds.length > 0) {
     fetchers.push(
-      supabase
-        .from("events")
-        .select(SELECT)
-        .eq("status", "planned")
-        .gt("date", now)
-        .in("team_id", teamIds)
-        .order("date", { ascending: true })
-        .limit(5)
-        .then(({ data }) => (data ?? []) as unknown as EventRow[]),
+      (async () => {
+        const { data } = await supabase
+          .from("events")
+          .select(SELECT)
+          .eq("status", "planned")
+          .gt("date", now)
+          .in("team_id", teamIds)
+          .order("date", { ascending: true })
+          .limit(5);
+        return (data ?? []) as unknown as EventRow[];
+      })(),
     );
   }
 
   if (votedEventIds.length > 0) {
     fetchers.push(
-      supabase
-        .from("events")
-        .select(SELECT)
-        .eq("status", "planned")
-        .gt("date", now)
-        .in("id", votedEventIds)
-        .order("date", { ascending: true })
-        .limit(5)
-        .then(({ data }) => (data ?? []) as unknown as EventRow[]),
+      (async () => {
+        const { data } = await supabase
+          .from("events")
+          .select(SELECT)
+          .eq("status", "planned")
+          .gt("date", now)
+          .in("id", votedEventIds)
+          .order("date", { ascending: true })
+          .limit(5);
+        return (data ?? []) as unknown as EventRow[];
+      })(),
     );
   }
 
