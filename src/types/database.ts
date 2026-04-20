@@ -19,6 +19,7 @@ export type Database = {
           skill_level: string | null;
           preferred_time: string | null;
           looking_for_team: boolean;
+          avatar_url: string | null;
         };
         Insert: {
           id?: string;
@@ -34,6 +35,7 @@ export type Database = {
           skill_level?: string | null;
           preferred_time?: string | null;
           looking_for_team?: boolean;
+          avatar_url?: string | null;
         };
         Update: {
           name?: string;
@@ -46,6 +48,7 @@ export type Database = {
           skill_level?: string | null;
           preferred_time?: string | null;
           looking_for_team?: boolean;
+          avatar_url?: string | null;
         };
         Relationships: [];
       };

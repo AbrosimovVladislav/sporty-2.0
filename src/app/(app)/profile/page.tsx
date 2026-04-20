@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
 import type { User } from "@/types/database";
 
-type Tab = "about" | "results" | "reliability";
+type Tab = "about" | "results" | "reliability" | "settings";
 
 const SPORT_LABEL: Record<string, string> = { football: "Футбол" };
 const STATUS_LABEL: Record<string, string> = {
@@ -68,22 +69,36 @@ export default function ProfilePage() {
 function ProfileContent({ initialUser }: { initialUser: User }) {
   const [user, setUser] = useState(initialUser);
   const [tab, setTab] = useState<Tab>("about");
-  const [savingField, setSavingField] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function saveField(field: string, value: unknown) {
-    setSavingField(field);
+  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
     try {
-      const res = await fetch(`/api/users/${user.id}/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ [field]: value }),
-      });
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/users/${user.id}/avatar`, { method: "POST", body: fd });
       if (res.ok) {
         const data = await res.json();
         setUser(data.user);
       }
     } finally {
-      setSavingField(null);
+      setUploading(false);
+      e.target.value = "";
+    }
+  }
+
+  async function saveProfile(fields: Partial<Pick<User, "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team">>) {
+    const res = await fetch(`/api/users/${user.id}/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(fields),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setUser(data.user);
     }
   }
 
@@ -91,36 +106,81 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
     { id: "about", label: "Обо мне" },
     { id: "results", label: "Результаты" },
     { id: "reliability", label: "Надёжность" },
+    { id: "settings", label: "Настройки" },
   ];
+
+  const initials = user.name
+    .split(" ")
+    .map((w) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="flex flex-1 flex-col">
       {/* Hero header */}
-      <div className="bg-background-dark text-foreground-on-dark px-5 pt-10 pb-5">
-        <h1 className="text-4xl font-display font-bold uppercase leading-none">{user.name}</h1>
-        <div className="flex flex-wrap items-center gap-2 mt-3">
-          {user.position && (
-            <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-              <span className="opacity-60">◎</span> {user.position.split(",")[0].trim()}
-            </span>
-          )}
-          {user.city && (
-            <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-              <span className="opacity-60">⊙</span> {user.city}
-            </span>
-          )}
-          <button
-            onClick={() => saveField("looking_for_team", !user.looking_for_team)}
-            disabled={savingField === "looking_for_team"}
-            className={`flex items-center gap-1 text-xs rounded-full px-3 py-1 font-medium transition-colors disabled:opacity-50 ${
-              user.looking_for_team
-                ? "bg-primary text-primary-foreground"
-                : "bg-background-dark-elevated text-foreground-on-dark-muted"
-            }`}
-          >
-            <span className="opacity-80">⚑</span>
-            {user.looking_for_team ? "Ищет команду" : "Не ищет команду"}
-          </button>
+      <div className="bg-background-dark text-foreground-on-dark px-5 pt-10 pb-6">
+        <div className="flex items-end gap-4">
+          {/* Avatar */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="relative w-20 h-20 rounded-full overflow-hidden bg-background-dark-elevated flex items-center justify-center group"
+            >
+              {user.avatar_url ? (
+                <Image
+                  src={user.avatar_url}
+                  alt={user.name}
+                  fill
+                  className="object-cover"
+                  sizes="80px"
+                />
+              ) : (
+                <span className="text-2xl font-display font-bold text-foreground-on-dark-muted">
+                  {initials}
+                </span>
+              )}
+              <div className="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                {uploading ? (
+                  <div className="w-5 h-5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+                ) : (
+                  <CameraIcon />
+                )}
+              </div>
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleAvatarChange}
+            />
+          </div>
+
+          {/* Name + badges */}
+          <div className="flex-1 min-w-0">
+            <h1 className="text-3xl font-display font-bold uppercase leading-none truncate">
+              {user.name}
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 mt-3">
+              {user.city && (
+                <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
+                  <span className="opacity-60">⊙</span> {user.city}
+                </span>
+              )}
+              {user.sport && (
+                <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
+                  {SPORT_LABEL[user.sport] ?? user.sport}
+                </span>
+              )}
+              {user.looking_for_team && (
+                <span className="flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded-full px-3 py-1 font-medium">
+                  <span className="opacity-80">⚑</span> Ищет команду
+                </span>
+              )}
+            </div>
+          </div>
         </div>
       </div>
 
@@ -130,7 +190,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
           <button
             key={id}
             onClick={() => setTab(id)}
-            className={`shrink-0 rounded-full px-5 py-2 text-sm font-medium transition-colors ${
+            className={`shrink-0 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
               tab === id
                 ? "bg-primary text-primary-foreground"
                 : "bg-background-card text-foreground border border-border"
@@ -143,11 +203,10 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
 
       {/* Tab content */}
       <div className="flex flex-col gap-4 px-4 pb-6">
-        {tab === "about" && (
-          <AboutTab user={user} savingField={savingField} onSave={saveField} />
-        )}
+        {tab === "about" && <AboutTab user={user} />}
         {tab === "results" && <ResultsTab userId={user.id} />}
         {tab === "reliability" && <ReliabilityTab userId={user.id} />}
+        {tab === "settings" && <SettingsTab user={user} onSave={saveProfile} />}
 
         <MyJoinRequests userId={user.id} />
       </div>
@@ -176,40 +235,37 @@ function StatCard({
   );
 }
 
-/* ─── Обо мне ─────────────────────────────────────────────── */
+/* ─── Обо мне (read-only) ──────────────────────────────────── */
 
-function AboutTab({
-  user,
-  savingField,
-  onSave,
-}: {
-  user: User;
-  savingField: string | null;
-  onSave: (field: string, value: unknown) => Promise<void>;
-}) {
+function AboutTab({ user }: { user: User }) {
   const age = user.birth_date ? calcAge(user.birth_date) : null;
   const positionChips = user.position
     ? user.position.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
+  const isEmpty = !user.bio && !user.skill_level && !user.position && !user.preferred_time && age === null;
+
+  if (isEmpty) {
+    return (
+      <div className="flex flex-col items-center justify-center gap-3 py-12 text-center">
+        <p className="text-foreground-secondary text-sm">Профиль ещё не заполнен</p>
+        <p className="text-xs text-foreground-secondary">Перейди в Настройки, чтобы добавить информацию о себе</p>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3 pt-1">
-      <BioField value={user.bio} saving={savingField === "bio"} onSave={onSave} />
+      {user.bio && (
+        <StatCard label="Био">
+          <p className="text-sm leading-relaxed">{user.bio}</p>
+        </StatCard>
+      )}
 
       {(user.skill_level || age !== null) && (
         <div className="grid grid-cols-2 gap-3">
           {user.skill_level && (
             <StatCard label="Уровень">
-              <InlineField
-                fieldKey="skill_level"
-                value={user.skill_level}
-                placeholder="Любитель…"
-                saving={savingField === "skill_level"}
-                onSave={onSave}
-                renderValue={(v) => (
-                  <p className="text-xl font-display font-bold">{v}</p>
-                )}
-              />
+              <p className="text-xl font-display font-bold">{user.skill_level}</p>
             </StatCard>
           )}
           {age !== null && (
@@ -241,197 +297,11 @@ function AboutTab({
         </div>
       )}
 
-      {/* Editable fields without values */}
-      <div className="flex flex-col gap-2">
-        {!user.skill_level && (
-          <InlineFieldRow
-            label="Уровень"
-            fieldKey="skill_level"
-            value={user.skill_level}
-            placeholder="Любитель, полупрофи…"
-            saving={savingField === "skill_level"}
-            onSave={onSave}
-          />
-        )}
-        <InlineFieldRow
-          label="Позиция (через запятую)"
-          fieldKey="position"
-          value={user.position}
-          placeholder="Нападающий, Универсал, Левая нога"
-          saving={savingField === "position"}
-          onSave={onSave}
-        />
-        <InlineFieldRow
-          label="Время тренировок"
-          fieldKey="preferred_time"
-          value={user.preferred_time}
-          placeholder="Вечер буднями, выходные…"
-          saving={savingField === "preferred_time"}
-          onSave={onSave}
-        />
-        <InlineFieldRow
-          label="Дата рождения"
-          fieldKey="birth_date"
-          value={user.birth_date}
-          placeholder="ГГГГ-ММ-ДД"
-          inputType="date"
-          saving={savingField === "birth_date"}
-          onSave={onSave}
-        />
-      </div>
-    </div>
-  );
-}
-
-function BioField({
-  value,
-  saving,
-  onSave,
-}: {
-  value: string | null;
-  saving: boolean;
-  onSave: (field: string, value: unknown) => Promise<void>;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [expanded, setExpanded] = useState(false);
-  const [draft, setDraft] = useState(value ?? "");
-  const ref = useRef<HTMLTextAreaElement>(null);
-
-  useEffect(() => {
-    if (editing) ref.current?.focus();
-  }, [editing]);
-
-  async function commit() {
-    setEditing(false);
-    const next = draft.trim() || null;
-    if (next !== value) await onSave("bio", next);
-  }
-
-  const placeholder = "Расскажи о себе: игровой стиль, опыт…";
-  const isLong = (value?.length ?? 0) > 120;
-  const displayText = !expanded && isLong ? value!.slice(0, 120) + "…" : value;
-
-  return (
-    <StatCard label="Био">
-      {editing ? (
-        <textarea
-          ref={ref}
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          placeholder={placeholder}
-          rows={4}
-          className="w-full text-sm bg-transparent focus:outline-none resize-none"
-        />
-      ) : saving ? (
-        <p className="text-sm text-foreground-secondary">Сохраняю…</p>
-      ) : value ? (
-        <div>
-          <p className="text-sm leading-relaxed cursor-pointer" onClick={() => setEditing(true)}>
-            {displayText}
-          </p>
-          {isLong && (
-            <button
-              onClick={() => setExpanded((v) => !v)}
-              className="text-sm text-primary font-medium mt-1"
-            >
-              {expanded ? "Скрыть ↑" : "Ещё ↓"}
-            </button>
-          )}
-        </div>
-      ) : (
-        <button onClick={() => setEditing(true)} className="text-sm text-foreground-secondary">
-          {placeholder}
-        </button>
+      {user.preferred_time && (
+        <StatCard label="Время тренировок">
+          <p className="text-sm">{user.preferred_time}</p>
+        </StatCard>
       )}
-    </StatCard>
-  );
-}
-
-function InlineField({
-  fieldKey,
-  value,
-  placeholder,
-  inputType = "text",
-  saving,
-  onSave,
-  renderValue,
-}: {
-  fieldKey: string;
-  value: string | null;
-  placeholder: string;
-  inputType?: string;
-  saving: boolean;
-  onSave: (field: string, value: unknown) => Promise<void>;
-  renderValue?: (v: string) => React.ReactNode;
-}) {
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(value ?? "");
-  const ref = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (editing) ref.current?.focus();
-  }, [editing]);
-
-  async function commit() {
-    setEditing(false);
-    const next = draft.trim() || null;
-    if (next !== value) await onSave(fieldKey, next);
-  }
-
-  if (editing) {
-    return (
-      <input
-        ref={ref}
-        type={inputType}
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => { if (e.key === "Enter") commit(); if (e.key === "Escape") setEditing(false); }}
-        placeholder={placeholder}
-        className="w-full text-sm bg-transparent focus:outline-none"
-      />
-    );
-  }
-  if (saving) return <p className="text-sm text-foreground-secondary">Сохраняю…</p>;
-
-  return (
-    <div onClick={() => setEditing(true)} className="cursor-pointer">
-      {value
-        ? renderValue ? renderValue(value) : <p className="text-sm">{value}</p>
-        : <p className="text-sm text-foreground-secondary">{placeholder}</p>}
-    </div>
-  );
-}
-
-function InlineFieldRow({
-  label,
-  fieldKey,
-  value,
-  placeholder,
-  inputType = "text",
-  saving,
-  onSave,
-}: {
-  label: string;
-  fieldKey: string;
-  value: string | null;
-  placeholder: string;
-  inputType?: string;
-  saving: boolean;
-  onSave: (field: string, value: unknown) => Promise<void>;
-}) {
-  return (
-    <div className="bg-background-card border border-border rounded-lg px-4 py-3">
-      <p className="text-xs text-foreground-secondary mb-1">{label}</p>
-      <InlineField
-        fieldKey={fieldKey}
-        value={value}
-        placeholder={placeholder}
-        inputType={inputType}
-        saving={saving}
-        onSave={onSave}
-      />
     </div>
   );
 }
@@ -509,16 +379,17 @@ function ReliabilityTab({ userId }: { userId: string }) {
   const reliability = stats?.reliability ?? null;
   const hasData = stats && stats.votedYesCount > 0;
   const missed = hasData ? stats.votedYesCount - stats.attendedCount : 0;
-  const missRate = hasData && stats.votedYesCount > 0
-    ? Math.round(((stats.votedYesCount - stats.attendedCount) / stats.votedYesCount) * 100)
-    : 0;
-  const attendedPct = hasData && stats.votedYesCount > 0
-    ? Math.round((stats.attendedCount / stats.votedYesCount) * 100)
-    : 0;
+  const missRate =
+    hasData && stats.votedYesCount > 0
+      ? Math.round(((stats.votedYesCount - stats.attendedCount) / stats.votedYesCount) * 100)
+      : 0;
+  const attendedPct =
+    hasData && stats.votedYesCount > 0
+      ? Math.round((stats.attendedCount / stats.votedYesCount) * 100)
+      : 0;
 
   return (
     <div className="flex flex-col gap-3 pt-1">
-      {/* Индекс надёжности */}
       <StatCard label="Индекс надёжности">
         {!hasData ? (
           <p className="text-sm text-foreground-secondary">
@@ -615,6 +486,141 @@ function ReliabilityTab({ userId }: { userId: string }) {
   );
 }
 
+/* ─── Настройки ────────────────────────────────────────────── */
+
+function SettingsTab({
+  user,
+  onSave,
+}: {
+  user: User;
+  onSave: (fields: Partial<Pick<User, "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team">>) => Promise<void>;
+}) {
+  const [bio, setBio] = useState(user.bio ?? "");
+  const [position, setPosition] = useState(user.position ?? "");
+  const [skillLevel, setSkillLevel] = useState(user.skill_level ?? "");
+  const [preferredTime, setPreferredTime] = useState(user.preferred_time ?? "");
+  const [birthDate, setBirthDate] = useState(user.birth_date ?? "");
+  const [lookingForTeam, setLookingForTeam] = useState(user.looking_for_team);
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  async function handleSave() {
+    setSaving(true);
+    setSaved(false);
+    try {
+      await onSave({
+        bio: bio.trim() || null,
+        position: position.trim() || null,
+        skill_level: skillLevel.trim() || null,
+        preferred_time: preferredTime.trim() || null,
+        birth_date: birthDate || null,
+        looking_for_team: lookingForTeam,
+      });
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  const inputClass =
+    "w-full bg-background-card border border-border rounded-lg px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors";
+  const labelClass = "text-xs text-foreground-secondary mb-1 block";
+
+  return (
+    <div className="flex flex-col gap-4 pt-1">
+      <div>
+        <label className={labelClass}>О себе</label>
+        <textarea
+          value={bio}
+          onChange={(e) => setBio(e.target.value)}
+          placeholder="Игровой стиль, опыт, цели…"
+          rows={4}
+          className={`${inputClass} resize-none`}
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Позиция (через запятую)</label>
+        <input
+          type="text"
+          value={position}
+          onChange={(e) => setPosition(e.target.value)}
+          placeholder="Нападающий, Универсал…"
+          className={inputClass}
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Уровень</label>
+        <input
+          type="text"
+          value={skillLevel}
+          onChange={(e) => setSkillLevel(e.target.value)}
+          placeholder="Любитель, полупрофи…"
+          className={inputClass}
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Время тренировок</label>
+        <input
+          type="text"
+          value={preferredTime}
+          onChange={(e) => setPreferredTime(e.target.value)}
+          placeholder="Вечер буднями, выходные…"
+          className={inputClass}
+        />
+      </div>
+
+      <div>
+        <label className={labelClass}>Дата рождения</label>
+        <input
+          type="date"
+          value={birthDate}
+          onChange={(e) => setBirthDate(e.target.value)}
+          className={inputClass}
+        />
+      </div>
+
+      {/* Looking for team toggle */}
+      <button
+        type="button"
+        onClick={() => setLookingForTeam((v) => !v)}
+        className={`flex items-center justify-between w-full bg-background-card border rounded-lg px-4 py-3 transition-colors ${
+          lookingForTeam ? "border-primary" : "border-border"
+        }`}
+      >
+        <div className="text-left">
+          <p className="text-sm font-medium">Ищу команду</p>
+          <p className="text-xs text-foreground-secondary mt-0.5">
+            {lookingForTeam ? "Отображаешься в каталоге игроков" : "Скрыт из каталога"}
+          </p>
+        </div>
+        <div
+          className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
+            lookingForTeam ? "bg-primary" : "bg-border"
+          }`}
+        >
+          <div
+            className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-transform ${
+              lookingForTeam ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </div>
+      </button>
+
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="w-full bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full py-3 transition-colors hover:bg-primary-hover disabled:opacity-50"
+      >
+        {saving ? "Сохраняю…" : saved ? "Сохранено ✓" : "Сохранить"}
+      </button>
+    </div>
+  );
+}
+
 /* ─── Мои заявки ───────────────────────────────────────────── */
 
 function MyJoinRequests({ userId }: { userId: string }) {
@@ -656,6 +662,17 @@ function MyJoinRequests({ userId }: { userId: string }) {
         </div>
       )}
     </div>
+  );
+}
+
+/* ─── Icons ────────────────────────────────────────────────── */
+
+function CameraIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
   );
 }
 
