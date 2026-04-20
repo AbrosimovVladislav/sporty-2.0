@@ -13,6 +13,12 @@ export type Database = {
           sport: string | null;
           onboarding_completed: boolean;
           created_at: string;
+          bio: string | null;
+          birth_date: string | null;
+          position: string | null;
+          skill_level: string | null;
+          preferred_time: string | null;
+          looking_for_team: boolean;
         };
         Insert: {
           id?: string;
@@ -22,12 +28,24 @@ export type Database = {
           sport?: string | null;
           onboarding_completed?: boolean;
           created_at?: string;
+          bio?: string | null;
+          birth_date?: string | null;
+          position?: string | null;
+          skill_level?: string | null;
+          preferred_time?: string | null;
+          looking_for_team?: boolean;
         };
         Update: {
           name?: string;
           city?: string | null;
           sport?: string | null;
           onboarding_completed?: boolean;
+          bio?: string | null;
+          birth_date?: string | null;
+          position?: string | null;
+          skill_level?: string | null;
+          preferred_time?: string | null;
+          looking_for_team?: boolean;
         };
         Relationships: [];
       };

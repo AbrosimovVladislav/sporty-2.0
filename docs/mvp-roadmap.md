@@ -224,18 +224,18 @@
 
 #### 12.1 Данные
 
-- ⬜ **12.1.1** Миграция: расширить `users` — `bio text`, `birth_date date`, `position text`, `skill_level text`, `preferred_time text`, `looking_for_team boolean default false`
-- ⬜ **12.1.2** Обновить `src/types/database.ts` — новые поля users
-- ⬜ **12.1.3** API `GET /api/players` — все пользователи с `onboarding_completed = true`. Фильтры: `?city=`, `?looking_for_team=`, `?position=`. Поля: id, name, city, position, skill_level, looking_for_team. Дефолтный лимит 50 записей, параметр `?limit=` и `?offset=`
-- ⬜ **12.1.4** API `GET /api/players/[id]` — публичные данные конкретного игрока
-- ⬜ **12.1.5** API `GET /api/users/[id]/stats` — сыгранные матчи, индекс надёжности, посещено/записано, последние 10 событий. Формула надёжности: `(attended_count / voted_yes_count) * 100` — считать только по completed событиям, где игрок голосовал "yes". Если `voted_yes_count = 0` — надёжность не отображается
+- ✅ **12.1.1** Миграция: расширить `users` — `bio text`, `birth_date date`, `position text`, `skill_level text`, `preferred_time text`, `looking_for_team boolean default false`
+- ✅ **12.1.2** Обновить `src/types/database.ts` — новые поля users
+- ✅ **12.1.3** API `GET /api/players` — все пользователи с `onboarding_completed = true`. Фильтры: `?city=`, `?looking_for_team=`, `?position=`. Поля: id, name, city, position, skill_level, looking_for_team. Дефолтный лимит 50 записей, параметр `?limit=` и `?offset=`
+- ✅ **12.1.4** API `GET /api/players/[id]` — публичные данные конкретного игрока
+- ✅ **12.1.5** API `GET /api/users/[id]/stats` — сыгранные матчи, индекс надёжности, посещено/записано, последние 10 событий. Формула надёжности: `(attended_count / voted_yes_count) * 100` — считать только по completed событиям, где игрок голосовал "yes". Если `voted_yes_count = 0` — надёжность не отображается
 
 #### 12.2 UI
 
-- ⬜ **12.2.1** `src/app/(app)/players/page.tsx`: фильтры (город, "Ищет команду", позиция) + список карточек (имя, город, позиция, уровень, бейдж "Ищет команду")
-- ⬜ **12.2.2** `src/app/(app)/players/[id]/page.tsx` — публичный профиль игрока (read-only): имя, город, позиция, уровень, био, надёжность, статус поиска. Упрощённая версия профиля
-- ⬜ **12.2.3** `matchPaths` в BottomTabs — `/players` активен на `/players/[id]`
-- ⬜ **12.2.4** Обновить документацию
+- ✅ **12.2.1** `src/app/(app)/players/page.tsx`: фильтры (город, "Ищет команду", позиция) + список карточек (имя, город, позиция, уровень, бейдж "Ищет команду")
+- ✅ **12.2.2** `src/app/(app)/players/[id]/page.tsx` — публичный профиль игрока (read-only): имя, город, позиция, уровень, био, надёжность, статус поиска. Упрощённая версия профиля
+- ✅ **12.2.3** `matchPaths` в BottomTabs — `/players` активен на `/players/[id]` (не требуется: `startsWith` в `isTabActive` уже покрывает)
+- ✅ **12.2.4** Обновить документацию
 
 **Зависимости:** итерация 7 (маршрут /players)
 

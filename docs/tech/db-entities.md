@@ -13,6 +13,12 @@
 | sport | text | Вид спорта (на старте — football) |
 | created_at | timestamp | Дата регистрации |
 | onboarding_completed | boolean | Прошёл ли онбординг |
+| bio | text? | Текст о себе |
+| birth_date | date? | Дата рождения |
+| position | text? | Игровая позиция |
+| skill_level | text? | Уровень игры |
+| preferred_time | text? | Предпочтительное время тренировок |
+| looking_for_team | boolean | Ищет команду (default false) |
 
 ---
 
