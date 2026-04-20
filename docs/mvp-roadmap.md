@@ -165,7 +165,7 @@
 
 #### 11.1 Модель данных
 
-- ⬜ **11.1.1** Новая таблица `FinancialTransaction`:
+- ✅ **11.1.1** Новая таблица `FinancialTransaction`:
 
   | Поле | Тип | Описание |
   |------|-----|----------|
@@ -179,40 +179,40 @@
   | confirmed_by | uuid | FK → User (организатор, подтвердивший). NOT NULL — транзакции создаёт только организатор |
   | created_at | timestamp | Дата |
 
-- ⬜ **11.1.2** Обновить `src/types/database.ts` — тип `FinancialTransaction`
-- ⬜ **11.1.3** Обновить `docs/tech/db-entities.md` — новая сущность + обновлённые связи
+- ✅ **11.1.2** Обновить `src/types/database.ts` — тип `FinancialTransaction`
+- ✅ **11.1.3** Обновить `docs/tech/db-entities.md` — новая сущность + обновлённые связи
 
 #### 11.2 Миграция данных
 
-- ⬜ **11.2.1** Миграция: перенести существующие оплаты из `EventAttendance` (где `paid = true`) в `FinancialTransaction` с `type = event_payment`
-- ⬜ **11.2.2** Оставить в `EventAttendance` только поля посещения: `vote`, `attended`. Пометить `paid`, `paid_amount` как deprecated (не удалять сразу, но перестать использовать)
+- ✅ **11.2.1** Миграция: перенести существующие оплаты из `EventAttendance` (где `paid = true`) в `FinancialTransaction` с `type = event_payment`
+- ✅ **11.2.2** Оставить в `EventAttendance` только поля посещения: `vote`, `attended`. Пометить `paid`, `paid_amount` как deprecated (не удалять сразу, но перестать использовать)
 
 > **Примечание:** поля `attended_confirmed` и `paid_confirmed` описаны в документации, но не реализованы в коде и отсутствуют в типах. В рамках MVP 1.1 двойное подтверждение (игрок + организатор) не используется — убрать из `docs/tech/db-entities.md`.
 
 #### 11.3 API
 
-- ⬜ **11.3.1** Новый API `POST /api/teams/[id]/transactions` — создать транзакцию (организатор). Тело: `{ player_id, amount, type, event_id?, note? }`
-- ⬜ **11.3.2** Новый API `GET /api/teams/[id]/transactions` — список транзакций команды (организатор). Фильтры: `?player_id=`, `?type=`
-- ⬜ **11.3.3** Новый API `GET /api/teams/[id]/members/[userId]/balance` — баланс игрока:
+- ✅ **11.3.1** Новый API `POST /api/teams/[id]/transactions` — создать транзакцию (организатор). Тело: `{ player_id, amount, type, event_id?, note? }`
+- ✅ **11.3.2** Новый API `GET /api/teams/[id]/transactions` — список транзакций команды (организатор). Фильтры: `?player_id=`, `?type=`
+- ✅ **11.3.3** Новый API `GET /api/teams/[id]/members/[userId]/balance` — баланс игрока:
   - Ожидаемый расход = Σ `price_per_player` по completed событиям, где `attended = true`
   - Оплачено = Σ `amount` из `FinancialTransaction` (event_payment + deposit)
   - Баланс = оплачено − ожидаемый расход (положительный = переплата/аванс, отрицательный = долг)
-- ⬜ **11.3.4** Переписать `GET /api/teams/[id]/finances` — считать показатели из `FinancialTransaction` вместо `EventAttendance.paid*`
+- ✅ **11.3.4** Переписать `GET /api/teams/[id]/finances` — считать показатели из `FinancialTransaction` вместо `EventAttendance.paid*`
 
 #### 11.4 UI — обновление финансов
 
-- ⬜ **11.4.1** Обновить `src/lib/finances.ts` — хелперы работают с `FinancialTransaction`
-- ⬜ **11.4.2** Обновить вкладку «Финансы» команды (`team/[id]/finances`) — показатели из нового API
-- ⬜ **11.4.3** Обновить `PlayerCard` — баланс и история из `FinancialTransaction`
-- ⬜ **11.4.4** Обновить экран события (completed): кнопка "Сдал" создаёт `FinancialTransaction` с `type = event_payment` + привязкой к event_id. Снятие отметки "Сдал" — удаляет соответствующую транзакцию
-- ⬜ **11.4.5** Кнопка "Внести депозит" на вкладке «Финансы»: форма (игрок, сумма, комментарий) → `POST /api/teams/[id]/transactions` с `type = deposit`
+- ✅ **11.4.1** Обновить `src/lib/finances.ts` — хелперы работают с `FinancialTransaction`
+- ✅ **11.4.2** Обновить вкладку «Финансы» команды (`team/[id]/finances`) — показатели из нового API
+- ✅ **11.4.3** Обновить `PlayerCard` — баланс и история из `FinancialTransaction`
+- ✅ **11.4.4** Обновить экран события (completed): кнопка "Сдал" создаёт `FinancialTransaction` с `type = event_payment` + привязкой к event_id. Снятие отметки "Сдал" — удаляет соответствующую транзакцию
+- ✅ **11.4.5** Кнопка "Внести депозит" на вкладке «Финансы»: форма (игрок, сумма, комментарий) → `POST /api/teams/[id]/transactions` с `type = deposit`
 
 #### 11.5 Формулы (обновлённые)
 
-- ⬜ **11.5.1** Касса = Σ всех транзакций (event_payment + deposit) − Σ venue_paid
-- ⬜ **11.5.2** Баланс игрока = Σ его транзакций − Σ price_per_player за посещённые события
-- ⬜ **11.5.3** Реальный баланс = Касса − Остаток к оплате площадкам − Переплаты игроков + Долги игроков
-- ⬜ **11.5.4** Обновить документацию: `[event]-finances.md`, `[team]-finances-tab.md`
+- ✅ **11.5.1** Касса = Σ всех транзакций (event_payment + deposit) − Σ venue_paid
+- ✅ **11.5.2** Баланс игрока = Σ его транзакций − Σ price_per_player за посещённые события
+- ✅ **11.5.3** Реальный баланс = Касса − Остаток к оплате площадкам − Переплаты игроков + Долги игроков
+- ✅ **11.5.4** Обновить документацию: `[event]-finances.md`, `[team]-finances-tab.md`
 
 **Зависимости:** нет (можно параллельно с 8–10)
 

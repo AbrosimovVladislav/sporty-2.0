@@ -1,3 +1,6 @@
+// Legacy helpers used by the event detail page's FinanceSummary.
+// Financial calculations for team-wide metrics use FinancialTransaction instead.
+
 type AttendanceLike = {
   attended: boolean | null;
   paid: boolean | null;
@@ -20,4 +23,8 @@ export function getPaidAmount(a: AttendanceLike, pricePerPlayer: number): number
   if (!isAttendancePaid(a)) return 0;
   if (a.paid_amount != null) return a.paid_amount;
   return pricePerPlayer;
+}
+
+export function calcBalance(paid: number, expected: number): number {
+  return paid - expected;
 }

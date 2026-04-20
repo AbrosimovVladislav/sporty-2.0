@@ -2,24 +2,16 @@
 
 import { useEffect, useState } from "react";
 
-const TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
-};
-
 type FinancesData = {
   user: { id: string; name: string; city: string | null };
   totals: { expected: number; paid: number; balance: number };
   history: {
-    eventId: string;
+    id: string;
+    amount: number;
     type: string;
-    date: string;
-    attended: boolean;
-    paid: boolean;
-    expected: number;
-    paidAmount: number;
+    label: string;
+    note: string | null;
+    created_at: string;
   }[];
 };
 
@@ -47,22 +39,13 @@ export function PlayerCard({
         }
         return r.json();
       })
-      .then((d) => {
-        if (!cancelled && d) setData(d);
-      })
-      .catch(() => {
-        if (!cancelled) setError("Не удалось загрузить");
-      });
-    return () => {
-      cancelled = true;
-    };
+      .then((d) => { if (!cancelled && d) setData(d); })
+      .catch(() => { if (!cancelled) setError("Не удалось загрузить"); });
+    return () => { cancelled = true; };
   }, [teamId, requesterId, targetUserId]);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
-      onClick={onClose}
-    >
+    <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/40" onClick={onClose}>
       <div
         className="w-full max-w-md bg-background border-t border-border rounded-t-2xl p-6 max-h-[85vh] overflow-y-auto animate-[slideUp_0.2s_ease-out]"
         onClick={(e) => e.stopPropagation()}
@@ -70,18 +53,12 @@ export function PlayerCard({
         <div className="flex justify-between items-start mb-4">
           <div>
             <p className="text-xs uppercase font-display text-foreground-secondary">Игрок</p>
-            <h2 className="text-2xl font-display font-bold mt-1">
-              {data?.user.name ?? "…"}
-            </h2>
+            <h2 className="text-2xl font-display font-bold mt-1">{data?.user.name ?? "…"}</h2>
             {data?.user.city && (
               <p className="text-sm text-foreground-secondary mt-1">{data.user.city}</p>
             )}
           </div>
-          <button
-            onClick={onClose}
-            className="text-foreground-secondary text-2xl leading-none px-2"
-            aria-label="Закрыть"
-          >
+          <button onClick={onClose} className="text-foreground-secondary text-2xl leading-none px-2" aria-label="Закрыть">
             ×
           </button>
         </div>
@@ -92,13 +69,8 @@ export function PlayerCard({
           <>
             <div className="bg-background-card border border-border rounded-lg p-4 mb-4">
               <p className="text-xs uppercase font-display text-foreground-secondary">Сальдо</p>
-              <p
-                className={`text-2xl font-display font-bold mt-1 ${
-                  data.totals.balance >= 0 ? "text-green-600" : "text-red-500"
-                }`}
-              >
-                {data.totals.balance >= 0 ? "+" : ""}
-                {data.totals.balance} ₽
+              <p className={`text-2xl font-display font-bold mt-1 ${data.totals.balance >= 0 ? "text-green-600" : "text-red-500"}`}>
+                {data.totals.balance >= 0 ? "+" : ""}{data.totals.balance} ₽
               </p>
               <p className="text-xs text-foreground-secondary mt-1">
                 {data.totals.balance > 0
@@ -113,45 +85,23 @@ export function PlayerCard({
               </div>
             </div>
 
-            <p className="text-xs uppercase font-display text-foreground-secondary mb-2">
-              История событий
-            </p>
+            <p className="text-xs uppercase font-display text-foreground-secondary mb-2">История платежей</p>
             {data.history.length === 0 ? (
-              <p className="text-sm text-foreground-secondary">Завершённых событий нет</p>
+              <p className="text-sm text-foreground-secondary">Платежей нет</p>
             ) : (
               <ul className="flex flex-col gap-2">
-                {data.history.map((h) => {
-                  const date = new Date(h.date).toLocaleString("ru-RU", {
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  });
-                  const status = h.attended
-                    ? h.paid
-                      ? `Был, сдал ${h.paidAmount} ₽`
-                      : `Был, должен ${h.expected} ₽`
-                    : "Не был";
-                  const tone = h.attended
-                    ? h.paid
-                      ? "text-green-600"
-                      : "text-red-500"
-                    : "text-foreground-secondary";
-                  return (
-                    <li
-                      key={h.eventId}
-                      className="flex items-center justify-between border-b border-border pb-2 last:border-b-0"
-                    >
-                      <div>
-                        <p className="text-sm font-medium">
-                          {TYPE_LABEL[h.type] ?? h.type}
-                        </p>
-                        <p className="text-xs text-foreground-secondary">{date}</p>
-                      </div>
-                      <span className={`text-xs ${tone}`}>{status}</span>
-                    </li>
-                  );
-                })}
+                {data.history.map((h) => (
+                  <li key={h.id} className="flex items-center justify-between border-b border-border pb-2 last:border-b-0">
+                    <div>
+                      <p className="text-sm font-medium">{h.label}</p>
+                      <p className="text-xs text-foreground-secondary">
+                        {new Date(h.created_at).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}
+                        {h.type === "deposit" && <span className="ml-1 text-primary">• депозит</span>}
+                      </p>
+                    </div>
+                    <span className="text-sm font-medium text-green-600">+{h.amount} ₽</span>
+                  </li>
+                ))}
               </ul>
             )}
           </>

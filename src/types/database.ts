@@ -225,6 +225,35 @@ export type Database = {
         };
         Relationships: [];
       };
+      financial_transactions: {
+        Row: {
+          id: string;
+          team_id: string;
+          player_id: string;
+          amount: number;
+          type: "event_payment" | "deposit";
+          event_id: string | null;
+          note: string | null;
+          confirmed_by: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          team_id: string;
+          player_id: string;
+          amount: number;
+          type: "event_payment" | "deposit";
+          event_id?: string | null;
+          note?: string | null;
+          confirmed_by: string;
+          created_at?: string;
+        };
+        Update: {
+          amount?: number;
+          note?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -239,3 +268,4 @@ export type JoinRequest = Database["public"]["Tables"]["join_requests"]["Row"];
 export type Venue = Database["public"]["Tables"]["venues"]["Row"];
 export type Event = Database["public"]["Tables"]["events"]["Row"];
 export type EventAttendance = Database["public"]["Tables"]["event_attendances"]["Row"];
+export type FinancialTransaction = Database["public"]["Tables"]["financial_transactions"]["Row"];

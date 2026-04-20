@@ -181,17 +181,17 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
           <div className="flex flex-wrap items-center gap-2 mt-3">
             {user.position && (
               <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-                <span className="opacity-60">◎</span> {user.position.split(",")[0].trim()}
+                <PositionIcon /> {user.position.split(",")[0].trim()}
               </span>
             )}
             {user.city && (
               <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-                <span className="opacity-60">⊙</span> {user.city}
+                <LocationIcon /> {user.city}
               </span>
             )}
             {user.looking_for_team && (
               <span className="flex items-center gap-1 text-xs bg-primary text-primary-foreground rounded-full px-3 py-1 font-medium">
-                <span className="opacity-80">⚑</span> Ищет команду
+                <SearchIcon /> Ищет команду
               </span>
             )}
           </div>
@@ -750,18 +750,36 @@ function MyJoinRequests({ userId }: { userId: string }) {
 
 function CameraIcon() {
   return (
-    <svg
-      width="18"
-      height="18"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
       <circle cx="12" cy="13" r="4" />
+    </svg>
+  );
+}
+
+function LocationIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function PositionIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function SearchIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="11" cy="11" r="8" />
+      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   );
 }

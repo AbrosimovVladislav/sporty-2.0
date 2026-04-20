@@ -19,6 +19,7 @@
 | skill_level | text? | Уровень игры |
 | preferred_time | text? | Предпочтительное время тренировок |
 | looking_for_team | boolean | Ищет команду (default false) |
+| avatar_url | text? | URL фото профиля (Supabase Storage) |
 
 ---
 
@@ -110,7 +111,7 @@
 
 ## EventAttendance
 
-Участие игрока в событии: голосование + результат.
+Участие игрока в событии: голосование + факт посещения.
 
 | Поле | Тип | Описание |
 |------|-----|----------|
@@ -118,13 +119,31 @@
 | event_id | uuid | FK → Event |
 | user_id | uuid | FK → User |
 | vote | enum? | `yes` / `no` (голос до события) |
-| attended | boolean? | Был ли на событии (отметка игрока) |
-| attended_confirmed | boolean? | Подтверждение организатора |
-| paid | boolean? | Сдал деньги (отметка игрока) |
-| paid_confirmed | boolean? | Подтверждение организатора |
-| paid_amount | numeric? | Произвольная сумма оплаты. Если null — fallback на `price_per_player` события |
+| attended | boolean? | Был ли на событии |
+| paid | boolean? | Deprecated — хранится для UI, финансы считаются из FinancialTransaction |
+| paid_amount | numeric? | Deprecated — см. paid |
 
 **Unique constraint:** (event_id, user_id)
+
+---
+
+## FinancialTransaction
+
+Финансовая транзакция команды. Единственный источник истины для расчёта балансов.
+
+| Поле | Тип | Описание |
+|------|-----|----------|
+| id | uuid | PK |
+| team_id | uuid | FK → Team |
+| player_id | uuid | FK → User. Кто платит |
+| amount | numeric | Сумма (всегда положительная) |
+| type | enum | `event_payment` / `deposit` |
+| event_id | uuid? | FK → Event (для event_payment; deposit — null) |
+| note | text? | Комментарий |
+| confirmed_by | uuid | FK → User (организатор, создавший транзакцию) |
+| created_at | timestamptz | Дата создания |
+
+**Правила:** транзакции создаёт только организатор. Для каждого игрока на каждое событие — не более одной `event_payment` транзакции (при изменении суммы — удаляется старая, создаётся новая).
 
 ---
 
@@ -139,24 +158,22 @@ Venue 1──N Event
 User  1──N Team (created_by)
 User  1──N Event (created_by)
 User  1──N Venue (created_by)
+Team  1──N FinancialTransaction
+User  1──N FinancialTransaction (player_id)
+Event 1──N FinancialTransaction (event_payment)
 ```
 
 ---
 
 ## Границы сущностей
 
-Простое правило: каждая сущность отвечает только за свой вопрос.
-
-| Вопрос | Сущность | Не хранить в |
-|--------|----------|-------------|
-| Кто этот человек? | User | — |
-| Что это за команда? | Team | — |
-| Кто состоит в команде и в какой роли? | TeamMembership | User, Team |
-| Хочет ли игрок вступить? | JoinRequest | User, Team |
-| Где проводится событие? | Venue | Event |
-| Что и когда происходит? | Event | Team |
-| Кто придёт / был / сдал деньги? | EventAttendance | Event, User |
-
-**Роль = контекст.** Один User может быть организатором одной команды и игроком другой. Роль живёт в TeamMembership, а не в User.
-
-**Финансы = учёт.** Приложение не принимает деньги. Поля `paid` / `paid_confirmed` в EventAttendance — только фиксация факта.
+| Вопрос | Сущность |
+|--------|----------|
+| Кто этот человек? | User |
+| Что это за команда? | Team |
+| Кто состоит в команде и в какой роли? | TeamMembership |
+| Хочет ли игрок вступить? | JoinRequest |
+| Где проводится событие? | Venue |
+| Что и когда происходит? | Event |
+| Кто придёт / был? | EventAttendance (vote, attended) |
+| Кто сколько сдал? | FinancialTransaction |
