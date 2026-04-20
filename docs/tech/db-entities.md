@@ -29,6 +29,7 @@
 | description | text? | Описание (опционально) |
 | created_by | uuid | FK → User (организатор) |
 | created_at | timestamp | Дата создания |
+| looking_for_players | boolean | Открыт ли набор игроков (default false) |
 
 ---
 
@@ -97,6 +98,7 @@
 | venue_paid | numeric | Сколько уже перечислено площадке (default 0) |
 | created_by | uuid | FK → User (организатор) |
 | created_at | timestamp | Дата создания |
+| is_public | boolean | Видно ли событие в публичном поиске (default false) |
 
 ---
 
