@@ -63,6 +63,11 @@ export default function TeamHomePage() {
         <>
           <FinanceBalanceBlock teamId={team.team.id} />
 
+          <LookingForPlayersToggle
+            teamId={team.team.id}
+            initial={team.team.looking_for_players}
+          />
+
           <IncomingRequestsBlock
             teamId={team.team.id}
             count={pendingRequestsCount}
@@ -365,6 +370,53 @@ function FinanceBalanceBlock({ teamId }: { teamId: string }) {
         )}
       </section>
     </Link>
+  );
+}
+
+function LookingForPlayersToggle({ teamId, initial }: { teamId: string; initial: boolean }) {
+  const auth = useAuth();
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const [enabled, setEnabled] = useState(initial);
+  const [saving, setSaving] = useState(false);
+
+  async function toggle() {
+    if (!userId || saving) return;
+    const next = !enabled;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/teams/${teamId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, looking_for_players: next }),
+      });
+      if (res.ok) setEnabled(next);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <section className="bg-background-card border border-border rounded-lg p-5">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-xs uppercase font-display text-foreground-secondary">Набор игроков</p>
+          <p className="text-sm mt-1">{enabled ? "Открыт" : "Закрыт"}</p>
+        </div>
+        <button
+          onClick={toggle}
+          disabled={saving}
+          className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors disabled:opacity-50 ${
+            enabled ? "bg-primary" : "bg-border"
+          }`}
+        >
+          <span
+            className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+              enabled ? "translate-x-6" : "translate-x-1"
+            }`}
+          />
+        </button>
+      </div>
+    </section>
   );
 }
 
