@@ -60,6 +60,8 @@ npm run lint      # ESLint
 
 ## Правила
 
+- **Git**: не делай коммиты. Пользователь управляет git самостоятельно
+- **Миграции**: применяй через Supabase MCP (`apply_migration`), не проси пользователя делать вручную. Project ID: `nxahiklyhwducxoqimoq`
 - Не добавляй зависимости без согласования
 - Telegram SDK может быть недоступен в браузере — всегда проверяй
 - Следуй docs/design/design-system.md при создании UI
