@@ -41,11 +41,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
+  // Only organizers may set custom paid_amount; players always pay price_per_player.
+  const effectivePaidAmount = isOrganizer ? paid_amount : undefined;
+
   // Build attendance update
   const update: { attended?: boolean | null; paid?: boolean | null; paid_amount?: number | null } = {};
   if (attended !== undefined) update.attended = attended;
   if (paid !== undefined) update.paid = paid;
-  if (paid_amount !== undefined) update.paid_amount = paid_amount === null ? null : Number(paid_amount);
+  if (effectivePaidAmount !== undefined) update.paid_amount = effectivePaidAmount === null ? null : Number(effectivePaidAmount);
   if (update.paid === false) update.paid_amount = null;
 
   if (Object.keys(update).length === 0) {
@@ -73,10 +76,10 @@ export async function PATCH(
     if (error) return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  // Sync financial transaction — only organizer creates/manages transactions
-  if (isOrganizer && paid !== undefined) {
+  // Sync financial transaction — mirrors event_attendances.paid
+  if (paid !== undefined) {
     if (paid === true) {
-      // Upsert transaction: delete old + insert new with updated amount
+      // Upsert transaction: delete old + insert new with current amount
       await supabase
         .from("financial_transactions")
         .delete()
@@ -85,7 +88,7 @@ export async function PATCH(
         .eq("type", "event_payment");
 
       const amount =
-        paid_amount != null ? Number(paid_amount) : (event.price_per_player ?? 0);
+        effectivePaidAmount != null ? Number(effectivePaidAmount) : (event.price_per_player ?? 0);
 
       if (amount > 0) {
         await supabase.from("financial_transactions").insert({
@@ -105,11 +108,11 @@ export async function PATCH(
         .eq("player_id", effectiveTargetId)
         .eq("type", "event_payment");
     }
-  } else if (isOrganizer && paid_amount !== undefined && paid_amount !== null) {
+  } else if (effectivePaidAmount !== undefined && effectivePaidAmount !== null) {
     // Organizer changed amount without toggling paid — update existing transaction
     await supabase
       .from("financial_transactions")
-      .update({ amount: Number(paid_amount) })
+      .update({ amount: Number(effectivePaidAmount) })
       .eq("event_id", eventId)
       .eq("player_id", effectiveTargetId)
       .eq("type", "event_payment");
