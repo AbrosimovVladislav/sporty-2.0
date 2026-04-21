@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
+import CitySelect from "@/components/CitySelect";
+import DistrictSelect from "@/components/DistrictSelect";
 
 type Section = "mine" | "all";
 
@@ -20,6 +22,7 @@ type PublicTeam = {
   city: string;
   sport: string;
   description: string | null;
+  district: { id: string; name: string } | null;
 };
 
 const SPORT_LABEL: Record<string, string> = {
@@ -163,6 +166,7 @@ function MineSection({
 
 function AllSection() {
   const [city, setCity] = useState("");
+  const [districtId, setDistrictId] = useState("");
   const [teams, setTeams] = useState<PublicTeam[] | null>(null);
 
   useEffect(() => {
@@ -170,6 +174,7 @@ function AllSection() {
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       if (city.trim()) params.set("city", city.trim());
+      if (districtId) params.set("district_id", districtId);
       fetch(`/api/teams${params.toString() ? `?${params}` : ""}`)
         .then((r) => r.json())
         .then((d) => {
@@ -183,19 +188,19 @@ function AllSection() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [city]);
+  }, [city, districtId]);
+
+  function handleCityChange(newCity: string) {
+    setCity(newCity);
+    setDistrictId("");
+  }
 
   return (
     <div className="flex flex-1 flex-col gap-4">
       <div className="flex flex-col gap-2">
         <label className="text-sm text-foreground-secondary">Город</label>
-        <input
-          type="text"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="Любой город"
-          className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-        />
+        <CitySelect value={city} onChange={handleCityChange} />
+        <DistrictSelect city={city} value={districtId} onChange={setDistrictId} />
       </div>
 
       {teams === null ? (
@@ -216,7 +221,8 @@ function AllSection() {
               >
                 <h2 className="font-display font-semibold text-lg">{t.name}</h2>
                 <p className="text-sm text-foreground-secondary mt-1">
-                  {t.city} · {SPORT_LABEL[t.sport] ?? t.sport}
+                  {t.city}
+                  {t.district ? ` · ${t.district.name}` : ""} · {SPORT_LABEL[t.sport] ?? t.sport}
                 </p>
               </Link>
             </li>

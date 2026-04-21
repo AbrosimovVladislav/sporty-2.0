@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import CitySelect from "@/components/CitySelect";
+import DistrictSelect from "@/components/DistrictSelect";
 
 type SearchTeam = {
   id: string;
@@ -11,6 +13,7 @@ type SearchTeam = {
   description: string | null;
   looking_for_players: boolean;
   members_count: number;
+  district: { id: string; name: string } | null;
 };
 
 const SPORT_LABEL: Record<string, string> = {
@@ -27,6 +30,7 @@ function membersLabel(n: number): string {
 
 export default function TeamsTab() {
   const [city, setCity] = useState("");
+  const [districtId, setDistrictId] = useState("");
   const [teams, setTeams] = useState<SearchTeam[] | null>(null);
 
   useEffect(() => {
@@ -35,6 +39,7 @@ export default function TeamsTab() {
       const params = new URLSearchParams();
       params.set("looking_for_players", "true");
       if (city.trim()) params.set("city", city.trim());
+      if (districtId) params.set("district_id", districtId);
       fetch(`/api/teams?${params}`)
         .then((r) => r.json())
         .then((d) => {
@@ -48,19 +53,18 @@ export default function TeamsTab() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [city]);
+  }, [city, districtId]);
+
+  function handleCityChange(newCity: string) {
+    setCity(newCity);
+    setDistrictId("");
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <label className="text-sm text-foreground-secondary">Город</label>
-        <input
-          type="text"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="Любой город"
-          className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-        />
+      <div className="flex flex-col gap-2">
+        <CitySelect value={city} onChange={handleCityChange} />
+        <DistrictSelect city={city} value={districtId} onChange={setDistrictId} />
       </div>
 
       {teams === null ? (
@@ -86,7 +90,8 @@ export default function TeamsTab() {
                   </span>
                 </div>
                 <p className="text-sm text-foreground-secondary mt-1">
-                  {t.city} · {SPORT_LABEL[t.sport] ?? t.sport}
+                  {t.city}
+                  {t.district ? ` · ${t.district.name}` : ""} · {SPORT_LABEL[t.sport] ?? t.sport}
                 </p>
                 <p className="text-xs text-foreground-secondary mt-1">
                   {membersLabel(t.members_count)}

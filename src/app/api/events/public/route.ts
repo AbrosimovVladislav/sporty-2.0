@@ -9,20 +9,28 @@ type PublicEventRow = {
   price_per_player: number;
   min_players: number;
   description: string | null;
-  venues: { id: string; name: string; address: string; city: string } | null;
+  venues: {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    district_id: string | null;
+    districts: { id: string; name: string } | null;
+  } | null;
   teams: { id: string; name: string; city: string } | null;
 };
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const city = searchParams.get("city")?.trim();
+  const district_id = searchParams.get("district_id")?.trim();
 
   const supabase = getServiceClient();
   const now = new Date().toISOString();
 
   const { data, error } = await supabase
     .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, venues(id, name, address, city), teams(id, name, city)")
+    .select("id, team_id, type, date, price_per_player, min_players, description, venues(id, name, address, city, district_id, districts(id, name)), teams(id, name, city)")
     .eq("is_public", true)
     .eq("status", "planned")
     .gt("date", now)
@@ -41,6 +49,10 @@ export async function GET(req: NextRequest) {
         (e.teams?.city ?? "").toLowerCase().includes(city.toLowerCase()) ||
         (e.venues?.city ?? "").toLowerCase().includes(city.toLowerCase()),
     );
+  }
+
+  if (district_id) {
+    events = events.filter((e) => e.venues?.district_id === district_id);
   }
 
   const eventIds = events.map((e) => e.id);
@@ -65,7 +77,15 @@ export async function GET(req: NextRequest) {
     price_per_player: e.price_per_player,
     min_players: e.min_players,
     description: e.description,
-    venue: e.venues,
+    venue: e.venues
+      ? {
+          id: e.venues.id,
+          name: e.venues.name,
+          address: e.venues.address,
+          city: e.venues.city,
+          district: e.venues.districts ?? null,
+        }
+      : null,
     team: e.teams,
     yes_count: countMap.get(e.id) ?? 0,
   }));

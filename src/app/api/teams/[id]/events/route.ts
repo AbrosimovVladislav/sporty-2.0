@@ -158,7 +158,13 @@ export async function POST(
   if (!venueId && venue && venue.name && venue.address) {
     const { data: v, error: vErr } = await supabase
       .from("venues")
-      .insert({ name: venue.name, address: venue.address, city: venue.city ?? "", created_by: userId })
+      .insert({
+        name: venue.name,
+        address: venue.address,
+        city: venue.city ?? "",
+        district_id: venue.district_id ?? null,
+        created_by: userId,
+      })
       .select("id")
       .single();
 

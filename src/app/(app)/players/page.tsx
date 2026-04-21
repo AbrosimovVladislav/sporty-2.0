@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import CitySelect from "@/components/CitySelect";
+import DistrictSelect from "@/components/DistrictSelect";
 
 type Player = {
   id: string;
@@ -10,12 +12,14 @@ type Player = {
   position: string | null;
   skill_level: string | null;
   looking_for_team: boolean;
+  district: { id: string; name: string } | null;
 };
 
 export default function PlayersPage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [loading, setLoading] = useState(true);
   const [city, setCity] = useState("");
+  const [districtId, setDistrictId] = useState("");
   const [lookingForTeam, setLookingForTeam] = useState(false);
   const [position, setPosition] = useState("");
 
@@ -25,6 +29,7 @@ export default function PlayersPage() {
 
     const params = new URLSearchParams();
     if (city.trim()) params.set("city", city.trim());
+    if (districtId) params.set("district_id", districtId);
     if (lookingForTeam) params.set("looking_for_team", "true");
     if (position.trim()) params.set("position", position.trim());
 
@@ -43,7 +48,12 @@ export default function PlayersPage() {
     return () => {
       cancelled = true;
     };
-  }, [city, lookingForTeam, position]);
+  }, [city, districtId, lookingForTeam, position]);
+
+  function handleCityChange(newCity: string) {
+    setCity(newCity);
+    setDistrictId("");
+  }
 
   return (
     <div className="flex flex-1 flex-col p-4 gap-4">
@@ -55,13 +65,8 @@ export default function PlayersPage() {
       </div>
 
       <div className="flex flex-col gap-2">
-        <input
-          type="text"
-          placeholder="Город"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          className="w-full bg-background-card border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-foreground-secondary focus:outline-none"
-        />
+        <CitySelect value={city} onChange={handleCityChange} />
+        <DistrictSelect city={city} value={districtId} onChange={setDistrictId} />
         <input
           type="text"
           placeholder="Позиция (нападающий, вратарь…)"
@@ -102,7 +107,13 @@ export default function PlayersPage() {
                 <div>
                   <p className="font-display font-semibold">{p.name}</p>
                   <p className="text-xs text-foreground-secondary mt-0.5">
-                    {[p.city, p.position, p.skill_level].filter(Boolean).join(" · ")}
+                    {[
+                      p.city && p.district ? `${p.city} · ${p.district.name}` : p.city,
+                      p.position,
+                      p.skill_level,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 </div>
                 {p.looking_for_team && (

@@ -3,12 +3,15 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import CitySelect from "@/components/CitySelect";
+import DistrictSelect from "@/components/DistrictSelect";
 
 export default function CreateTeamPage() {
   const auth = useAuth();
   const router = useRouter();
   const [teamName, setTeamName] = useState("");
   const [city, setCity] = useState("");
+  const [districtId, setDistrictId] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
@@ -33,6 +36,7 @@ export default function CreateTeamPage() {
         city,
         sport: "football",
         userId: auth.user.id,
+        district_id: districtId || null,
       }),
     });
 
@@ -44,6 +48,11 @@ export default function CreateTeamPage() {
 
     const { team } = await res.json();
     router.replace(`/team/${team.id}`);
+  }
+
+  function handleCityChange(newCity: string) {
+    setCity(newCity);
+    setDistrictId("");
   }
 
   return (
@@ -67,14 +76,24 @@ export default function CreateTeamPage() {
 
         <div className="flex flex-col gap-1">
           <label className="text-sm text-foreground-secondary">Город</label>
-          <input
-            type="text"
+          <CitySelect
             value={city}
-            onChange={(e) => setCity(e.target.value)}
+            onChange={handleCityChange}
             className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-            placeholder="Москва"
           />
         </div>
+
+        {city && (
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-foreground-secondary">Район</label>
+            <DistrictSelect
+              city={city}
+              value={districtId}
+              onChange={setDistrictId}
+              className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
+            />
+          </div>
+        )}
 
         <div className="flex flex-col gap-1">
           <label className="text-sm text-foreground-secondary">Вид спорта</label>

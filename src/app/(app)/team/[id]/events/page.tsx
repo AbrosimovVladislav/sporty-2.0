@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
+import DistrictSelect from "@/components/DistrictSelect";
 
 const TYPE_LABEL: Record<string, string> = {
   game: "Игра",
@@ -222,6 +223,7 @@ function CreateEventForm({
   const [selectedVenueId, setSelectedVenueId] = useState("");
   const [venueName, setVenueName] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
+  const [venueDistrictId, setVenueDistrictId] = useState("");
   const [venueCost, setVenueCost] = useState("");
   const [sending, setSending] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
@@ -254,7 +256,7 @@ function CreateEventForm({
           venue_id: venueMode === "existing" && selectedVenueId ? selectedVenueId : undefined,
           venue:
             venueMode === "new" && venueName && venueAddress
-              ? { name: venueName, address: venueAddress }
+              ? { name: venueName, address: venueAddress, city: "Алматы", district_id: venueDistrictId || null }
               : undefined,
           venue_cost: venueCost ? parseFloat(venueCost) : 0,
           is_public: isPublic,
@@ -383,6 +385,15 @@ function CreateEventForm({
               value={venueAddress}
               onChange={(e) => setVenueAddress(e.target.value)}
               placeholder="Адрес"
+              className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-sm text-foreground-secondary">Район</label>
+            <DistrictSelect
+              city="Алматы"
+              value={venueDistrictId}
+              onChange={setVenueDistrictId}
               className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
             />
           </div>

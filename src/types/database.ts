@@ -4,6 +4,25 @@
 export type Database = {
   public: {
     Tables: {
+      districts: {
+        Row: {
+          id: string;
+          city: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          city: string;
+          name: string;
+          created_at?: string;
+        };
+        Update: {
+          city?: string;
+          name?: string;
+        };
+        Relationships: [];
+      };
       users: {
         Row: {
           id: string;
@@ -20,6 +39,7 @@ export type Database = {
           preferred_time: string | null;
           looking_for_team: boolean;
           avatar_url: string | null;
+          district_id: string | null;
         };
         Insert: {
           id?: string;
@@ -36,6 +56,7 @@ export type Database = {
           preferred_time?: string | null;
           looking_for_team?: boolean;
           avatar_url?: string | null;
+          district_id?: string | null;
         };
         Update: {
           name?: string;
@@ -49,6 +70,7 @@ export type Database = {
           preferred_time?: string | null;
           looking_for_team?: boolean;
           avatar_url?: string | null;
+          district_id?: string | null;
         };
         Relationships: [];
       };
@@ -62,6 +84,7 @@ export type Database = {
           looking_for_players: boolean;
           created_by: string;
           created_at: string;
+          district_id: string | null;
         };
         Insert: {
           id?: string;
@@ -72,6 +95,7 @@ export type Database = {
           looking_for_players?: boolean;
           created_by: string;
           created_at?: string;
+          district_id?: string | null;
         };
         Update: {
           name?: string;
@@ -79,6 +103,7 @@ export type Database = {
           city?: string;
           description?: string | null;
           looking_for_players?: boolean;
+          district_id?: string | null;
         };
         Relationships: [];
       };
@@ -133,6 +158,7 @@ export type Database = {
           city: string;
           created_by: string;
           created_at: string;
+          district_id: string | null;
         };
         Insert: {
           id?: string;
@@ -141,11 +167,13 @@ export type Database = {
           city: string;
           created_by: string;
           created_at?: string;
+          district_id?: string | null;
         };
         Update: {
           name?: string;
           address?: string;
           city?: string;
+          district_id?: string | null;
         };
         Relationships: [];
       };
@@ -261,6 +289,7 @@ export type Database = {
   };
 };
 
+export type District = Database["public"]["Tables"]["districts"]["Row"];
 export type User = Database["public"]["Tables"]["users"]["Row"];
 export type Team = Database["public"]["Tables"]["teams"]["Row"];
 export type TeamMembership = Database["public"]["Tables"]["team_memberships"]["Row"];

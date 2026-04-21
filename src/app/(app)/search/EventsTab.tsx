@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import CitySelect from "@/components/CitySelect";
+import DistrictSelect from "@/components/DistrictSelect";
 
 type PublicEvent = {
   id: string;
@@ -11,7 +13,13 @@ type PublicEvent = {
   price_per_player: number;
   min_players: number;
   description: string | null;
-  venue: { id: string; name: string; address: string; city: string } | null;
+  venue: {
+    id: string;
+    name: string;
+    address: string;
+    city: string;
+    district: { id: string; name: string } | null;
+  } | null;
   team: { id: string; name: string; city: string } | null;
   yes_count: number;
 };
@@ -35,6 +43,7 @@ function formatDate(iso: string): string {
 
 export default function EventsTab() {
   const [city, setCity] = useState("");
+  const [districtId, setDistrictId] = useState("");
   const [events, setEvents] = useState<PublicEvent[] | null>(null);
 
   useEffect(() => {
@@ -42,6 +51,7 @@ export default function EventsTab() {
     const timer = setTimeout(() => {
       const params = new URLSearchParams();
       if (city.trim()) params.set("city", city.trim());
+      if (districtId) params.set("district_id", districtId);
       fetch(`/api/events/public${params.toString() ? `?${params}` : ""}`)
         .then((r) => r.json())
         .then((d) => {
@@ -55,19 +65,18 @@ export default function EventsTab() {
       cancelled = true;
       clearTimeout(timer);
     };
-  }, [city]);
+  }, [city, districtId]);
+
+  function handleCityChange(newCity: string) {
+    setCity(newCity);
+    setDistrictId("");
+  }
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <label className="text-sm text-foreground-secondary">Город</label>
-        <input
-          type="text"
-          value={city}
-          onChange={(e) => setCity(e.target.value)}
-          placeholder="Любой город"
-          className="bg-background-card border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary transition-colors"
-        />
+      <div className="flex flex-col gap-2">
+        <CitySelect value={city} onChange={handleCityChange} />
+        <DistrictSelect city={city} value={districtId} onChange={setDistrictId} />
       </div>
 
       {events === null ? (
@@ -96,7 +105,10 @@ export default function EventsTab() {
                   <p className="font-display font-semibold text-base">{e.team.name}</p>
                 )}
                 {e.venue && (
-                  <p className="text-sm text-foreground-secondary mt-0.5">{e.venue.name}</p>
+                  <p className="text-sm text-foreground-secondary mt-0.5">
+                    {e.venue.name}
+                    {e.venue.district ? ` · ${e.venue.district.name}` : ""}
+                  </p>
                 )}
                 <div className="flex items-center gap-3 mt-2 text-xs text-foreground-secondary">
                   <span>{e.yes_count} {e.yes_count === 1 ? "идёт" : "идут"}</span>
