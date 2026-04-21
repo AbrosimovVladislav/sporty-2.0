@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import CitySelect from "@/components/CitySelect";
+import { SkeletonList } from "@/components/Skeleton";
 import DistrictSelect from "@/components/DistrictSelect";
 
 type PublicEvent = {
@@ -80,9 +81,7 @@ export default function EventsTab() {
       </div>
 
       {events === null ? (
-        <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-          Загружаю…
-        </div>
+        <SkeletonList count={3} />
       ) : events.length === 0 ? (
         <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
           Публичных событий не найдено

@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
+import { Skeleton } from "@/components/Skeleton";
 import type { User } from "@/types/database";
 
 type Tab = "about" | "results" | "reliability" | "settings";
@@ -379,7 +380,7 @@ function ResultsTab({ userId }: { userId: string }) {
   }, [userId]);
 
   if (stats === undefined) {
-    return <div className="h-40 animate-pulse bg-border rounded-lg mt-1" />;
+    return <Skeleton className="h-40 mt-1" />;
   }
 
   const secondary: { label: string }[] = [
@@ -437,7 +438,7 @@ function ReliabilityTab({ userId }: { userId: string }) {
   }, [userId]);
 
   if (stats === undefined) {
-    return <div className="h-40 animate-pulse bg-border rounded-lg mt-1" />;
+    return <Skeleton className="h-40 mt-1" />;
   }
 
   const reliability = stats?.reliability ?? null;
@@ -745,7 +746,7 @@ function MyJoinRequests({ userId }: { userId: string }) {
         Мои заявки
       </p>
       {requests === null ? (
-        <div className="h-14 animate-pulse bg-border rounded-lg" />
+        <Skeleton className="h-14" />
       ) : (
         <div className="bg-background-card border border-border rounded-lg divide-y divide-border">
           {requests.map((r) => (

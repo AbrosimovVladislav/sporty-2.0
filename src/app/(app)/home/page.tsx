@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SearchIcon, ShieldIcon } from "@/components/Icons";
+import { SkeletonCard } from "@/components/Skeleton";
 
 type MyTeam = {
   id: string;
@@ -108,9 +109,7 @@ export default function HomePage() {
         </p>
 
         {nextEvent === undefined ? (
-          <div className="bg-background-card border border-border rounded-lg p-4 text-center text-foreground-secondary text-sm">
-            Загружаю…
-          </div>
+          <SkeletonCard />
         ) : nextEvent === null ? (
           <div className="bg-background-card border border-border rounded-lg p-4 text-center text-foreground-secondary text-sm">
             Нет предстоящих событий

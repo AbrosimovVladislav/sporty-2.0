@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import DistrictSelect from "@/components/DistrictSelect";
+import { SkeletonList } from "@/components/Skeleton";
 
 const TYPE_LABEL: Record<string, string> = {
   game: "Игра",
@@ -60,11 +61,7 @@ export default function EventsPage() {
   }, [teamId, userId]);
 
   if (team.status === "loading") {
-    return (
-      <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        Загружаю события…
-      </section>
-    );
+    return <SkeletonList count={3} />;
   }
 
   if (team.status !== "ready") return null;
@@ -104,9 +101,7 @@ export default function EventsPage() {
       )}
 
       {events === null ? (
-        <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-          Загружаю…
-        </section>
+        <SkeletonList count={2} />
       ) : events.length === 0 ? (
         <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
           Событий пока нет

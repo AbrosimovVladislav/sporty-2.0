@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
+import { SkeletonCard, SkeletonList } from "@/components/Skeleton";
 
 type Player = {
   id: string;
@@ -106,10 +107,8 @@ export default function PlayerProfilePage() {
   if (player === undefined) {
     return (
       <div className="flex flex-1 flex-col p-4 gap-4">
-        <div className="bg-background-dark rounded-lg p-5 animate-pulse">
-          <div className="h-4 w-20 rounded bg-border-dark" />
-          <div className="h-8 w-40 rounded bg-border-dark mt-2" />
-        </div>
+        <SkeletonCard className="h-28" />
+        <SkeletonList count={2} />
       </div>
     );
   }

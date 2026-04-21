@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "./team-context";
+import { Skeleton } from "@/components/Skeleton";
 
 const TYPE_LABEL: Record<string, string> = {
   game: "Игра",
@@ -207,7 +208,7 @@ function IncomingRequestsBlock({
         Входящие заявки
       </p>
       {requests === null ? (
-        <p className="text-sm text-foreground-secondary">Загружаю…</p>
+        <Skeleton className="h-10" />
       ) : requests.length === 0 ? (
         <p className="text-sm text-foreground-secondary">Новых заявок нет</p>
       ) : (
@@ -281,7 +282,7 @@ function NextEventBlock({ teamId }: { teamId: string }) {
     return (
       <section className="bg-background-card border border-border rounded-lg p-5">
         <p className="text-xs uppercase font-display text-foreground-secondary">Ближайшее событие</p>
-        <div className="h-6 w-40 rounded bg-border mt-2 animate-pulse" />
+        <Skeleton className="h-6 w-40 mt-2" />
       </section>
     );
   }
@@ -351,7 +352,7 @@ function FinanceBalanceBlock({ teamId }: { teamId: string }) {
           Финансовый баланс
         </p>
         {data === null ? (
-          <div className="h-7 w-24 rounded bg-border mt-2 animate-pulse" />
+          <Skeleton className="h-7 w-24 mt-2" />
         ) : (
           <>
             <p
@@ -426,8 +427,8 @@ function LookingForPlayersToggle({ teamId, initial }: { teamId: string; initial:
 function SkeletonBlock() {
   return (
     <section className="bg-background-card border border-border rounded-lg p-5">
-      <div className="h-4 w-24 rounded bg-border animate-pulse" />
-      <div className="h-8 w-32 rounded bg-border mt-2 animate-pulse" />
+      <Skeleton className="h-4 w-24" />
+      <Skeleton className="h-8 w-32 mt-2" />
     </section>
   );
 }

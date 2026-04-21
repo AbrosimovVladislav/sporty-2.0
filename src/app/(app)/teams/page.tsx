@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import CitySelect from "@/components/CitySelect";
 import DistrictSelect from "@/components/DistrictSelect";
+import { SkeletonList } from "@/components/Skeleton";
 
 type Section = "mine" | "all";
 
@@ -116,9 +117,7 @@ function MineSection({
   return (
     <div className="flex flex-1 flex-col gap-4">
       {teams === null ? (
-        <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-          Загружаю…
-        </div>
+        <SkeletonList count={2} />
       ) : teams.length === 0 ? (
         <>
           <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
@@ -204,9 +203,7 @@ function AllSection() {
       </div>
 
       {teams === null ? (
-        <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-          Загружаю…
-        </div>
+        <SkeletonList count={3} />
       ) : teams.length === 0 ? (
         <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
           Команд не найдено

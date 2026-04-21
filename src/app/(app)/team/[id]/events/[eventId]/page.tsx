@@ -2,6 +2,7 @@
 
 import { use, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
+import { SkeletonCard } from "@/components/Skeleton";
 import {
   getExpectedAmount,
   getPaidAmount,
@@ -82,9 +83,10 @@ export default function EventDetailPage({
 
   if (loading) {
     return (
-      <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        Загружаю событие…
-      </section>
+      <div className="flex flex-col p-4 gap-4">
+        <SkeletonCard className="h-32" />
+        <SkeletonCard className="h-24" />
+      </div>
     );
   }
 

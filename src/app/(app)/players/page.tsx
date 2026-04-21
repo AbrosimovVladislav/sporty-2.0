@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import CitySelect from "@/components/CitySelect";
 import DistrictSelect from "@/components/DistrictSelect";
+import { SkeletonList } from "@/components/Skeleton";
 
 type Player = {
   id: string;
@@ -87,14 +88,7 @@ export default function PlayersPage() {
       </div>
 
       {loading ? (
-        <div className="flex flex-col gap-3">
-          {[1, 2, 3].map((i) => (
-            <div key={i} className="bg-background-card border border-border rounded-lg p-4 animate-pulse">
-              <div className="h-4 w-32 rounded bg-border" />
-              <div className="h-3 w-20 rounded bg-border mt-2" />
-            </div>
-          ))}
-        </div>
+        <SkeletonList count={3} />
       ) : players.length === 0 ? (
         <div className="flex flex-1 items-center justify-center">
           <p className="text-foreground-secondary text-sm">Игроки не найдены</p>

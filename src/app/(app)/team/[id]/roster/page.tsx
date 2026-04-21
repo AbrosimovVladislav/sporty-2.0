@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { PlayerCard } from "@/components/PlayerCard";
 import { useTeam, type TeamMember } from "../team-context";
+import { SkeletonList } from "@/components/Skeleton";
 
 export default function RosterPage() {
   const team = useTeam();
@@ -13,11 +14,7 @@ export default function RosterPage() {
   const requesterId = auth.status === "authenticated" ? auth.user.id : null;
 
   if (team.status === "loading") {
-    return (
-      <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        Загружаю состав…
-      </section>
-    );
+    return <SkeletonList count={4} />;
   }
 
   if (team.status !== "ready") {

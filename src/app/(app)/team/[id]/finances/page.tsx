@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { PlayerCard } from "@/components/PlayerCard";
+import { SkeletonCard } from "@/components/Skeleton";
 
 const TYPE_LABEL: Record<string, string> = {
   game: "Игра",
@@ -75,10 +76,12 @@ export default function TeamFinancesPage() {
   }, [teamId, showDeposit, members.length]);
 
   if (team.status === "loading" || data === null) {
-    return (
+    return error ? (
       <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        {error ?? "Загружаю…"}
+        {error}
       </section>
+    ) : (
+      <SkeletonCard className="h-28" />
     );
   }
 
