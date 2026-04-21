@@ -68,10 +68,23 @@ export default function ProfilePage() {
 
 function ProfileContent({ initialUser }: { initialUser: User }) {
   const [user, setUser] = useState(initialUser);
+  const [districtName, setDistrictName] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("about");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetch(`/api/users/${initialUser.id}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.user) {
+          setUser(d.user);
+          setDistrictName(d.user.district?.name ?? null);
+        }
+      })
+      .catch(() => {});
+  }, [initialUser.id]);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -186,7 +199,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
             )}
             {user.city && (
               <span className="flex items-center gap-1 text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-                <LocationIcon /> {user.city}
+                <LocationIcon /> {user.city}{districtName ? ` · ${districtName}` : ""}
               </span>
             )}
             {user.looking_for_team && (

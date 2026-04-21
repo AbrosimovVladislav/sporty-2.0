@@ -2,24 +2,36 @@ import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
 
 export async function POST(req: NextRequest) {
-  const { userId, name, city, sport } = await req.json();
+  const { userId, name, birth_date, skill_level, district_id, position } = await req.json();
 
-  if (!userId || !name?.trim() || !city?.trim()) {
-    return NextResponse.json(
-      { error: "userId, name, city required" },
-      { status: 400 }
-    );
+  if (!userId || !name?.trim()) {
+    return NextResponse.json({ error: "userId and name required" }, { status: 400 });
   }
 
   const supabase = getServiceClient();
+
+  // Derive city from district if provided
+  let city: string | null = null;
+  if (district_id) {
+    const { data: district } = await supabase
+      .from("districts")
+      .select("city")
+      .eq("id", district_id)
+      .maybeSingle();
+    if (district) city = district.city;
+  }
 
   const { data: user, error } = await supabase
     .from("users")
     .update({
       name: name.trim(),
-      city: city.trim(),
-      sport: sport || "football",
+      city,
+      sport: "football",
       onboarding_completed: true,
+      birth_date: birth_date ?? null,
+      skill_level: skill_level ?? null,
+      district_id: district_id ?? null,
+      position: position ?? null,
     })
     .eq("id", userId)
     .select()

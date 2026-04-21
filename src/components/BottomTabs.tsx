@@ -12,7 +12,7 @@ export type Tab = {
   matchPaths?: string[];
 };
 
-const TYPING_TAGS = new Set(["INPUT", "TEXTAREA", "SELECT"]);
+const TYPING_TAGS = new Set(["INPUT", "TEXTAREA"]);
 
 function isTypingTarget(el: EventTarget | null): boolean {
   if (!(el instanceof HTMLElement)) return false;
@@ -36,15 +36,24 @@ export function BottomTabs({ tabs }: { tabs: Tab[] }) {
   const [typing, setTyping] = useState(false);
 
   useEffect(() => {
+    let timer: ReturnType<typeof setTimeout>;
+
     function handleFocusIn(e: FocusEvent) {
-      if (isTypingTarget(e.target)) setTyping(true);
+      if (isTypingTarget(e.target)) {
+        clearTimeout(timer);
+        setTyping(true);
+      }
     }
     function handleFocusOut(e: FocusEvent) {
-      if (isTypingTarget(e.target)) setTyping(false);
+      if (isTypingTarget(e.target)) {
+        // Debounce: wait to see if focus moves to another input
+        timer = setTimeout(() => setTyping(false), 150);
+      }
     }
     document.addEventListener("focusin", handleFocusIn);
     document.addEventListener("focusout", handleFocusOut);
     return () => {
+      clearTimeout(timer);
       document.removeEventListener("focusin", handleFocusIn);
       document.removeEventListener("focusout", handleFocusOut);
     };

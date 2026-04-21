@@ -268,30 +268,30 @@
 
 #### 14.1 Модель данных
 
-- ⬜ **14.1.1** Миграция: таблица `districts` (`id uuid`, `city text`, `name text`, `created_at`). Уникальность `(city, name)`
-- ⬜ **14.1.2** Миграция-сид: 5 районов для Алматы — Алмалинский, Медеуский, Бостандыкский, Ауэзовский, Наурызбайский
-- ⬜ **14.1.3** Миграция: добавить `district_id uuid?` в `venues`, `teams`, `users` (FK → `districts.id`, on delete set null)
-- ⬜ **14.1.4** Обновить `src/types/database.ts` — тип `District`, поле `district_id` у venues/teams/users
+- ✅ **14.1.1** Миграция: таблица `districts` (`id uuid`, `city text`, `name text`, `created_at`). Уникальность `(city, name)`
+- ✅ **14.1.2** Миграция-сид: 5 районов для Алматы — Алмалинский, Медеуский, Бостандыкский, Ауэзовский, Наурызбайский
+- ✅ **14.1.3** Миграция: добавить `district_id uuid?` в `venues`, `teams`, `users` (FK → `districts.id`, on delete set null)
+- ✅ **14.1.4** Обновить `src/types/database.ts` — тип `District`, поле `district_id` у venues/teams/users
 
 #### 14.2 API
 
-- ⬜ **14.2.1** `GET /api/districts?city=` — список районов города
-- ⬜ **14.2.2** Расширить `GET /api/venues` — параметр `?district_id=`, возвращать поле `district` (id + name)
-- ⬜ **14.2.3** Расширить `GET /api/teams` — параметр `?district_id=`, возвращать `district`
-- ⬜ **14.2.4** Расширить `GET /api/players` и `GET /api/players/[id]` — параметр `?district_id=` и поле `district` в ответе
-- ⬜ **14.2.5** Расширить `GET /api/events/public` — фильтр по району площадки (join с venues.district_id)
-- ⬜ **14.2.6** Принимать `district_id` в `POST /api/teams` и в `POST /api/teams/[id]/events` (в секции создания площадки inline)
+- ✅ **14.2.1** `GET /api/districts?city=` — список районов города
+- ✅ **14.2.2** Расширить `GET /api/venues` — параметр `?district_id=`, возвращать поле `district` (id + name)
+- ✅ **14.2.3** Расширить `GET /api/teams` — параметр `?district_id=`, возвращать `district`
+- ✅ **14.2.4** Расширить `GET /api/players` и `GET /api/players/[id]` — параметр `?district_id=` и поле `district` в ответе
+- ✅ **14.2.5** Расширить `GET /api/events/public` — фильтр по району площадки (join с venues.district_id)
+- ✅ **14.2.6** Принимать `district_id` в `POST /api/teams` и в `POST /api/teams/[id]/events` (в секции создания площадки inline)
 
 #### 14.3 UI
 
-- ⬜ **14.3.1** Компонент `src/components/CitySelect.tsx` — dropdown городов (на старте единственная опция «Алматы», список захардкожен)
-- ⬜ **14.3.2** Компонент `src/components/DistrictSelect.tsx` — dropdown районов, подгружает список из `/api/districts?city=`
-- ⬜ **14.3.3** `(app)/teams/page.tsx` «Все команды»: заменить текстовый инпут «Город» на CitySelect + DistrictSelect
-- ⬜ **14.3.4** `(app)/players/page.tsx`: CitySelect + DistrictSelect + PositionSelect вместо текстовых полей
-- ⬜ **14.3.5** `(app)/search/TeamsTab.tsx`, `VenuesTab.tsx`, `EventsTab.tsx` — CitySelect + DistrictSelect
-- ⬜ **14.3.6** Форма создания команды (`teams/create`) — поле «Район» (DistrictSelect)
-- ⬜ **14.3.7** Форма создания события — при создании новой площадки inline добавить поле «Район»
-- ⬜ **14.3.8** Отображать район в карточках: площадка, команда, игрок, событие (в поиске)
+- ✅ **14.3.1** Компонент `src/components/CitySelect.tsx` — dropdown городов (на старте единственная опция «Алматы», список захардкожен)
+- ✅ **14.3.2** Компонент `src/components/DistrictSelect.tsx` — dropdown районов, подгружает список из `/api/districts?city=`
+- ✅ **14.3.3** `(app)/teams/page.tsx` «Все команды»: заменить текстовый инпут «Город» на CitySelect + DistrictSelect
+- ✅ **14.3.4** `(app)/players/page.tsx`: CitySelect + DistrictSelect + PositionSelect вместо текстовых полей
+- ✅ **14.3.5** `(app)/search/TeamsTab.tsx`, `VenuesTab.tsx`, `EventsTab.tsx` — CitySelect + DistrictSelect
+- ✅ **14.3.6** Форма создания команды (`teams/create`) — поле «Район» (DistrictSelect)
+- ✅ **14.3.7** Форма создания события — при создании новой площадки inline добавить поле «Район»
+- ✅ **14.3.8** Отображать район в карточках: площадка, команда, игрок, событие (в поиске)
 
 **Зависимости:** нет
 
@@ -301,19 +301,19 @@
 
 **Цель:** разбить онбординг на 5 последовательных экранов и собрать расширенный профиль сразу при регистрации.
 
-- ⬜ **15.1** Модуль `src/lib/catalogs.ts` — константы-справочники:
+- ✅ **15.1** Модуль `src/lib/catalogs.ts` — константы-справочники:
   - `SKILL_LEVELS`: Новичок, Любитель, Уверенный, Полупрофи, Про
   - `POSITIONS` (football): Вратарь, Защитник, Полузащитник, Нападающий, Универсал
-- ⬜ **15.2** Рефакторинг `src/app/onboarding/` → многошаговый flow:
-  - ⬜ **15.2.1** Контекст/стейт-менеджер для полей между шагами (React Context + `useReducer` или query-params)
-  - ⬜ **15.2.2** Шаг 1 `onboarding/name` — Имя (предзаполнено из Telegram)
-  - ⬜ **15.2.3** Шаг 2 `onboarding/birth-date` — Дата рождения (date input)
-  - ⬜ **15.2.4** Шаг 3 `onboarding/skill` — Уровень (Select из `SKILL_LEVELS`)
-  - ⬜ **15.2.5** Шаг 4 `onboarding/district` — Район (DistrictSelect; город = Алматы прокидывается автоматически)
-  - ⬜ **15.2.6** Шаг 5 `onboarding/position` — Амплуа (Select из `POSITIONS`) → по завершении `POST /api/onboarding`
-- ⬜ **15.3** Общий layout онбординга: прогресс-индикатор (5 точек), кнопка «Назад» (возврат к предыдущему шагу, на первом — скрыта), кнопка «Далее» / «Готово» на последнем
-- ⬜ **15.4** `POST /api/onboarding` — принимать `{ userId, name, birth_date, skill_level, district_id, position }`, сохранять + ставить `onboarding_completed = true`. Город вычислять из district
-- ⬜ **15.5** Данные из онбординга отображаются в профиле: `AboutTab` — возраст (из birth_date), уровень, позиция, район (Город · Район в бейдже hero). Новых компонентов не нужно — поля уже читаются из `users`; достаточно убедиться, что API `/api/users/[id]` возвращает district, а `AboutTab` рендерит все поля
+- ✅ **15.2** Рефакторинг `src/app/onboarding/` → многошаговый flow:
+  - ✅ **15.2.1** Контекст/стейт-менеджер для полей между шагами (React Context + `useReducer` или query-params)
+  - ✅ **15.2.2** Шаг 1 `onboarding/name` — Имя (предзаполнено из Telegram)
+  - ✅ **15.2.3** Шаг 2 `onboarding/birth-date` — Дата рождения (date input)
+  - ✅ **15.2.4** Шаг 3 `onboarding/skill` — Уровень (Select из `SKILL_LEVELS`)
+  - ✅ **15.2.5** Шаг 4 `onboarding/district` — Район (DistrictSelect; город = Алматы прокидывается автоматически)
+  - ✅ **15.2.6** Шаг 5 `onboarding/position` — Амплуа (Select из `POSITIONS`) → по завершении `POST /api/onboarding`
+- ✅ **15.3** Общий layout онбординга: прогресс-индикатор (5 точек), кнопка «Назад» (возврат к предыдущему шагу, на первом — скрыта), кнопка «Далее» / «Готово» на последнем
+- ✅ **15.4** `POST /api/onboarding` — принимать `{ userId, name, birth_date, skill_level, district_id, position }`, сохранять + ставить `onboarding_completed = true`. Город вычислять из district
+- ✅ **15.5** Данные из онбординга отображаются в профиле: `AboutTab` — возраст (из birth_date), уровень, позиция, район (Город · Район в бейдже hero). Новых компонентов не нужно — поля уже читаются из `users`; достаточно убедиться, что API `/api/users/[id]` возвращает district, а `AboutTab` рендерит все поля
 
 **Зависимости:** итерация 14 (справочник районов)
 
