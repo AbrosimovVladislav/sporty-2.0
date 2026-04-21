@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
 import { getExpectedAmount, getPaidAmount } from "@/lib/finances";
+import { sendMessage, buildEventDeepLink } from "@/lib/telegram-bot";
 
 type EventWithVenue = {
   id: string;
@@ -27,6 +28,44 @@ type AttendanceRow = {
   paid: boolean | null;
   paid_amount: number | null;
 };
+
+const EVENT_TYPE_LABEL: Record<string, string> = {
+  game: "Игра",
+  training: "Тренировка",
+  gathering: "Сбор",
+  other: "Другое",
+};
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+async function notifyMembers(supabase: any, teamId: string, authorId: string, event: any) {
+  const { data: members } = await supabase
+    .from("team_memberships")
+    .select("user_id, users(telegram_id)")
+    .eq("team_id", teamId)
+    .neq("user_id", authorId);
+
+  if (!members?.length) return;
+
+  const deepLink = buildEventDeepLink(teamId, event.id);
+  const typeLabel = EVENT_TYPE_LABEL[event.type] ?? event.type;
+  const dateStr = new Date(event.date).toLocaleString("ru-RU", {
+    day: "numeric",
+    month: "long",
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Asia/Almaty",
+  });
+
+  const text = `📅 <b>Новое событие: ${typeLabel}</b>\n${dateStr}\n\n<a href="${deepLink}">Открыть в Sporty</a>`;
+
+  await Promise.allSettled(
+    members
+      .filter((m: { users: { telegram_id: number } | null }) => m.users?.telegram_id)
+      .map((m: { users: { telegram_id: number } }) =>
+        sendMessage(m.users.telegram_id, text)
+      )
+  );
+}
 
 // GET — list team events
 export async function GET(
@@ -196,6 +235,11 @@ export async function POST(
     console.error("Event create error:", eventErr);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
+
+  // Notify team members via Telegram (fire-and-forget)
+  notifyMembers(supabase, teamId, userId, event).catch((e) =>
+    console.error("Notify members error:", e)
+  );
 
   return NextResponse.json({ event }, { status: 201 });
 }

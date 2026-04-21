@@ -323,15 +323,15 @@
 
 **Цель:** первая версия push-уведомлений через бота — игроки команды получают сообщение о создании события с deep-link в Mini App.
 
-- ⬜ **16.1** Модуль `src/lib/telegram-bot.ts` — `sendMessage(chatId, text, opts?)` через `https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/sendMessage` (parse_mode HTML, disable_web_page_preview)
-- ⬜ **16.2** Хелпер `buildEventDeepLink(teamId, eventId)` → `https://t.me/<NEXT_PUBLIC_TELEGRAM_BOT_USERNAME>?startapp=event_<teamId>_<eventId>`
-- ⬜ **16.3** Deep-link обработчик:
-  - ⬜ **16.3.1** На `src/app/(app)/home/page.tsx` (или корневой странице) читать `window.Telegram.WebApp.initDataUnsafe.start_param`
-  - ⬜ **16.3.2** При формате `event_<teamId>_<eventId>` — `router.replace('/team/<teamId>/events/<eventId>')`; затем очищать start_param
-- ⬜ **16.4** Хук в `POST /api/teams/[id]/events` — после успешной вставки события:
-  - ⬜ **16.4.1** Выбрать `team_memberships.user_id` команды, join с `users.telegram_id`, исключить автора
-  - ⬜ **16.4.2** Сформировать текст: `Новое событие: <type> <дата> в <venue>. <deep-link>`
-  - ⬜ **16.4.3** `Promise.allSettled` на `sendMessage`, ошибки логировать, не ломать ответ API
+- ✅ **16.1** Модуль `src/lib/telegram-bot.ts` — `sendMessage(chatId, text, opts?)` через `https://api.telegram.org/bot<TELEGRAM_BOT_TOKEN>/sendMessage` (parse_mode HTML, disable_web_page_preview)
+- ✅ **16.2** Хелпер `buildEventDeepLink(teamId, eventId)` → `https://t.me/<NEXT_PUBLIC_TELEGRAM_BOT_USERNAME>?startapp=event_<teamId>_<eventId>`
+- ✅ **16.3** Deep-link обработчик:
+  - ✅ **16.3.1** На `src/app/(app)/home/page.tsx` (или корневой странице) читать `window.Telegram.WebApp.initDataUnsafe.start_param`
+  - ✅ **16.3.2** При формате `event_<teamId>_<eventId>` — `router.replace('/team/<teamId>/events/<eventId>')`; затем очищать start_param
+- ✅ **16.4** Хук в `POST /api/teams/[id]/events` — после успешной вставки события:
+  - ✅ **16.4.1** Выбрать `team_memberships.user_id` команды, join с `users.telegram_id`, исключить автора
+  - ✅ **16.4.2** Сформировать текст: `Новое событие: <type> <дата> в <venue>. <deep-link>`
+  - ✅ **16.4.3** `Promise.allSettled` на `sendMessage`, ошибки логировать, не ломать ответ API
 
 **Зависимости:** нет
 

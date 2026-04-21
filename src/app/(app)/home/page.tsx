@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SearchIcon, ShieldIcon } from "@/components/Icons";
 
@@ -50,11 +51,22 @@ function formatEventDate(dateStr: string): string {
 
 export default function HomePage() {
   const auth = useAuth();
+  const router = useRouter();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const name = auth.status === "authenticated" ? auth.user.name : "";
 
   const [teams, setTeams] = useState<MyTeam[] | null>(null);
   const [nextEvent, setNextEvent] = useState<NextEvent | null | undefined>(undefined);
+
+  // Handle deep-link from Telegram notification
+  useEffect(() => {
+    const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
+    if (!startParam) return;
+    const match = startParam.match(/^event_([^_]+)_(.+)$/);
+    if (match) {
+      router.replace(`/team/${match[1]}/events/${match[2]}`);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userId) {
