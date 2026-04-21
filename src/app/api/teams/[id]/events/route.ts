@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
 import { getExpectedAmount, getPaidAmount } from "@/lib/finances";
-import { sendMessage, buildEventDeepLink } from "@/lib/telegram-bot";
+import { sendMessage, buildEventUrl } from "@/lib/telegram-bot";
 
 type EventWithVenue = {
   id: string;
@@ -58,7 +58,7 @@ async function notifyMembers(supabase: any, teamId: string, event: any) {
     venueName = venue?.name ?? null;
   }
 
-  const deepLink = buildEventDeepLink(teamId, event.id);
+  const eventUrl = buildEventUrl(teamId, event.id);
   const typeLabel = EVENT_TYPE_LABEL[event.type] ?? event.type;
   const dateStr = new Date(event.date).toLocaleString("ru-RU", {
     day: "numeric",
@@ -72,13 +72,16 @@ async function notifyMembers(supabase: any, teamId: string, event: any) {
   if (team?.name) text += ` · ${team.name}`;
   text += `</b>\n${dateStr}`;
   if (venueName) text += `\n📍 ${venueName}`;
-  text += `\n\n<a href="${deepLink}">Открыть в Sporty</a>`;
+
+  const replyMarkup = {
+    inline_keyboard: [[{ text: "Открыть в Sporty", web_app: { url: eventUrl } }]],
+  };
 
   await Promise.allSettled(
     members
       .filter((m: { users: { telegram_id: number } | null }) => m.users?.telegram_id)
       .map((m: { users: { telegram_id: number } }) =>
-        sendMessage(m.users.telegram_id, text)
+        sendMessage(m.users.telegram_id, text, { reply_markup: replyMarkup })
       )
   );
 }

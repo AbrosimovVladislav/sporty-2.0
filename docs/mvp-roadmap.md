@@ -341,28 +341,28 @@
 
 **Цель:** организатор приглашает игрока из каталога; игрок видит приглашение в «Мои заявки» и принимает/отклоняет.
 
-- ⬜ **17.1** Миграция: расширить `join_requests`:
+- ✅ **17.1** Миграция: расширить `join_requests`:
   - `direction` enum(`player_to_team`, `team_to_player`) default `player_to_team`
   - `invited_by uuid?` FK → users (кто пригласил; заполняется только для `team_to_player`)
-- ⬜ **17.2** Обновить `src/types/database.ts` — новые поля `JoinRequest`
-- ⬜ **17.3** API `POST /api/teams/[id]/invites` — `{ user_id, inviter_id }`:
+- ✅ **17.2** Обновить `src/types/database.ts` — новые поля `JoinRequest`
+- ✅ **17.3** API `POST /api/teams/[id]/invites` — `{ user_id, inviter_id }`:
   - Проверка: inviter — организатор команды
   - Запрет если уже есть pending запись любого направления для (user_id, team_id)
   - Создать `join_requests` с `direction = team_to_player`, `status = pending`, `invited_by = inviter_id`
   - Опционально отправить Telegram-уведомление игроку (использовать модуль из 16.1)
-- ⬜ **17.4** API `POST /api/join-requests/[id]/respond` — `{ user_id, decision: "accept" | "reject" }`:
+- ✅ **17.4** API `POST /api/join-requests/[id]/respond` — `{ user_id, decision: "accept" | "reject" }`:
   - Только для `direction = team_to_player`, и только если `user_id` совпадает с `join_requests.user_id`
   - Accept → создать `team_memberships` (role=player), статус → accepted
   - Reject → статус → rejected
-- ⬜ **17.5** Обновить `GET /api/users/[id]/join-requests` — возвращать `direction`, `invited_by`, inviter name (если есть)
-- ⬜ **17.6** API `GET /api/users/[id]/organizer-teams` — команды пользователя с role=organizer (для модалки приглашения)
-- ⬜ **17.7** UI приглашения:
-  - ⬜ **17.7.1** На `(app)/players/[id]/page.tsx` — кнопка «Пригласить в команду» (видна только если пользователь — организатор хотя бы одной команды)
-  - ⬜ **17.7.2** Клик → bottom-sheet со списком его команд (из 17.6)
-  - ⬜ **17.7.3** Выбор команды → `POST /api/teams/[teamId]/invites`; показать тост «Приглашение отправлено» или ошибку
-- ⬜ **17.8** UI «Мои заявки» (`profile/page.tsx` → `MyJoinRequests`):
-  - ⬜ **17.8.1** Показывать лейбл направления: «Ты подал заявку» / «Тебя пригласили» + имя приглашающего
-  - ⬜ **17.8.2** Для `team_to_player` pending — кнопки «Принять» / «Отклонить»
+- ✅ **17.5** Обновить `GET /api/users/[id]/join-requests` — возвращать `direction`, `invited_by`, inviter name (если есть)
+- ✅ **17.6** API `GET /api/users/[id]/organizer-teams` — команды пользователя с role=organizer (для модалки приглашения)
+- ✅ **17.7** UI приглашения:
+  - ✅ **17.7.1** На `(app)/players/[id]/page.tsx` — кнопка «Пригласить в команду» (видна только если пользователь — организатор хотя бы одной команды)
+  - ✅ **17.7.2** Клик → bottom-sheet со списком его команд (из 17.6)
+  - ✅ **17.7.3** Выбор команды → `POST /api/teams/[teamId]/invites`; показать тост «Приглашение отправлено» или ошибку
+- ✅ **17.8** UI «Мои заявки» (`profile/page.tsx` → `MyJoinRequests`):
+  - ✅ **17.8.1** Показывать лейбл направления: «Ты подал заявку» / «Тебя пригласили» + имя приглашающего
+  - ✅ **17.8.2** Для `team_to_player` pending — кнопки «Принять» / «Отклонить»
 
 **Зависимости:** итерация 16 (sendMessage для уведомления игроку)
 

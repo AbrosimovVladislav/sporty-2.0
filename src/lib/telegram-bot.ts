@@ -1,6 +1,11 @@
+type InlineKeyboardButton =
+  | { text: string; url: string }
+  | { text: string; web_app: { url: string } };
+
 type SendMessageOpts = {
   parse_mode?: "HTML" | "Markdown";
   disable_web_page_preview?: boolean;
+  reply_markup?: { inline_keyboard: InlineKeyboardButton[][] };
 };
 
 export async function sendMessage(
@@ -19,6 +24,7 @@ export async function sendMessage(
       text,
       parse_mode: opts.parse_mode ?? "HTML",
       disable_web_page_preview: opts.disable_web_page_preview ?? true,
+      ...(opts.reply_markup && { reply_markup: opts.reply_markup }),
     }),
   });
 
@@ -28,7 +34,7 @@ export async function sendMessage(
   }
 }
 
-export function buildEventDeepLink(teamId: string, eventId: string): string {
+export function buildEventUrl(teamId: string, eventId: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sporty-2-0.vercel.app";
   return `${appUrl}/team/${teamId}/events/${eventId}`;
 }

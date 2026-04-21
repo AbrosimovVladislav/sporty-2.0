@@ -30,6 +30,8 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 type JoinRequestItem = {
   id: string;
   status: "pending" | "accepted" | "rejected";
+  direction: "player_to_team" | "team_to_player";
+  inviter_name: string | null;
   team: { id: string; name: string; city: string; sport: string };
 };
 
@@ -707,21 +709,33 @@ function SettingsTab({
 
 function MyJoinRequests({ userId }: { userId: string }) {
   const [requests, setRequests] = useState<JoinRequestItem[] | null>(null);
+  const [responding, setResponding] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
+  function load() {
     fetch(`/api/users/${userId}/join-requests`)
       .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) setRequests(d.requests ?? []);
-      })
-      .catch(() => {
-        if (!cancelled) setRequests([]);
+      .then((d) => setRequests(d.requests ?? []))
+      .catch(() => setRequests([]));
+  }
+
+  useEffect(() => {
+    load();
+  }, [userId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function respond(requestId: string, decision: "accept" | "reject") {
+    if (responding) return;
+    setResponding(requestId);
+    try {
+      await fetch(`/api/join-requests/${requestId}/respond`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId, decision }),
       });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
+      load();
+    } finally {
+      setResponding(null);
+    }
+  }
 
   if (requests !== null && requests.length === 0) return null;
 
@@ -735,23 +749,46 @@ function MyJoinRequests({ userId }: { userId: string }) {
       ) : (
         <div className="bg-background-card border border-border rounded-lg divide-y divide-border">
           {requests.map((r) => (
-            <Link
-              key={r.id}
-              href={`/team/${r.team.id}`}
-              className="flex items-center justify-between px-4 py-3"
-            >
-              <div>
-                <p className="font-medium text-sm">{r.team.name}</p>
-                <p className="text-xs text-foreground-secondary mt-0.5">
-                  {r.team.city} · {SPORT_LABEL[r.team.sport] ?? r.team.sport}
-                </p>
+            <div key={r.id} className="px-4 py-3">
+              <div className="flex items-center justify-between">
+                <Link href={`/team/${r.team.id}`} className="flex-1 min-w-0">
+                  <p className="font-medium text-sm">{r.team.name}</p>
+                  <p className="text-xs text-foreground-secondary mt-0.5">
+                    {r.team.city} · {SPORT_LABEL[r.team.sport] ?? r.team.sport}
+                  </p>
+                  <p className="text-xs text-foreground-secondary mt-0.5">
+                    {r.direction === "team_to_player"
+                      ? `Тебя пригласил${r.inviter_name ? ` ${r.inviter_name}` : ""}`
+                      : "Ты подал заявку"}
+                  </p>
+                </Link>
+                {r.status !== "pending" && (
+                  <span
+                    className={`text-xs font-display font-semibold uppercase px-2 py-1 rounded ${STATUS_STYLE[r.status] ?? ""}`}
+                  >
+                    {STATUS_LABEL[r.status] ?? r.status}
+                  </span>
+                )}
               </div>
-              <span
-                className={`text-xs font-display font-semibold uppercase px-2 py-1 rounded ${STATUS_STYLE[r.status] ?? ""}`}
-              >
-                {STATUS_LABEL[r.status] ?? r.status}
-              </span>
-            </Link>
+              {r.direction === "team_to_player" && r.status === "pending" && (
+                <div className="flex gap-2 mt-2">
+                  <button
+                    disabled={responding === r.id}
+                    onClick={() => respond(r.id, "accept")}
+                    className="flex-1 bg-primary text-primary-foreground rounded-lg py-1.5 text-xs font-medium disabled:opacity-50"
+                  >
+                    Принять
+                  </button>
+                  <button
+                    disabled={responding === r.id}
+                    onClick={() => respond(r.id, "reject")}
+                    className="flex-1 bg-background border border-border rounded-lg py-1.5 text-xs font-medium disabled:opacity-50"
+                  >
+                    Отклонить
+                  </button>
+                </div>
+              )}
+            </div>
           ))}
         </div>
       )}

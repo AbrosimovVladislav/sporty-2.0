@@ -133,6 +133,8 @@ export type Database = {
           user_id: string;
           team_id: string;
           status: "pending" | "accepted" | "rejected";
+          direction: "player_to_team" | "team_to_player";
+          invited_by: string | null;
           created_at: string;
           resolved_at: string | null;
         };
@@ -141,6 +143,8 @@ export type Database = {
           user_id: string;
           team_id: string;
           status?: "pending" | "accepted" | "rejected";
+          direction?: "player_to_team" | "team_to_player";
+          invited_by?: string | null;
           created_at?: string;
           resolved_at?: string | null;
         };
