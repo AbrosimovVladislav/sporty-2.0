@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { use } from "react";
 import { TeamProvider, useTeam } from "./team-context";
+import BackButton from "@/components/BackButton";
 
 
 type TeamSubTab = {
@@ -57,8 +58,9 @@ function TeamHeader() {
   const sportLabel = SPORT_LABEL[team.team.sport] ?? team.team.sport;
 
   return (
-    <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-      <p className="text-foreground-on-dark-muted text-sm uppercase font-display">Команда</p>
+    <div className="relative bg-background-dark text-foreground-on-dark rounded-lg p-6">
+      <BackButton fallbackHref="/teams" className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm text-white" />
+      <p className="text-foreground-on-dark-muted text-sm uppercase font-display pl-10">Команда</p>
       <h1 className="text-3xl font-display font-bold uppercase mt-1">{team.team.name}</h1>
       <p className="text-foreground-on-dark-muted text-sm mt-1">
         {team.team.city} · {sportLabel}

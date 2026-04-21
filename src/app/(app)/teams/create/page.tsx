@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import CitySelect from "@/components/CitySelect";
 import DistrictSelect from "@/components/DistrictSelect";
+import BackButton from "@/components/BackButton";
 
 export default function CreateTeamPage() {
   const auth = useAuth();
@@ -57,8 +58,9 @@ export default function CreateTeamPage() {
 
   return (
     <div className="flex flex-1 flex-col p-6 gap-6">
-      <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-        <h1 className="text-3xl font-display font-bold uppercase">Новая команда</h1>
+      <div className="relative bg-background-dark text-foreground-on-dark rounded-lg p-6">
+        <BackButton fallbackHref="/teams" className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm text-white" />
+        <h1 className="text-3xl font-display font-bold uppercase pl-10">Новая команда</h1>
         <p className="mt-2 text-foreground-on-dark-muted text-sm">Заполни информацию о команде</p>
       </div>
 

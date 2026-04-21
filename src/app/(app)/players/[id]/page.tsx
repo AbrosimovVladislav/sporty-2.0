@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SkeletonCard, SkeletonList } from "@/components/Skeleton";
+import BackButton from "@/components/BackButton";
 
 type Player = {
   id: string;
@@ -126,8 +127,9 @@ export default function PlayerProfilePage() {
   return (
     <>
       <div className="flex flex-1 flex-col p-4 gap-4">
-        <div className="bg-background-dark text-foreground-on-dark rounded-lg p-5">
-          <p className="text-foreground-on-dark-muted text-xs uppercase font-display tracking-wide">
+        <div className="relative bg-background-dark text-foreground-on-dark rounded-lg p-5">
+          <BackButton fallbackHref="/players" className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm text-white" />
+          <p className="text-foreground-on-dark-muted text-xs uppercase font-display tracking-wide pl-10">
             Профиль
           </p>
           <h1 className="text-3xl font-display font-bold uppercase mt-1">{player.name}</h1>

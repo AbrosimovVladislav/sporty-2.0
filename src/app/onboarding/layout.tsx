@@ -2,6 +2,7 @@
 
 import { usePathname, useRouter } from "next/navigation";
 import { OnboardingProvider } from "./onboarding-context";
+import BackButton from "@/components/BackButton";
 import type { ReactNode } from "react";
 
 const STEPS = [
@@ -24,15 +25,10 @@ export default function OnboardingLayout({ children }: { children: ReactNode }) 
         {currentStep >= 0 && (
           <div className="flex items-center px-6 pt-6 pb-2 gap-4">
             {currentStep > 0 ? (
-              <button
+              <BackButton
                 onClick={() => router.push(STEPS[currentStep - 1])}
                 className="w-8 h-8 rounded-full bg-background-card border border-border flex items-center justify-center text-foreground-secondary hover:text-foreground transition-colors shrink-0"
-                aria-label="Назад"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path d="M10 3L5 8L10 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </button>
+              />
             ) : (
               <div className="w-8 shrink-0" />
             )}
