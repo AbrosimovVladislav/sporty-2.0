@@ -34,6 +34,23 @@ export async function sendMessage(
   }
 }
 
+function botDeepLink(startParam: string): string {
+  const botUsername = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
+  if (!botUsername) {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sporty-2-0.vercel.app";
+    return appUrl;
+  }
+  return `https://t.me/${botUsername}?startapp=${startParam}`;
+}
+
+export function buildEventDeepLink(teamId: string, eventId: string): string {
+  return botDeepLink(`event_${teamId}_${eventId}`);
+}
+
+export function buildProfileDeepLink(): string {
+  return botDeepLink("profile");
+}
+
 export function buildEventUrl(teamId: string, eventId: string): string {
   const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sporty-2-0.vercel.app";
   return `${appUrl}/team/${teamId}/events/${eventId}`;

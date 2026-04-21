@@ -31,12 +31,13 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Get the join request
+  // Get the join request — only player_to_team (organizer handles incoming requests)
   const { data: jr } = await supabase
     .from("join_requests")
     .select("id, user_id, team_id, status")
     .eq("id", requestId)
     .eq("team_id", teamId)
+    .eq("direction", "player_to_team")
     .eq("status", "pending")
     .maybeSingle();
 

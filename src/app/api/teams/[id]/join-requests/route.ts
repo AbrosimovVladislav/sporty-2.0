@@ -43,6 +43,7 @@ export async function GET(
     .from("join_requests")
     .select("id, user_id, status, created_at, users(id, name, city)")
     .eq("team_id", teamId)
+    .eq("direction", "player_to_team")
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 

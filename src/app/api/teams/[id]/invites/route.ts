@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
-import { sendMessage } from "@/lib/telegram-bot";
+import { sendMessage, buildProfileDeepLink } from "@/lib/telegram-bot";
 
 export async function POST(
   req: NextRequest,
@@ -87,12 +87,11 @@ async function notifyPlayer(supabase: any, teamId: string, userId: string) {
 
   if (!user?.telegram_id || !team?.name) return;
 
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sporty-2-0.vercel.app";
   const text = `🏅 <b>Тебя пригласили в команду «${team.name}»</b>\n\nОткрой профиль и прими или отклони приглашение.`;
 
   await sendMessage(user.telegram_id, text, {
     reply_markup: {
-      inline_keyboard: [[{ text: "Открыть Sporty", web_app: { url: `${appUrl}/profile` } }]],
+      inline_keyboard: [[{ text: "Открыть Sporty", url: buildProfileDeepLink() }]],
     },
   });
 }

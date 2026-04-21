@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
 import { getExpectedAmount, getPaidAmount } from "@/lib/finances";
-import { sendMessage, buildEventUrl } from "@/lib/telegram-bot";
+import { sendMessage, buildEventDeepLink } from "@/lib/telegram-bot";
 
 type EventWithVenue = {
   id: string;
@@ -58,7 +58,7 @@ async function notifyMembers(supabase: any, teamId: string, event: any) {
     venueName = venue?.name ?? null;
   }
 
-  const eventUrl = buildEventUrl(teamId, event.id);
+  const deepLink = buildEventDeepLink(teamId, event.id);
   const typeLabel = EVENT_TYPE_LABEL[event.type] ?? event.type;
   const dateStr = new Date(event.date).toLocaleString("ru-RU", {
     day: "numeric",
@@ -74,7 +74,7 @@ async function notifyMembers(supabase: any, teamId: string, event: any) {
   if (venueName) text += `\n📍 ${venueName}`;
 
   const replyMarkup = {
-    inline_keyboard: [[{ text: "Открыть в Sporty", web_app: { url: eventUrl } }]],
+    inline_keyboard: [[{ text: "Открыть в Sporty", url: deepLink }]],
   };
 
   await Promise.allSettled(

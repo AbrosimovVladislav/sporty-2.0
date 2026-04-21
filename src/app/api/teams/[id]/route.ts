@@ -66,7 +66,7 @@ export async function GET(
       user: m.users!,
     }));
 
-  // If guest, check if they have a pending/rejected join request
+  // If guest, check if they have a pending/rejected player_to_team request
   let joinRequestStatus: "none" | "pending" | "rejected" = "none";
   if (currentRole === "guest" && userId) {
     const { data: jr } = await supabase
@@ -74,6 +74,7 @@ export async function GET(
       .select("status")
       .eq("user_id", userId)
       .eq("team_id", id)
+      .eq("direction", "player_to_team")
       .in("status", ["pending", "rejected"])
       .order("created_at", { ascending: false })
       .limit(1)
@@ -81,13 +82,14 @@ export async function GET(
     if (jr) joinRequestStatus = jr.status as "pending" | "rejected";
   }
 
-  // If organizer, count pending join requests
+  // If organizer, count pending player_to_team requests (not outgoing invites)
   let pendingRequestsCount = 0;
   if (currentRole === "organizer") {
     const { count } = await supabase
       .from("join_requests")
       .select("*", { count: "exact", head: true })
       .eq("team_id", id)
+      .eq("direction", "player_to_team")
       .eq("status", "pending");
     pendingRequestsCount = count ?? 0;
   }
