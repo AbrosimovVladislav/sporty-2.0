@@ -37,12 +37,11 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function notifyMembers(supabase: any, teamId: string, authorId: string, event: any) {
+async function notifyMembers(supabase: any, teamId: string, event: any) {
   const { data: members } = await supabase
     .from("team_memberships")
     .select("user_id, users(telegram_id)")
-    .eq("team_id", teamId)
-    .neq("user_id", authorId);
+    .eq("team_id", teamId);
 
   if (!members?.length) return;
 
@@ -237,7 +236,7 @@ export async function POST(
   }
 
   // Notify team members via Telegram (fire-and-forget)
-  notifyMembers(supabase, teamId, userId, event).catch((e) =>
+  notifyMembers(supabase, teamId, event).catch((e) =>
     console.error("Notify members error:", e)
   );
 
