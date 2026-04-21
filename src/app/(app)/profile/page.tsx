@@ -6,6 +6,9 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
 import { Skeleton } from "@/components/Skeleton";
+import Select from "@/components/Select";
+import DistrictSelect from "@/components/DistrictSelect";
+import { POSITIONS, SKILL_LEVELS } from "@/lib/catalogs";
 import type { User } from "@/types/database";
 
 type Tab = "about" | "results" | "reliability" | "settings";
@@ -113,7 +116,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   }
 
   async function saveProfile(
-    fields: Partial<Pick<User, "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team">>
+    fields: Partial<Pick<User, "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team" | "district_id">>
   ) {
     const res = await fetch(`/api/users/${user.id}/profile`, {
       method: "PUT",
@@ -123,6 +126,9 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
     if (res.ok) {
       const data = await res.json();
       setUser(data.user);
+      if ("district_id" in fields) {
+        setDistrictName(data.user.district?.name ?? null);
+      }
     }
   }
 
@@ -576,7 +582,7 @@ function SettingsTab({
     fields: Partial<
       Pick<
         User,
-        "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team"
+        "bio" | "birth_date" | "position" | "skill_level" | "preferred_time" | "looking_for_team" | "district_id"
       >
     >
   ) => Promise<void>;
@@ -586,6 +592,7 @@ function SettingsTab({
   const [skillLevel, setSkillLevel] = useState(user.skill_level ?? "");
   const [preferredTime, setPreferredTime] = useState(user.preferred_time ?? "");
   const [birthDate, setBirthDate] = useState(user.birth_date ?? "");
+  const [districtId, setDistrictId] = useState(user.district_id ?? "");
   const [lookingForTeam, setLookingForTeam] = useState(user.looking_for_team);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -596,10 +603,11 @@ function SettingsTab({
     try {
       await onSave({
         bio: bio.trim() || null,
-        position: position.trim() || null,
-        skill_level: skillLevel.trim() || null,
+        position: position || null,
+        skill_level: skillLevel || null,
         preferred_time: preferredTime.trim() || null,
         birth_date: birthDate || null,
+        district_id: districtId || null,
         looking_for_team: lookingForTeam,
       });
       setSaved(true);
@@ -627,26 +635,36 @@ function SettingsTab({
       </div>
 
       <div>
-        <label className={labelClass}>Позиция (через запятую)</label>
-        <input
-          type="text"
+        <label className={labelClass}>Позиция</label>
+        <Select
           value={position}
-          onChange={(e) => setPosition(e.target.value)}
-          placeholder="Нападающий, Универсал…"
-          className={inputClass}
+          onChange={setPosition}
+          options={POSITIONS["football"]}
+          placeholder="Не выбрана"
         />
       </div>
 
       <div>
         <label className={labelClass}>Уровень</label>
-        <input
-          type="text"
+        <Select
           value={skillLevel}
-          onChange={(e) => setSkillLevel(e.target.value)}
-          placeholder="Любитель, полупрофи…"
-          className={inputClass}
+          onChange={setSkillLevel}
+          options={SKILL_LEVELS}
+          placeholder="Не выбран"
         />
       </div>
+
+      {user.city && (
+        <div>
+          <label className={labelClass}>Район</label>
+          <DistrictSelect
+            city={user.city}
+            value={districtId}
+            onChange={setDistrictId}
+            className={inputClass}
+          />
+        </div>
+      )}
 
       <div>
         <label className={labelClass}>Время тренировок</label>

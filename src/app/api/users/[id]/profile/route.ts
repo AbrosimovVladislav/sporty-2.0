@@ -18,6 +18,7 @@ export async function PUT(
   if ("skill_level" in body) update.skill_level = body.skill_level ?? null;
   if ("preferred_time" in body) update.preferred_time = body.preferred_time ?? null;
   if ("looking_for_team" in body) update.looking_for_team = Boolean(body.looking_for_team);
+  if ("district_id" in body) update.district_id = body.district_id ?? null;
 
   if (Object.keys(update).length === 0) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
@@ -28,10 +29,17 @@ export async function PUT(
     .from("users")
     .update(update)
     .eq("id", id)
-    .select()
+    .select("*, districts(id, name)")
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  return NextResponse.json({ user: data });
+  const row = data as unknown as { districts?: { id: string; name: string } | null } & typeof data;
+  return NextResponse.json({
+    user: {
+      ...row,
+      district: row.districts ?? null,
+      districts: undefined,
+    },
+  });
 }
