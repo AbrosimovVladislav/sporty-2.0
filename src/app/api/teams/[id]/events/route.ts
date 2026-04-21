@@ -38,12 +38,25 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 async function notifyMembers(supabase: any, teamId: string, event: any) {
-  const { data: members } = await supabase
-    .from("team_memberships")
-    .select("user_id, users(telegram_id)")
-    .eq("team_id", teamId);
+  const [{ data: members }, { data: team }] = await Promise.all([
+    supabase
+      .from("team_memberships")
+      .select("user_id, users(telegram_id)")
+      .eq("team_id", teamId),
+    supabase.from("teams").select("name").eq("id", teamId).single(),
+  ]);
 
   if (!members?.length) return;
+
+  let venueName: string | null = null;
+  if (event.venue_id) {
+    const { data: venue } = await supabase
+      .from("venues")
+      .select("name")
+      .eq("id", event.venue_id)
+      .single();
+    venueName = venue?.name ?? null;
+  }
 
   const deepLink = buildEventDeepLink(teamId, event.id);
   const typeLabel = EVENT_TYPE_LABEL[event.type] ?? event.type;
@@ -55,7 +68,11 @@ async function notifyMembers(supabase: any, teamId: string, event: any) {
     timeZone: "Asia/Almaty",
   });
 
-  const text = `📅 <b>Новое событие: ${typeLabel}</b>\n${dateStr}\n\n<a href="${deepLink}">Открыть в Sporty</a>`;
+  let text = `📅 <b>${typeLabel}`;
+  if (team?.name) text += ` · ${team.name}`;
+  text += `</b>\n${dateStr}`;
+  if (venueName) text += `\n📍 ${venueName}`;
+  text += `\n\n<a href="${deepLink}">Открыть в Sporty</a>`;
 
   await Promise.allSettled(
     members

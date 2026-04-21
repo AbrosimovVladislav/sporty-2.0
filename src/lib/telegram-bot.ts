@@ -29,6 +29,6 @@ export async function sendMessage(
 }
 
 export function buildEventDeepLink(teamId: string, eventId: string): string {
-  const username = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME;
-  return `https://t.me/${username}?startapp=event_${teamId}_${eventId}`;
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sporty-2-0.vercel.app";
+  return `${appUrl}/team/${teamId}/events/${eventId}`;
 }
