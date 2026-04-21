@@ -20,12 +20,15 @@ export async function GET(req: NextRequest) {
   const sport = searchParams.get("sport")?.trim();
   const lookingForPlayers = searchParams.get("looking_for_players");
   const district_id = searchParams.get("district_id")?.trim();
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
+  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
   const supabase = getServiceClient();
   let query = supabase
     .from("teams")
     .select("id, name, sport, city, description, created_at, looking_for_players, district_id, districts(id, name), team_memberships(count)")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
 
   if (city) query = query.ilike("city", `%${city}%`);
   if (sport) query = query.eq("sport", sport);
@@ -53,7 +56,8 @@ export async function GET(req: NextRequest) {
       : 0,
   }));
 
-  return NextResponse.json({ teams });
+  const nextOffset = teams.length === limit ? offset + limit : null;
+  return NextResponse.json({ teams, nextOffset });
 }
 
 export async function POST(req: NextRequest) {

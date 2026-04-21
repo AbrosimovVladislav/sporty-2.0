@@ -18,7 +18,7 @@ export async function GET(req: NextRequest) {
   const lookingForTeam = searchParams.get("looking_for_team");
   const position = searchParams.get("position")?.trim();
   const district_id = searchParams.get("district_id")?.trim();
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "50", 10), 100);
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
   const supabase = getServiceClient();
@@ -49,5 +49,6 @@ export async function GET(req: NextRequest) {
     district: p.districts ?? null,
   }));
 
-  return NextResponse.json({ players });
+  const nextOffset = players.length === limit ? offset + limit : null;
+  return NextResponse.json({ players, nextOffset });
 }

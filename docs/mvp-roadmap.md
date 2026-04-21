@@ -392,18 +392,18 @@
 
 **Цель:** не грузить все записи сразу — включить серверную пагинацию и подгрузку по скроллу для длинных списков.
 
-- ⬜ **19.1** API — единый контракт `?limit=&offset=`, ответ `{ items: [...], nextOffset: number | null }`:
-  - ⬜ **19.1.1** `GET /api/players` — уже поддерживает limit/offset, добавить `nextOffset`
-  - ⬜ **19.1.2** `GET /api/teams` — добавить limit/offset
-  - ⬜ **19.1.3** `GET /api/venues` — добавить limit/offset
-  - ⬜ **19.1.4** `GET /api/events/public` — добавить limit/offset
-- ⬜ **19.2** Хук `src/lib/usePaginatedList.ts` — общий: принимает `fetcher(offset) => Promise<{items, nextOffset}>`, `pageSize`; возвращает `{items, loading, loadMore, reset}`
-- ⬜ **19.3** Компонент `src/components/InfiniteScrollSentinel.tsx` — IntersectionObserver, вызывает `onVisible` при попадании в viewport
-- ⬜ **19.4** Подключить:
-  - ⬜ **19.4.1** `(app)/players/page.tsx`
-  - ⬜ **19.4.2** `(app)/teams/page.tsx` (секция «Все»)
-  - ⬜ **19.4.3** `(app)/search/` — все три таба
-- ⬜ **19.5** Дефолт `pageSize = 20`; при смене фильтров — `reset()`
+- ✅ **19.1** API — единый контракт `?limit=&offset=`, ответ `{ items: [...], nextOffset: number | null }`:
+  - ✅ **19.1.1** `GET /api/players` — уже поддерживает limit/offset, добавить `nextOffset`
+  - ✅ **19.1.2** `GET /api/teams` — добавить limit/offset
+  - ✅ **19.1.3** `GET /api/venues` — добавить limit/offset
+  - ✅ **19.1.4** `GET /api/events/public` — добавить limit/offset
+- ✅ **19.2** Хук `src/lib/usePaginatedList.ts` — общий: принимает `fetcher(offset) => Promise<{items, nextOffset}>`, `pageSize`; возвращает `{items, loading, loadMore, reset}`
+- ✅ **19.3** Компонент `src/components/InfiniteScrollSentinel.tsx` — IntersectionObserver, вызывает `onVisible` при попадании в viewport
+- ✅ **19.4** Подключить:
+  - ✅ **19.4.1** `(app)/players/page.tsx`
+  - ✅ **19.4.2** `(app)/teams/page.tsx` (секция «Все»)
+  - ✅ **19.4.3** `(app)/search/` — все три таба
+- ✅ **19.5** Дефолт `pageSize = 20`; при смене фильтров — `reset()`
 
 **Зависимости:** нет
 

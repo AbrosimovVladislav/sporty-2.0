@@ -16,12 +16,15 @@ export async function GET(req: NextRequest) {
   const name = searchParams.get("name")?.trim();
   const q = searchParams.get("q")?.trim();
   const district_id = searchParams.get("district_id")?.trim();
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
+  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
   const supabase = getServiceClient();
   let query = supabase
     .from("venues")
     .select("id, name, address, city, district_id, districts(id, name)")
-    .order("name", { ascending: true });
+    .order("name", { ascending: true })
+    .range(offset, offset + limit - 1);
 
   if (q) {
     query = query.or(`name.ilike.%${q}%,city.ilike.%${q}%`);
@@ -46,5 +49,6 @@ export async function GET(req: NextRequest) {
     district: v.districts ?? null,
   }));
 
-  return NextResponse.json({ venues });
+  const nextOffset = venues.length === limit ? offset + limit : null;
+  return NextResponse.json({ venues, nextOffset });
 }

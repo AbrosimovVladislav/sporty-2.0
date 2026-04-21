@@ -24,6 +24,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const city = searchParams.get("city")?.trim();
   const district_id = searchParams.get("district_id")?.trim();
+  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
+  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
   const supabase = getServiceClient();
   const now = new Date().toISOString();
@@ -41,10 +43,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  let events = (data ?? []) as unknown as PublicEventRow[];
+  let filtered = (data ?? []) as unknown as PublicEventRow[];
 
   if (city) {
-    events = events.filter(
+    filtered = filtered.filter(
       (e) =>
         (e.teams?.city ?? "").toLowerCase().includes(city.toLowerCase()) ||
         (e.venues?.city ?? "").toLowerCase().includes(city.toLowerCase()),
@@ -52,10 +54,13 @@ export async function GET(req: NextRequest) {
   }
 
   if (district_id) {
-    events = events.filter((e) => e.venues?.district_id === district_id);
+    filtered = filtered.filter((e) => e.venues?.district_id === district_id);
   }
 
-  const eventIds = events.map((e) => e.id);
+  const paged = filtered.slice(offset, offset + limit);
+  const nextOffset = offset + limit < filtered.length ? offset + limit : null;
+
+  const eventIds = paged.map((e) => e.id);
   const { data: attRaw } = eventIds.length
     ? await supabase
         .from("event_attendances")
@@ -69,7 +74,7 @@ export async function GET(req: NextRequest) {
     countMap.set(a.event_id, (countMap.get(a.event_id) ?? 0) + 1);
   }
 
-  const result = events.map((e) => ({
+  const result = paged.map((e) => ({
     id: e.id,
     team_id: e.team_id,
     type: e.type,
@@ -90,5 +95,5 @@ export async function GET(req: NextRequest) {
     yes_count: countMap.get(e.id) ?? 0,
   }));
 
-  return NextResponse.json({ events: result });
+  return NextResponse.json({ events: result, nextOffset });
 }

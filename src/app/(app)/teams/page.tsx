@@ -1,11 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import CitySelect from "@/components/CitySelect";
 import DistrictSelect from "@/components/DistrictSelect";
 import { SkeletonList } from "@/components/Skeleton";
+import { usePaginatedList } from "@/lib/usePaginatedList";
+import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 
 type Section = "mine" | "all";
 
@@ -166,27 +168,25 @@ function MineSection({
 function AllSection() {
   const [city, setCity] = useState("");
   const [districtId, setDistrictId] = useState("");
-  const [teams, setTeams] = useState<PublicTeam[] | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    const timer = setTimeout(() => {
+  const fetcher = useCallback(
+    (offset: number) => {
       const params = new URLSearchParams();
       if (city.trim()) params.set("city", city.trim());
       if (districtId) params.set("district_id", districtId);
-      fetch(`/api/teams${params.toString() ? `?${params}` : ""}`)
+      params.set("offset", String(offset));
+      return fetch(`/api/teams?${params}`)
         .then((r) => r.json())
-        .then((d) => {
-          if (!cancelled) setTeams(d.teams ?? []);
-        })
-        .catch(() => {
-          if (!cancelled) setTeams([]);
-        });
-    }, 250);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+        .then((d) => ({ items: (d.teams ?? []) as PublicTeam[], nextOffset: d.nextOffset as number | null }));
+    },
+    [city, districtId],
+  );
+
+  const { items: teams, loading, loadMore, hasMore, reset } = usePaginatedList(fetcher);
+
+  useEffect(() => {
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [city, districtId]);
 
   function handleCityChange(newCity: string) {
@@ -202,29 +202,32 @@ function AllSection() {
         <DistrictSelect city={city} value={districtId} onChange={setDistrictId} />
       </div>
 
-      {teams === null ? (
+      {teams.length === 0 && loading ? (
         <SkeletonList count={3} />
       ) : teams.length === 0 ? (
         <div className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
           Команд не найдено
         </div>
       ) : (
-        <ul className="flex flex-col gap-3">
-          {teams.map((t) => (
-            <li key={t.id}>
-              <Link
-                href={`/team/${t.id}`}
-                className="block bg-background-card border border-border rounded-lg p-4"
-              >
-                <h2 className="font-display font-semibold text-lg">{t.name}</h2>
-                <p className="text-sm text-foreground-secondary mt-1">
-                  {t.city}
-                  {t.district ? ` · ${t.district.name}` : ""} · {SPORT_LABEL[t.sport] ?? t.sport}
-                </p>
-              </Link>
-            </li>
-          ))}
-        </ul>
+        <>
+          <ul className="flex flex-col gap-3">
+            {teams.map((t) => (
+              <li key={t.id}>
+                <Link
+                  href={`/team/${t.id}`}
+                  className="block bg-background-card border border-border rounded-lg p-4"
+                >
+                  <h2 className="font-display font-semibold text-lg">{t.name}</h2>
+                  <p className="text-sm text-foreground-secondary mt-1">
+                    {t.city}
+                    {t.district ? ` · ${t.district.name}` : ""} · {SPORT_LABEL[t.sport] ?? t.sport}
+                  </p>
+                </Link>
+              </li>
+            ))}
+          </ul>
+          {hasMore && <InfiniteScrollSentinel onVisible={loadMore} />}
+        </>
       )}
     </div>
   );
