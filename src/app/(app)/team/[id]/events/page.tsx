@@ -6,13 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import DistrictSelect from "@/components/DistrictSelect";
 import { SkeletonList } from "@/components/Skeleton";
-
-const TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
-};
+import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 
 type EventItem = {
   id: string;
@@ -143,7 +137,7 @@ function EventGroup({
             >
               <div className="flex items-center justify-between">
                 <span className="text-xs font-display font-semibold uppercase px-2 py-1 rounded bg-primary/10 text-primary">
-                  {TYPE_LABEL[e.type] ?? e.type}
+                  {EVENT_TYPE_LABEL[e.type] ?? e.type}
                 </span>
                 <span className="text-xs text-foreground-secondary">
                   {formatDate(e.date)}
@@ -165,14 +159,14 @@ function EventGroup({
               {isOrganizer && e.price_per_player > 0 && (
                 <p className="text-xs text-foreground-secondary mt-2">
                   {e.status === "completed"
-                    ? `Сбор: ${e.actualCollected} из ${e.expectedCollected} ₽`
-                    : `Ожидаемый сбор: ${e.yesCount * e.price_per_player} ₽`}
+                    ? `Сбор: ${e.actualCollected} из ${e.expectedCollected} ₸`
+                    : `Ожидаемый сбор: ${e.yesCount * e.price_per_player} ₸`}
                 </p>
               )}
 
               {isOrganizer && e.venue_cost > 0 && (
                 <p className="text-xs text-foreground-secondary mt-1">
-                  Площадка: {e.venue_cost} ₽
+                  Площадка: {e.venue_cost} ₸
                   {e.venue_paid > 0 && ` (оплачено ${e.venue_paid})`}
                 </p>
               )}
@@ -309,7 +303,7 @@ function CreateEventForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Цена с игрока, ₽</label>
+          <label className="text-sm text-foreground-secondary">Цена с игрока, ₸</label>
           <input
             type="number"
             value={price}
@@ -397,7 +391,7 @@ function CreateEventForm({
 
       {venueMode !== "none" && (
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Стоимость площадки, ₽</label>
+          <label className="text-sm text-foreground-secondary">Стоимость площадки, ₸</label>
           <input
             type="number"
             value={venueCost}

@@ -23,9 +23,12 @@ type AttendanceWithUser = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
-  paid: boolean | null;
-  paid_amount: number | null;
   users: { id: string; name: string } | null;
+};
+
+type TransactionRow = {
+  player_id: string;
+  amount: number;
 };
 
 // GET — event detail with attendances
@@ -54,10 +57,17 @@ export async function GET(
 
   const event = rawEvent as unknown as EventWithVenue;
 
-  const { data: rawAttendances, error: attErr } = await supabase
-    .from("event_attendances")
-    .select("id, user_id, vote, attended, paid, paid_amount, users(id, name)")
-    .eq("event_id", eventId);
+  const [{ data: rawAttendances, error: attErr }, { data: rawTx }] = await Promise.all([
+    supabase
+      .from("event_attendances")
+      .select("id, user_id, vote, attended, users(id, name)")
+      .eq("event_id", eventId),
+    supabase
+      .from("financial_transactions")
+      .select("player_id, amount")
+      .eq("event_id", eventId)
+      .eq("type", "event_payment"),
+  ]);
 
   if (attErr) {
     console.error("Attendances fetch error:", attErr);
@@ -65,6 +75,10 @@ export async function GET(
   }
 
   const attendances = (rawAttendances ?? []) as unknown as AttendanceWithUser[];
+  const txByPlayer = new Map<string, number>();
+  for (const tx of (rawTx ?? []) as unknown as TransactionRow[]) {
+    txByPlayer.set(tx.player_id, tx.amount);
+  }
 
   return NextResponse.json({
     event: {
@@ -85,15 +99,18 @@ export async function GET(
     },
     attendances: attendances
       .filter((a) => a.users !== null)
-      .map((a) => ({
-        id: a.id,
-        user_id: a.user_id,
-        vote: a.vote,
-        attended: a.attended,
-        paid: a.paid,
-        paid_amount: a.paid_amount,
-        user: a.users!,
-      })),
+      .map((a) => {
+        const txAmount = txByPlayer.get(a.user_id) ?? null;
+        return {
+          id: a.id,
+          user_id: a.user_id,
+          vote: a.vote,
+          attended: a.attended,
+          paid: txAmount !== null,
+          paid_amount: txAmount,
+          user: a.users!,
+        };
+      }),
   });
 }
 

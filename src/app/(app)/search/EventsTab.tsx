@@ -7,6 +7,7 @@ import DistrictSelect from "@/components/DistrictSelect";
 import { SkeletonList } from "@/components/Skeleton";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
+import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 
 type PublicEvent = {
   id: string;
@@ -25,13 +26,6 @@ type PublicEvent = {
   } | null;
   team: { id: string; name: string; city: string } | null;
   yes_count: number;
-};
-
-const TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
 };
 
 function formatDate(iso: string): string {
@@ -97,7 +91,7 @@ export default function EventsTab() {
                 >
                   <div className="flex items-center justify-between mb-2">
                     <span className="text-xs font-display font-semibold uppercase px-2 py-1 rounded bg-primary/10 text-primary">
-                      {TYPE_LABEL[e.type] ?? e.type}
+                      {EVENT_TYPE_LABEL[e.type] ?? e.type}
                     </span>
                     <span className="text-xs text-foreground-secondary">{formatDate(e.date)}</span>
                   </div>
@@ -113,7 +107,7 @@ export default function EventsTab() {
                   <div className="flex items-center gap-3 mt-2 text-xs text-foreground-secondary">
                     <span>{e.yes_count} {e.yes_count === 1 ? "идёт" : "идут"}</span>
                     {e.min_players > 1 && <span>мин. {e.min_players}</span>}
-                    {e.price_per_player > 0 && <span>{e.price_per_player} ₽</span>}
+                    {e.price_per_player > 0 && <span>{e.price_per_player} ₸</span>}
                   </div>
                 </Link>
               </li>

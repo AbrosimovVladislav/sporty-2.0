@@ -6,13 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { PlayerCard } from "@/components/PlayerCard";
 import { SkeletonCard } from "@/components/Skeleton";
-
-const TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
-};
+import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 
 type FinancesData = {
   metrics: {
@@ -94,7 +88,7 @@ export default function TeamFinancesPage() {
       <section className="bg-background-card border border-border rounded-lg p-5">
         <p className="text-xs uppercase font-display text-foreground-secondary">Реальный баланс</p>
         <p className={`text-3xl font-display font-bold mt-1 ${m.realBalance >= 0 ? "text-green-600" : "text-red-500"}`}>
-          {m.realBalance >= 0 ? "+" : ""}{m.realBalance} ₽
+          {m.realBalance >= 0 ? "+" : ""}{m.realBalance} ₸
         </p>
         <p className="text-xs text-foreground-secondary mt-1">
           Что останется команде, когда все долги закрыты и площадки оплачены
@@ -103,14 +97,14 @@ export default function TeamFinancesPage() {
 
       <section className="bg-background-card border border-border rounded-lg p-5">
         <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Показатели</p>
-        <Row label="Касса (на руках)" value={`${m.cash} ₽`} />
-        <Row label="Собрано от игроков" value={`${m.collected} ₽`} />
-        <Row label="Ожидаемый сбор" value={`${m.expected} ₽`} muted />
-        <Row label="Расходы площадкам" value={`${m.venueCostTotal} ₽`} />
-        <Row label="Оплачено площадкам" value={`${m.venuePaidTotal} ₽`} muted />
-        <Row label="Остаток к оплате" value={`${m.venueOutstanding} ₽`} />
-        <Row label="Долги игроков" value={`${m.playersDebt} ₽`} />
-        <Row label="Переплаты игроков" value={`${m.playersOverpaid} ₽`} />
+        <Row label="Касса (на руках)" value={`${m.cash} ₸`} />
+        <Row label="Собрано от игроков" value={`${m.collected} ₸`} />
+        <Row label="Ожидаемый сбор" value={`${m.expected} ₸`} muted />
+        <Row label="Расходы площадкам" value={`${m.venueCostTotal} ₸`} />
+        <Row label="Оплачено площадкам" value={`${m.venuePaidTotal} ₸`} muted />
+        <Row label="Остаток к оплате" value={`${m.venueOutstanding} ₸`} />
+        <Row label="Долги игроков" value={`${m.playersDebt} ₸`} />
+        <Row label="Переплаты игроков" value={`${m.playersOverpaid} ₸`} />
       </section>
 
       {(data.debtors.length > 0 || data.creditors.length > 0) && (
@@ -124,7 +118,7 @@ export default function TeamFinancesPage() {
                   className="w-full flex items-center justify-between py-2 border-b border-border last:border-b-0 text-left"
                 >
                   <span className="text-sm">{d.name}</span>
-                  <span className="text-sm font-medium text-red-500">−{d.amount} ₽</span>
+                  <span className="text-sm font-medium text-red-500">−{d.amount} ₸</span>
                 </button>
               </li>
             ))}
@@ -135,7 +129,7 @@ export default function TeamFinancesPage() {
                   className="w-full flex items-center justify-between py-2 border-b border-border last:border-b-0 text-left"
                 >
                   <span className="text-sm">{c.name}</span>
-                  <span className="text-sm font-medium text-green-600">+{c.amount} ₽</span>
+                  <span className="text-sm font-medium text-green-600">+{c.amount} ₸</span>
                 </button>
               </li>
             ))}
@@ -155,13 +149,13 @@ export default function TeamFinancesPage() {
                 <li key={v.eventId}>
                   <Link href={`/team/${teamId}/events/${v.eventId}`} className="block py-2 border-b border-border last:border-b-0">
                     <div className="flex justify-between items-baseline">
-                      <span className="text-sm font-medium">{TYPE_LABEL[v.type] ?? v.type} · {date}</span>
+                      <span className="text-sm font-medium">{EVENT_TYPE_LABEL[v.type] ?? v.type} · {date}</span>
                       <span className={`text-xs font-medium ${remain > 0 ? "text-red-500" : "text-green-600"}`}>
-                        {remain > 0 ? `−${remain} ₽` : "оплачено"}
+                        {remain > 0 ? `−${remain} ₸` : "оплачено"}
                       </span>
                     </div>
                     <p className="text-xs text-foreground-secondary mt-0.5">
-                      {v.venueName ? `${v.venueName} · ` : ""}{v.paid} из {v.cost} ₽
+                      {v.venueName ? `${v.venueName} · ` : ""}{v.paid} из {v.cost} ₸
                     </p>
                   </Link>
                 </li>
@@ -270,7 +264,7 @@ function DepositModal({
         </div>
 
         <div className="flex flex-col gap-1">
-          <label className="text-xs text-foreground-secondary">Сумма, ₽</label>
+          <label className="text-xs text-foreground-secondary">Сумма, ₸</label>
           <input
             type="number"
             min="0"

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
-import { getExpectedAmount, getPaidAmount } from "@/lib/finances";
+import { getExpectedAmount } from "@/lib/finances";
 import { sendMessage, buildEventDeepLink } from "@/lib/telegram-bot";
+import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 
 type EventWithVenue = {
   id: string;
@@ -25,15 +26,11 @@ type AttendanceRow = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
-  paid: boolean | null;
-  paid_amount: number | null;
 };
 
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
+type TransactionRow = {
+  event_id: string;
+  amount: number;
 };
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -128,13 +125,22 @@ export async function GET(
   const events = (data ?? []) as unknown as EventWithVenue[];
   const eventIds = events.map((e) => e.id);
 
-  // Single batch fetch for all attendances of these events
-  const { data: attRaw } = eventIds.length
-    ? await supabase
-        .from("event_attendances")
-        .select("event_id, user_id, vote, attended, paid, paid_amount")
-        .in("event_id", eventIds)
-    : { data: [] as AttendanceRow[] };
+  // Batch fetch attendances and transactions for all events
+  const [{ data: attRaw }, { data: txRaw }] = await Promise.all([
+    eventIds.length
+      ? supabase
+          .from("event_attendances")
+          .select("event_id, user_id, vote, attended")
+          .in("event_id", eventIds)
+      : Promise.resolve({ data: [] as AttendanceRow[] }),
+    eventIds.length
+      ? supabase
+          .from("financial_transactions")
+          .select("event_id, amount")
+          .in("event_id", eventIds)
+          .eq("type", "event_payment")
+      : Promise.resolve({ data: [] as TransactionRow[] }),
+  ]);
 
   const attendances = (attRaw ?? []) as unknown as AttendanceRow[];
   const byEvent = new Map<string, AttendanceRow[]>();
@@ -142,6 +148,11 @@ export async function GET(
     const list = byEvent.get(a.event_id) ?? [];
     list.push(a);
     byEvent.set(a.event_id, list);
+  }
+
+  const txByEvent = new Map<string, number>();
+  for (const tx of (txRaw ?? []) as unknown as TransactionRow[]) {
+    txByEvent.set(tx.event_id, (txByEvent.get(tx.event_id) ?? 0) + tx.amount);
   }
 
   const enriched = events.map((e) => {
@@ -156,10 +167,7 @@ export async function GET(
       (sum, a) => sum + getExpectedAmount(a, e.price_per_player),
       0,
     );
-    const actualCollected = list.reduce(
-      (sum, a) => sum + getPaidAmount(a, e.price_per_player),
-      0,
-    );
+    const actualCollected = txByEvent.get(e.id) ?? 0;
 
     return {
       id: e.id,

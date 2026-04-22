@@ -5,13 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "./team-context";
 import { Skeleton } from "@/components/Skeleton";
-
-const TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
-};
+import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 
 export default function TeamHomePage() {
   const team = useTeam();
@@ -263,12 +257,11 @@ function NextEventBlock({ teamId }: { teamId: string }) {
   useEffect(() => {
     let cancelled = false;
     const params = userId ? `?userId=${userId}` : "";
-    fetch(`/api/teams/${teamId}/events${params}`)
+    fetch(`/api/teams/${teamId}/next-event${params}`)
       .then((r) => r.json())
       .then((d) => {
         if (cancelled) return;
-        const planned = (d.events ?? []).filter((e: { status: string }) => e.status === "planned");
-        setEvent(planned.length > 0 ? planned[0] : null);
+        setEvent(d.event ?? null);
       })
       .catch(() => {
         if (!cancelled) setEvent(null);
@@ -304,7 +297,7 @@ function NextEventBlock({ teamId }: { teamId: string }) {
       <section className="bg-background-card border border-border rounded-lg p-5">
         <p className="text-xs uppercase font-display text-foreground-secondary">Ближайшее событие</p>
         <p className="text-lg font-display font-bold mt-1">
-          {TYPE_LABEL[event.type] ?? event.type} — {dateStr}
+          {EVENT_TYPE_LABEL[event.type] ?? event.type} — {dateStr}
         </p>
         {event.venue && (
           <p className="text-sm text-foreground-secondary mt-1">{event.venue.name}</p>
@@ -361,13 +354,13 @@ function FinanceBalanceBlock({ teamId }: { teamId: string }) {
               }`}
             >
               {data.realBalance >= 0 ? "+" : ""}
-              {data.realBalance} ₽
+              {data.realBalance} ₸
             </p>
             {(data.playersDebt > 0 || data.venueOutstanding > 0) && (
               <p className="text-xs text-foreground-secondary mt-1">
-                {data.playersDebt > 0 && `Долги игроков: ${data.playersDebt} ₽`}
+                {data.playersDebt > 0 && `Долги игроков: ${data.playersDebt} ₸`}
                 {data.playersDebt > 0 && data.venueOutstanding > 0 && " · "}
-                {data.venueOutstanding > 0 && `К оплате площадкам: ${data.venueOutstanding} ₽`}
+                {data.venueOutstanding > 0 && `К оплате площадкам: ${data.venueOutstanding} ₸`}
               </p>
             )}
           </>

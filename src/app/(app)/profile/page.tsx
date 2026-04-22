@@ -6,14 +6,14 @@ import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
 import { Skeleton } from "@/components/Skeleton";
+import { SearchIcon } from "@/components/Icons";
 import Select from "@/components/Select";
 import DistrictSelect from "@/components/DistrictSelect";
-import { POSITIONS, SKILL_LEVELS } from "@/lib/catalogs";
+import { POSITIONS, SKILL_LEVELS, EVENT_TYPE_LABEL, SPORT_LABEL } from "@/lib/catalogs";
 import type { User } from "@/types/database";
 
 type Tab = "about" | "results" | "reliability" | "settings";
 
-const SPORT_LABEL: Record<string, string> = { football: "Футбол" };
 const STATUS_LABEL: Record<string, string> = {
   pending: "На рассмотрении",
   accepted: "Принята",
@@ -23,12 +23,6 @@ const STATUS_STYLE: Record<string, string> = {
   pending: "bg-primary/10 text-primary",
   accepted: "bg-green-500/10 text-green-600",
   rejected: "bg-red-500/10 text-red-500",
-};
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
 };
 
 type JoinRequestItem = {
@@ -78,6 +72,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   const [tab, setTab] = useState<Tab>("about");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [stats, setStats] = useState<Stats | null | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -90,6 +85,15 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
         }
       })
       .catch(() => {});
+  }, [initialUser.id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch(`/api/users/${initialUser.id}/stats`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (!cancelled) setStats(d ?? null); })
+      .catch(() => { if (!cancelled) setStats(null); });
+    return () => { cancelled = true; };
   }, [initialUser.id]);
 
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -252,8 +256,8 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
             <MyJoinRequests userId={user.id} />
           </>
         )}
-        {tab === "results" && <ResultsTab userId={user.id} />}
-        {tab === "reliability" && <ReliabilityTab userId={user.id} />}
+        {tab === "results" && <ResultsTab stats={stats} />}
+        {tab === "reliability" && <ReliabilityTab stats={stats} />}
         {tab === "settings" && <SettingsTab user={user} onSave={saveProfile} />}
       </div>
     </div>
@@ -372,24 +376,7 @@ function AboutTab({ user }: { user: User }) {
 
 /* ─── Результаты ───────────────────────────────────────────── */
 
-function ResultsTab({ userId }: { userId: string }) {
-  const [stats, setStats] = useState<Stats | null | undefined>(undefined);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/users/${userId}/stats`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled) setStats(d ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setStats(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
+function ResultsTab({ stats }: { stats: Stats | null | undefined }) {
   if (stats === undefined) {
     return <Skeleton className="h-40 mt-1" />;
   }
@@ -430,24 +417,7 @@ function reliabilityLabel(r: number): string {
   return "Низкая надёжность";
 }
 
-function ReliabilityTab({ userId }: { userId: string }) {
-  const [stats, setStats] = useState<Stats | null | undefined>(undefined);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(`/api/users/${userId}/stats`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (!cancelled) setStats(d ?? null);
-      })
-      .catch(() => {
-        if (!cancelled) setStats(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
+function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
   if (stats === undefined) {
     return <Skeleton className="h-40 mt-1" />;
   }
@@ -845,15 +815,6 @@ function PositionIcon() {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="12" cy="12" r="10" />
       <circle cx="12" cy="12" r="3" />
-    </svg>
-  );
-}
-
-function SearchIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
     </svg>
   );
 }

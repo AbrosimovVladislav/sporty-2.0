@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SearchIcon, ShieldIcon } from "@/components/Icons";
 import { SkeletonCard } from "@/components/Skeleton";
+import { EVENT_TYPE_LABEL, SPORT_LABEL } from "@/lib/catalogs";
 
 type MyTeam = {
   id: string;
@@ -23,17 +24,6 @@ type NextEvent = {
   team: { id: string; name: string } | null;
   venue: { id: string; name: string; address: string } | null;
   yes_count: number;
-};
-
-const SPORT_LABEL: Record<string, string> = {
-  football: "Футбол",
-};
-
-const EVENT_TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
 };
 
 function formatEventDate(dateStr: string): string {

@@ -8,6 +8,7 @@ import DistrictSelect from "@/components/DistrictSelect";
 import { SkeletonList } from "@/components/Skeleton";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
+import { SPORT_LABEL } from "@/lib/catalogs";
 
 type Section = "mine" | "all";
 
@@ -26,10 +27,6 @@ type PublicTeam = {
   sport: string;
   description: string | null;
   district: { id: string; name: string } | null;
-};
-
-const SPORT_LABEL: Record<string, string> = {
-  football: "Футбол",
 };
 
 export default function TeamsPage() {

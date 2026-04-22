@@ -51,7 +51,3 @@ export function buildProfileDeepLink(): string {
   return botDeepLink("profile");
 }
 
-export function buildEventUrl(teamId: string, eventId: string): string {
-  const appUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://sporty-2-0.vercel.app";
-  return `${appUrl}/team/${teamId}/events/${eventId}`;
-}

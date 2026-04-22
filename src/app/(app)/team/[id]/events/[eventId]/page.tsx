@@ -3,20 +3,9 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { SkeletonCard } from "@/components/Skeleton";
-import {
-  getExpectedAmount,
-  getPaidAmount,
-  isAttendanceAttended,
-  isAttendancePaid,
-} from "@/lib/finances";
+import { isAttendanceAttended } from "@/lib/finances";
+import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { useTeam } from "../../team-context";
-
-const TYPE_LABEL: Record<string, string> = {
-  game: "Игра",
-  training: "Тренировка",
-  gathering: "Сбор",
-  other: "Другое",
-};
 
 const STATUS_LABEL: Record<string, string> = {
   planned: "Запланировано",
@@ -109,7 +98,7 @@ export default function EventDetailPage({
       <section className="bg-background-card border border-border rounded-lg p-5">
         <div className="flex items-center justify-between">
           <span className="text-xs font-display font-semibold uppercase px-2 py-1 rounded bg-primary/10 text-primary">
-            {TYPE_LABEL[event.type] ?? event.type}
+            {EVENT_TYPE_LABEL[event.type] ?? event.type}
           </span>
           <span className="text-xs font-display uppercase px-2 py-1 rounded bg-background text-foreground-secondary">
             {STATUS_LABEL[event.status] ?? event.status}
@@ -133,7 +122,7 @@ export default function EventDetailPage({
           {event.price_per_player > 0 && (
             <div>
               <p className="text-xs text-foreground-secondary">Цена</p>
-              <p className="font-medium">{event.price_per_player} ₽</p>
+              <p className="font-medium">{event.price_per_player} ₸</p>
             </div>
           )}
           <div>
@@ -197,8 +186,8 @@ export default function EventDetailPage({
         <section className="bg-background-card border border-border rounded-lg p-5">
           <p className="text-xs uppercase font-display text-foreground-secondary">Финансы</p>
           <p className="text-sm mt-1">
-            Ожидаемый сбор: <span className="font-medium">{yesVotes.length * event.price_per_player} ₽</span>
-            {" "}(из {event.min_players * event.price_per_player} ₽)
+            Ожидаемый сбор: <span className="font-medium">{yesVotes.length * event.price_per_player} ₸</span>
+            {" "}(из {event.min_players * event.price_per_player} ₸)
           </p>
         </section>
       )}
@@ -407,10 +396,10 @@ function FinanceSummary({
   pricePerPlayer: number;
 }) {
   const confirmedAttended = attendances.filter(isAttendanceAttended);
-  const confirmedPaid = attendances.filter(isAttendancePaid);
+  const confirmedPaid = attendances.filter((a) => a.paid === true);
 
-  const expected = attendances.reduce((sum, a) => sum + getExpectedAmount(a, pricePerPlayer), 0);
-  const actual = attendances.reduce((sum, a) => sum + getPaidAmount(a, pricePerPlayer), 0);
+  const expected = confirmedAttended.length * pricePerPlayer;
+  const actual = attendances.reduce((sum, a) => sum + (a.paid ? (a.paid_amount ?? pricePerPlayer) : 0), 0);
   const diff = actual - expected;
 
   return (
@@ -423,7 +412,7 @@ function FinanceSummary({
         </div>
         <div className="flex justify-between">
           <span className="text-foreground-secondary">Ожидаемый сбор</span>
-          <span className="font-medium">{expected} ₽</span>
+          <span className="font-medium">{expected} ₸</span>
         </div>
         <div className="flex justify-between">
           <span className="text-foreground-secondary">Сдали деньги</span>
@@ -431,12 +420,12 @@ function FinanceSummary({
         </div>
         <div className="flex justify-between">
           <span className="text-foreground-secondary">Фактический сбор</span>
-          <span className="font-medium">{actual} ₽</span>
+          <span className="font-medium">{actual} ₸</span>
         </div>
         <div className="flex justify-between pt-1 border-t border-border mt-1">
           <span className="text-foreground-secondary">Разница</span>
           <span className={`font-medium ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
-            {diff >= 0 ? "+" : ""}{diff} ₽
+            {diff >= 0 ? "+" : ""}{diff} ₸
           </span>
         </div>
       </div>
@@ -562,7 +551,7 @@ function OrganizerAttendanceList({
                     disabled={processing !== null}
                     className="text-xs text-foreground-secondary mt-2 underline underline-offset-2"
                   >
-                    Сумма: {a.paid_amount ?? pricePerPlayer} ₽ — изменить
+                    Сумма: {a.paid_amount ?? pricePerPlayer} ₸ — изменить
                   </button>
                 )}
                 {amountFor === a.user_id && (
@@ -573,7 +562,7 @@ function OrganizerAttendanceList({
                       value={amountInput}
                       onChange={(e) => setAmountInput(e.target.value)}
                       className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:border-primary"
-                      placeholder="Сумма ₽"
+                      placeholder="Сумма ₸"
                       autoFocus
                     />
                     <button
@@ -714,7 +703,7 @@ function VenueCostsBlock({
         <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Площадка — расходы</p>
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-foreground-secondary">Стоимость, ₽</label>
+            <label className="text-sm text-foreground-secondary">Стоимость, ₸</label>
             <input
               type="number"
               min="0"
@@ -763,7 +752,7 @@ function VenueCostsBlock({
         <div className="flex items-center justify-between gap-3">
           <span className="text-sm">
             <span className="text-foreground-secondary">Стоимость:</span>{" "}
-            <span className="font-medium">{venueCost} ₽</span>
+            <span className="font-medium">{venueCost} ₸</span>
           </span>
           {paid ? (
             <button

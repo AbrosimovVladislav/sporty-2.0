@@ -70,7 +70,7 @@ export function PlayerCard({
             <div className="bg-background-card border border-border rounded-lg p-4 mb-4">
               <p className="text-xs uppercase font-display text-foreground-secondary">Сальдо</p>
               <p className={`text-2xl font-display font-bold mt-1 ${data.totals.balance >= 0 ? "text-green-600" : "text-red-500"}`}>
-                {data.totals.balance >= 0 ? "+" : ""}{data.totals.balance} ₽
+                {data.totals.balance >= 0 ? "+" : ""}{data.totals.balance} ₸
               </p>
               <p className="text-xs text-foreground-secondary mt-1">
                 {data.totals.balance > 0
@@ -80,8 +80,8 @@ export function PlayerCard({
                   : "В расчёте"}
               </p>
               <div className="flex justify-between text-xs text-foreground-secondary mt-2 pt-2 border-t border-border">
-                <span>Должен сдать: {data.totals.expected} ₽</span>
-                <span>Сдал: {data.totals.paid} ₽</span>
+                <span>Должен сдать: {data.totals.expected} ₸</span>
+                <span>Сдал: {data.totals.paid} ₸</span>
               </div>
             </div>
 
@@ -99,7 +99,7 @@ export function PlayerCard({
                         {h.type === "deposit" && <span className="ml-1 text-primary">• депозит</span>}
                       </p>
                     </div>
-                    <span className="text-sm font-medium text-green-600">+{h.amount} ₽</span>
+                    <span className="text-sm font-medium text-green-600">+{h.amount} ₸</span>
                   </li>
                 ))}
               </ul>

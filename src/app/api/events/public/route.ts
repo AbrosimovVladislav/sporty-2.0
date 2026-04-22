@@ -16,51 +16,45 @@ type PublicEventRow = {
     city: string;
     district_id: string | null;
     districts: { id: string; name: string } | null;
-  } | null;
+  };
   teams: { id: string; name: string; city: string } | null;
 };
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
-  const city = searchParams.get("city")?.trim();
-  const district_id = searchParams.get("district_id")?.trim();
+  const city = searchParams.get("city")?.trim() ?? null;
+  const district_id = searchParams.get("district_id")?.trim() ?? null;
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
   const supabase = getServiceClient();
   const now = new Date().toISOString();
 
-  const { data, error } = await supabase
+  // venues!inner excludes events without a venue — acceptable for public search
+  let query = supabase
     .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, venues(id, name, address, city, district_id, districts(id, name)), teams(id, name, city)")
+    .select(
+      "id, team_id, type, date, price_per_player, min_players, description, venues!inner(id, name, address, city, district_id, districts(id, name)), teams(id, name, city)"
+    )
     .eq("is_public", true)
     .eq("status", "planned")
     .gt("date", now)
     .order("date", { ascending: true });
+
+  if (city) query = query.eq("venues.city", city);
+  if (district_id) query = query.eq("venues.district_id", district_id);
+
+  const { data, error } = await query.range(offset, offset + limit - 1);
 
   if (error) {
     console.error("Public events fetch error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  let filtered = (data ?? []) as unknown as PublicEventRow[];
+  const items = (data ?? []) as unknown as PublicEventRow[];
+  const nextOffset = items.length === limit ? offset + limit : null;
 
-  if (city) {
-    filtered = filtered.filter(
-      (e) =>
-        (e.teams?.city ?? "").toLowerCase().includes(city.toLowerCase()) ||
-        (e.venues?.city ?? "").toLowerCase().includes(city.toLowerCase()),
-    );
-  }
-
-  if (district_id) {
-    filtered = filtered.filter((e) => e.venues?.district_id === district_id);
-  }
-
-  const paged = filtered.slice(offset, offset + limit);
-  const nextOffset = offset + limit < filtered.length ? offset + limit : null;
-
-  const eventIds = paged.map((e) => e.id);
+  const eventIds = items.map((e) => e.id);
   const { data: attRaw } = eventIds.length
     ? await supabase
         .from("event_attendances")
@@ -74,7 +68,7 @@ export async function GET(req: NextRequest) {
     countMap.set(a.event_id, (countMap.get(a.event_id) ?? 0) + 1);
   }
 
-  const result = paged.map((e) => ({
+  const result = items.map((e) => ({
     id: e.id,
     team_id: e.team_id,
     type: e.type,
@@ -82,15 +76,13 @@ export async function GET(req: NextRequest) {
     price_per_player: e.price_per_player,
     min_players: e.min_players,
     description: e.description,
-    venue: e.venues
-      ? {
-          id: e.venues.id,
-          name: e.venues.name,
-          address: e.venues.address,
-          city: e.venues.city,
-          district: e.venues.districts ?? null,
-        }
-      : null,
+    venue: {
+      id: e.venues.id,
+      name: e.venues.name,
+      address: e.venues.address,
+      city: e.venues.city,
+      district: e.venues.districts ?? null,
+    },
     team: e.teams,
     yes_count: countMap.get(e.id) ?? 0,
   }));

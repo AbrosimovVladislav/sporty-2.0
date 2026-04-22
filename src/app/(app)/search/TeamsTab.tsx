@@ -7,6 +7,7 @@ import DistrictSelect from "@/components/DistrictSelect";
 import { SkeletonList } from "@/components/Skeleton";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
+import { SPORT_LABEL } from "@/lib/catalogs";
 
 type SearchTeam = {
   id: string;
@@ -17,10 +18,6 @@ type SearchTeam = {
   looking_for_players: boolean;
   members_count: number;
   district: { id: string; name: string } | null;
-};
-
-const SPORT_LABEL: Record<string, string> = {
-  football: "Футбол",
 };
 
 function membersLabel(n: number): string {

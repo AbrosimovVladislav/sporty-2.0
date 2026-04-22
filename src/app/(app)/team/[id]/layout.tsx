@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { use } from "react";
 import { TeamProvider, useTeam } from "./team-context";
 import BackButton from "@/components/BackButton";
-
+import { SPORT_LABEL } from "@/lib/catalogs";
 
 type TeamSubTab = {
   label: string;
@@ -21,10 +21,6 @@ const subTabs: TeamSubTab[] = [
   { label: "События", href: (id) => `/team/${id}/events` },
   { label: "Финансы", href: (id) => `/team/${id}/finances`, organizerOnly: true },
 ];
-
-const SPORT_LABEL: Record<string, string> = {
-  football: "Футбол",
-};
 
 function TeamHeader() {
   const team = useTeam();

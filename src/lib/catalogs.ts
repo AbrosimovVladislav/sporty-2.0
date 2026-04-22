@@ -9,3 +9,14 @@ export const SKILL_LEVELS = [
 export const POSITIONS: Record<string, string[]> = {
   football: ["Вратарь", "Защитник", "Полузащитник", "Нападающий", "Универсал"],
 };
+
+export const EVENT_TYPE_LABEL: Record<string, string> = {
+  game: "Игра",
+  training: "Тренировка",
+  gathering: "Сбор",
+  other: "Другое",
+};
+
+export const SPORT_LABEL: Record<string, string> = {
+  football: "Футбол",
+};
