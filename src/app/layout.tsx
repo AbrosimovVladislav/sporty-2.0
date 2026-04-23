@@ -43,10 +43,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} ${oswald.variable} h-full antialiased`}
     >
       <head>
-        <script
-          src="https://telegram.org/js/telegram-web-app.js"
-          defer
-        />
+        <script src="https://telegram.org/js/telegram-web-app.js" />
       </head>
       <body className="min-h-full flex flex-col">
         <TelegramProvider>
