@@ -6,24 +6,15 @@ export function TelegramProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
-    async function initTelegramSDK() {
-      try {
-        const { init } = await import("@tma.js/sdk-react");
-        init();
-        setReady(true);
-      } catch {
-        // Not running inside Telegram — allow app to work in browser for dev
-        console.warn("Telegram SDK init failed — running outside Telegram?");
-        setReady(true);
-      }
+    const twa = window.Telegram?.WebApp;
+    if (twa) {
+      twa.ready();
+      twa.expand();
     }
-
-    initTelegramSDK();
+    setReady(true);
   }, []);
 
-  if (!ready) {
-    return null;
-  }
+  if (!ready) return null;
 
   return <>{children}</>;
 }

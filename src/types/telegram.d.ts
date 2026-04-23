@@ -13,6 +13,7 @@ interface Window {
         };
       };
       ready: () => void;
+      expand: () => void;
       close: () => void;
     };
   };
