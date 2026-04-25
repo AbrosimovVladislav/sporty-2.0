@@ -41,7 +41,9 @@ npm run lint      # ESLint
 | Таблицы БД, поля, связи | docs/tech/db-entities.md |
 | Порядок реализации MVP | docs/mvp-roadmap.md |
 | Идеи за рамками MVP | docs/post-mvp.md |
-| Цвета, шрифты, компоненты | docs/design/design-system.md |
+| Цвета, шрифты, компоненты, правила экранов | docs/design/design-system.md |
+| Расхождения текущего UI с дизайн-системой | docs/ui-consistency-audit.md |
+| Шаблон задачи по UI (обязательно перед любой UI-задачей) | docs/ui-task-template.md |
 | Бот, Mini App, деплой | docs/tech/telegram-bot-setup.md |
 
 Документация разбита на три раздела: `docs/features/` — продуктовые эпики, `docs/design/` — дизайн-система и референсы, `docs/tech/` — техническая документация. Эпики организованы по папкам: `docs/features/<эпик>/<эпик>.md` — индекс с обзором и ссылками на под-документы. Под-документы именуются `[<эпик>]-<тема>.md` (например, `[team]-roster-tab.md`).

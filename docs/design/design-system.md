@@ -1,81 +1,514 @@
-# Дизайн-система Sporty 2.0
+# Дизайн-система Sporty
 
-Референс: [ref.png](ref.png)
+Главный документ для любых изменений интерфейса. Перед задачей по UI читать целиком.
 
-## Палитра
+Референсы: [ref.png](ref.png), скриншоты в Figma — экраны «Состав» и «Карточка события».
 
-| Токен | Значение | Где используется |
-|-------|----------|------------------|
-| `background` | `#f5f4ef` | Основной фон (тёплый off-white) |
-| `background-card` | `#ffffff` | Карточки, списки |
-| `background-dark` | `#1a1a1a` | Тёмные секции, хедеры, герои |
-| `background-dark-elevated` | `#2a2a2a` | Элементы поверх тёмного фона |
-| `foreground` | `#1a1a1a` | Основной текст |
-| `foreground-secondary` | `#6b6b6b` | Второстепенный текст, подписи |
-| `foreground-on-dark` | `#ffffff` | Текст на тёмном фоне |
-| `foreground-on-dark-muted` | `#a0a0a0` | Приглушённый текст на тёмном |
-| `primary` | `#4d5e23` | Кнопки, активные табы, акценты (оливковый) |
-| `primary-hover` | `#5e7129` | Ховер-состояние primary |
-| `primary-foreground` | `#ffffff` | Текст на primary-кнопках |
-| `border` | `#e5e5e0` | Разделители, границы карточек |
-| `border-dark` | `#333333` | Границы на тёмном фоне |
+---
 
-## Типографика
+## Принципы
 
-| Назначение | Шрифт | Tailwind-класс | Пример |
-|------------|-------|----------------|--------|
-| Заголовки (display) | Oswald (condensed, bold, uppercase) | `font-display font-bold uppercase` | ALL MATCHES, SCORE CARD |
-| Основной текст | Geist Sans | `font-sans` | описания, подписи |
-| Моноширинный | Geist Mono | `font-mono` | код, данные |
+- **Светло.** Базовый фон — белый и тёплый светло-серый. Тёмные блоки — только на фото-баннерах с градиентом.
+- **Спокойно.** Много воздуха, тонкие границы, мягкие тени. Никаких контрастных рамок и плотных списков.
+- **Спортивно.** Зелёный — единственный акцентный цвет. Красный/оранжевый — только смысл («дефицит», «риск»).
+- **Иерархия числами.** Главный показатель — крупно. Подпись — мелко серым. Действие — справа.
+- **Один смысл — один блок.** Если цифра уже показана сверху, не дублируй её ниже. Если есть «+12 ещё», не пиши рядом «всего 16».
 
-### Размеры заголовков
+---
 
-- Hero-заголовок: `text-3xl font-display font-bold uppercase`
-- Заголовок секции: `text-xl font-display font-semibold uppercase`
-- Заголовок карточки: `text-lg font-display font-semibold`
-- Подзаголовок: `text-sm font-sans text-foreground-secondary`
+## Цветовые токены
 
-## Скругления
+Все цвета определены в [src/app/globals.css](../../src/app/globals.css). Используй только токены, никаких хардкод-хексов в компонентах.
+
+### Поверхности
+
+| Токен | Hex | Где |
+|-------|-----|-----|
+| `background` | `#F4F5F7` | Основной фон приложения (тёплый светло-серый) |
+| `background-card` | `#FFFFFF` | Карточки, списки, пилюли неактивные |
+| `background-muted` | `#F0F2F5` | Вторичные блоки внутри карточек, скелетоны |
+| `background-overlay` | `rgba(0,0,0,0.4)` | Подложка модалок |
+
+### Текст
+
+| Токен | Hex | Где |
+|-------|-----|-----|
+| `foreground` | `#0F1417` | Заголовки, имена, числа |
+| `foreground-secondary` | `#6B7280` | Подписи, мета, роль/позиция |
+| `foreground-muted` | `#9CA3AF` | Подсказки, плейсхолдеры |
+| `foreground-on-dark` | `#FFFFFF` | Текст на фото-баннерах и тёмных подложках |
+
+### Семантика
+
+| Токен | Hex | Смысл |
+|-------|-----|-------|
+| `primary` | `#22C55E` | Бренд, позитив, активные состояния, подтверждено |
+| `primary-hover` | `#16A34A` | Ховер/нажато |
+| `primary-foreground` | `#FFFFFF` | Текст на primary |
+| `primary-soft` | `#DCFCE7` | Светлая подложка под primary-бейджи и иконки |
+| `warning` | `#F59E0B` | «Под вопросом», «частично», ожидание |
+| `warning-soft` | `#FEF3C7` | Подложки warning |
+| `danger` | `#EF4444` | Дефицит, отказ, долг, ошибка |
+| `danger-soft` | `#FEE2E2` | Подложки danger |
+
+> **Важно.** Зелёный — единственный «фирменный» цвет. Не используй красный/оранжевый «для красоты». Только смысл. Если показатель нейтральный — он серый, а не цветной.
+
+### Границы
+
+| Токен | Hex | Где |
+|-------|-----|-----|
+| `border` | `#E5E7EB` | Карточки, разделители |
+| `border-strong` | `#D1D5DB` | Инпуты в фокусе, активные тёмные пилюли |
+
+### Тени
 
 | Токен | Значение | Где |
 |-------|----------|-----|
-| `rounded-sm` | 8px | Мелкие элементы |
-| `rounded-md` | 12px | Карточки, инпуты |
-| `rounded-lg` | 16px | Крупные карточки, модалки |
-| `rounded-full` | 9999px | Pill-кнопки, табы, аватарки |
+| `shadow-card` | `0 1px 2px rgba(15,20,23,0.04), 0 1px 3px rgba(15,20,23,0.06)` | Карточки, поднятые блоки |
+| `shadow-pop` | `0 6px 20px rgba(15,20,23,0.08)` | Bottom-sheet, sticky bottom-bar |
+
+Никаких других теней. Карточки внутри карточек — без теней, только разделитель.
+
+---
+
+## Скругления
+
+| Токен | px | Где |
+|-------|----|-----|
+| `radius-sm` | 8 | Бейджи, мини-индикаторы |
+| `radius-md` | 12 | Инпуты, мелкие пилюли |
+| `radius-lg` | 16 | Карточки, секции, фото-баннеры |
+| `radius-xl` | 20 | Bottom-sheet верхние углы |
+| `radius-full` | 9999 | Аватарки, чипы, кнопки-пилюли |
+
+Внутренние блоки крупных карточек скругляем `radius-md`. Кнопки и фильтр-чипы — `radius-full`.
+
+---
+
+## Типографика
+
+Шрифт интерфейса — `font-sans` (Geist Sans / SF). **Oswald (`font-display`) больше не используется в продуктовом UI** — оставляем только для редких маркетинговых заголовков, если они появятся. Никаких uppercase, никаких condensed-заголовков на экранах.
+
+| Назначение | Класс | Пример |
+|------------|-------|--------|
+| Экран-заголовок | `text-[28px] leading-tight font-bold` | «Состав» |
+| Заголовок секции | `text-[17px] leading-snug font-semibold` | «Управление», «Финансы» |
+| Заголовок карточки | `text-[15px] font-semibold` | Имя игрока, тип события |
+| Метрика-главная | `text-[40px] leading-none font-bold tabular-nums` | «9» в «Состав в сборе» |
+| Метрика-вторичная | `text-[28px] leading-none font-semibold tabular-nums` | «3 под вопросом» |
+| Тело | `text-[15px] leading-normal` | Описание события |
+| Подпись/мета | `text-[13px] text-foreground-secondary` | «ЦЗ · Основной», адрес |
+| Эйбрау-секция | `text-[11px] uppercase tracking-wide font-semibold text-primary` | «ЯДРО · 9» |
+| Бейдж/чип | `text-[12px] font-semibold` | «МАТЧ», «ЗАПЛАНИРОВАНО» |
+| Число в бейдже-справа | `text-[13px] font-semibold tabular-nums` | «75» |
+
+Числа — всегда `tabular-nums`, чтобы списки не «прыгали».
+
+---
+
+## Плотность и отступы
+
+| Контекст | Значение |
+|----------|----------|
+| Внешние поля экрана | `px-4` (16px), редко `px-5` для крупных секций |
+| Между секциями | `gap-3` (12px) |
+| Внутри секции | `gap-2` (8px) |
+| Padding карточки | `p-4` (16px), крупные сводки `p-5` (20px) |
+| Между строкой списка | `py-3` (12px) с разделителем; группы — `gap-2` без разделителя |
+| Высота тапа | мин. 44px (Apple HIG) |
+
+Не лепи карточки впритык — между ними всегда `gap-3`. Не добавляй вертикальные хедеры в каждую секцию — эйбрау достаточно.
+
+---
 
 ## Компоненты (паттерны)
 
-### Кнопка primary
-```
-bg-primary text-primary-foreground font-display font-semibold uppercase
-rounded-full px-6 py-3
-hover:bg-primary-hover transition-colors
-```
-
-### Pill-таб (активный)
-```
-bg-primary text-primary-foreground rounded-full px-4 py-2
-font-sans text-sm font-medium
-```
-
-### Pill-таб (неактивный)
-```
-bg-background-card text-foreground border border-border rounded-full px-4 py-2
-font-sans text-sm font-medium
-```
+Все паттерны — Tailwind utility-классы. Если паттерн повторяется > 2 раз — выноси компонент в `src/components/ui/` (см. итерация 24).
 
 ### Карточка
-```
-bg-background-card rounded-lg p-4 border border-border
+
+```html
+<section class="bg-background-card rounded-lg p-4 shadow-card">
+  ...
+</section>
 ```
 
-### Тёмная секция (герой/хедер)
+Без `border` по умолчанию: разделение даёт фон + тень. Border ставим только где нужна явная рамка (инпут, неактивная пилюля).
+
+### Stat-карточка (верхняя сводка)
+
+Большая основная метрика + бар прогресса/легенда:
+
 ```
-bg-background-dark text-foreground-on-dark p-6 rounded-lg
+┌─────────────────────────────┐
+│ Состав в сборе              │
+│ 9 / 12                      │   ← число большое, дробь приглушена
+│ ▓▓▓▓▓▓░░ (3-цветный бар)    │
+│ • активные • под ?  • дефицит │
+└─────────────────────────────┘
 ```
+
+Сбоку — мини-карточки одной метрикой (число + одна строка):
+```
+┌──────────┐  ┌──────────┐
+│ 3        │  │ 0        │
+│ под ?    │  │ вратарей │
+└──────────┘  └──────────┘
+```
+
+Мини-карточка = `bg-background-card rounded-lg p-4 shadow-card flex flex-col gap-1`. Цвет числа задаётся смыслом: warning → `text-warning`, danger → `text-danger`, нейтрально → `text-foreground`.
+
+### Фильтр-чип
+
+Активный:
+```
+bg-primary text-primary-foreground
+rounded-full px-4 py-2 text-[13px] font-semibold
+shadow-card
+```
+
+Неактивный:
+```
+bg-background-card text-foreground border border-border
+rounded-full px-4 py-2 text-[13px] font-medium
+```
+
+Контейнер: `flex gap-2 overflow-x-auto pb-1 -mx-4 px-4` — горизонтальный скролл без видимого скроллбара.
+
+### Эйбрау-секции
+
+Заголовок группы внутри списка («ЯДРО · 9», «ПРИДУТ (16)»):
+
+```
+text-[11px] uppercase tracking-[0.06em] font-semibold text-primary mb-2
+```
+
+Цвет — `primary` для нейтральных групп. Для смысловых: «не придут» → `text-foreground-secondary`, «дефицит» → `text-danger`.
 
 ### Аватарка
+
 ```
-w-10 h-10 rounded-full bg-background-dark-elevated overflow-hidden
+w-11 h-11 rounded-full bg-background-muted overflow-hidden
 ```
+
+Размеры: `sm` 32px (стек участников), `md` 44px (строка списка), `lg` 64px (карточка профиля), `xl` 96px (профиль hero).
+
+Стек аватарок («4 аватара + +12»):
+- Не более 4 аватарок подряд.
+- Дальше — пилюля `+N` тех же размеров: `bg-background-muted text-foreground-secondary text-[13px] font-semibold rounded-full`.
+- Под стеком — ссылка-текст «Показать всех» (`text-primary text-[13px]`).
+- **Не дублируй число.** Если есть «+12», то «16 / 18» уже сверху — снизу его нет. Если снизу «Придут (16)», то цифру справа от стека убираем.
+
+### Строка-игрок (player row)
+
+```
+┌──────────────────────────────────────────────┐
+│ ●  Иван Петров                  ▌▌▌▌▌  75   │
+│    ЦЗ · Основной                              │
+└──────────────────────────────────────────────┘
+```
+
+```html
+<li class="flex items-center gap-3 py-3">
+  <Avatar size="md" />
+  <div class="flex-1 min-w-0">
+    <p class="text-[15px] font-semibold truncate">Имя</p>
+    <p class="text-[13px] text-foreground-secondary truncate">Позиция · Статус</p>
+  </div>
+  <MiniBar value={4} max={5} />
+  <span class="text-[13px] font-semibold tabular-nums w-8 text-right">75</span>
+</li>
+```
+
+Между строками — тонкий `divide-y divide-border`. Группа стартует с эйбрау «ЯДРО · 9», без своей рамки — это часть общего списка.
+
+### Мини-бар (надёжность/уровень)
+
+Пять точек или 5 палочек:
+```
+bar (active):   bg-primary w-1 h-3 rounded-sm
+bar (inactive): bg-border  w-1 h-3 rounded-sm
+gap-0.5
+```
+
+Используется для: уровня игрока (1–5), надёжности по бакетам, силы команды.
+
+### Числовой бейдж
+
+Просто число с `tabular-nums` справа от строки. Не оборачивай в pill, кроме как для счётчиков уведомлений (там `bg-danger text-white rounded-full px-1.5`).
+
+### Статус-пилюля
+
+Поверх фото-баннера или в правом углу карточки:
+
+| Тип | Стиль |
+|-----|-------|
+| Тип события (МАТЧ/ТРЕНИРОВКА) | `bg-primary text-primary-foreground` |
+| Статус (ЗАПЛАНИРОВАНО) | `bg-background-card/95 text-foreground` |
+| Завершено | `bg-background-muted text-foreground-secondary` |
+| Отменено | `bg-danger-soft text-danger` |
+
+Класс: `text-[12px] font-semibold uppercase tracking-wide rounded-full px-3 py-1`.
+
+### Фото-баннер (карточка события)
+
+```html
+<div class="relative rounded-lg overflow-hidden">
+  <img class="w-full aspect-[16/10] object-cover" />
+  <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+  <div class="absolute top-3 left-3 flex gap-2">
+    <StatusPill type="event" />     <!-- МАТЧ -->
+    <StatusPill status="planned" /> <!-- ЗАПЛАНИРОВАНО -->
+  </div>
+  <div class="absolute bottom-3 left-4 right-4 text-foreground-on-dark">
+    <p class="text-[20px] font-semibold leading-tight">суббота, 25 апреля в 20:55</p>
+    <p class="text-[14px] opacity-90 mt-1">📍 Футбольный манеж Барс</p>
+  </div>
+</div>
+```
+
+Если фото нет — заменяем на градиентный фон: `bg-gradient-to-br from-foreground to-foreground-secondary`. Градиент-плейсхолдер всегда тёмный (читаем белый текст).
+
+### Триплет-метрика (взнос / мин. игроков / участники)
+
+Одна карточка под баннером с тремя колонками:
+
+```html
+<div class="bg-background-card rounded-lg p-4 shadow-card grid grid-cols-3 gap-3">
+  <Metric icon="₸" value="1 ₸" label="взнос" />
+  <Metric icon="👥" value="Мин. 1 игрок" label="" />
+  <Metric value="16 / 18" label="участников" hasProgress />
+</div>
+```
+
+Прогресс-бар внутри третьей колонки — тонкая полоска `h-1.5 bg-background-muted rounded-full` с заливкой `bg-primary`.
+
+### Кнопка primary (главное действие)
+
+```
+bg-primary text-primary-foreground
+rounded-full px-6 py-3
+text-[15px] font-semibold
+shadow-card
+hover:bg-primary-hover
+disabled:opacity-50 disabled:shadow-none
+```
+
+### Кнопка secondary (отмена/нейтральное)
+
+```
+bg-background-card text-foreground border border-border
+rounded-full px-6 py-3
+text-[15px] font-semibold
+hover:bg-background-muted
+```
+
+### Кнопка danger
+
+Та же форма, цвет `bg-danger text-white`. Используем только для подтверждённых разрушительных действий (удалить из команды, отменить событие).
+
+### Пара кнопок «Приду / Не приду»
+
+Wrapper-карточка, две кнопки в `grid-cols-2 gap-3`. После выбора:
+- выбранная — primary (зелёная заливка), не выбранная — secondary;
+- если ещё не голосовал — обе secondary, под ними строка `text-[13px] text-foreground-secondary text-center mt-2`: «Вы ещё не ответили».
+
+### Bottom action bar (sticky)
+
+Снизу экрана события — закреплённая полоса с двумя кнопками:
+
+```html
+<div class="sticky bottom-0 bg-background-card border-t border-border px-4 py-3 grid grid-cols-2 gap-3 shadow-pop">
+  <Button kind="primary">Завершить</Button>
+  <Button kind="secondary">Отменить</Button>
+</div>
+```
+
+Должна перекрывать `BottomTabs` — на экранах с bottom-bar нижние табы не показываем (см. правило ниже).
+
+### Список участников «Придут (16)» / «Не придут (2)»
+
+Эйбрау + горизонтальный стек аватарок. Аватарки «не придут» — `grayscale opacity-70`, с маленьким крестиком в правом нижнем углу (24% от размера аватарки, кружок `bg-background-card`, иконка `text-foreground-secondary`).
+
+«Придут» — те же аватарки + зелёная галочка в том же месте (`bg-primary text-white`).
+
+### Список действий (Управление)
+
+Вертикальный стек строк-ссылок внутри одной карточки:
+
+```html
+<section class="bg-background-card rounded-lg shadow-card overflow-hidden">
+  <h3 class="px-4 pt-4 text-[11px] uppercase tracking-wide font-semibold text-foreground-secondary">Управление</h3>
+  <ul class="divide-y divide-border mt-2">
+    <li>
+      <a class="flex items-center gap-3 px-4 py-3">
+        <Icon class="text-primary" />
+        <div class="flex-1">
+          <p class="text-[15px] font-medium">Площадка</p>
+          <p class="text-[13px] text-foreground-secondary">расходы</p>
+        </div>
+        <span class="text-[13px] text-primary">Указать</span>
+        <ChevronRight class="text-foreground-muted" />
+      </a>
+    </li>
+  </ul>
+</section>
+```
+
+### Инпуты
+
+```
+bg-background-card border border-border rounded-md
+px-4 py-3 text-[15px]
+focus:border-primary focus:outline-none
+placeholder:text-foreground-muted
+```
+
+Лейбл сверху: `text-[13px] text-foreground-secondary mb-1`. Ошибка снизу: `text-[13px] text-danger mt-1`.
+
+### Пустые состояния
+
+```html
+<div class="bg-background-card rounded-lg p-8 text-center shadow-card">
+  <Icon class="w-10 h-10 text-foreground-muted mx-auto" />
+  <p class="text-[15px] text-foreground-secondary mt-3">В команде пока никого нет</p>
+  <button class="text-primary text-[14px] font-semibold mt-3">Пригласить игрока</button>
+</div>
+```
+
+Без рамки. Иконка (≈40px) — приглушённая. Подпись + одно действие. Не больше.
+
+### Skeleton
+
+Уже есть [Skeleton.tsx](../../src/components/Skeleton.tsx). Цвет блока — `bg-background-muted`, не `bg-border`. Скелетон должен повторять форму конечной карточки, а не быть «серым прямоугольником».
+
+### Bottom-sheet (модалка снизу)
+
+```
+fixed inset-0 z-50 bg-background-overlay
+inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-auto
+```
+
+Хедер sheet — `flex justify-between items-center`: заголовок (`text-[17px] font-semibold`) + крестик (`text-foreground-secondary text-2xl`).
+
+---
+
+## Хедер экрана
+
+Универсальный паттерн для всех вложенных экранов (не таб-корней):
+
+```
+←  Заголовок                       ⌕  +
+```
+
+```html
+<header class="flex items-center justify-between px-4 pt-4 pb-3">
+  <div class="flex items-center gap-3">
+    <BackButton />
+    <h1 class="text-[28px] font-bold leading-tight">Состав</h1>
+  </div>
+  <div class="flex gap-2">
+    <IconButton><SearchIcon /></IconButton>
+    <IconButton><PlusIcon /></IconButton>
+  </div>
+</header>
+```
+
+`IconButton` = `w-10 h-10 rounded-full bg-background-card shadow-card flex items-center justify-center`. **Не используем тёмные hero-блоки** — заголовок просто крупный чёрный текст на светлом фоне. Тёмный фон оставляем только для фото-баннеров событий (где есть картинка).
+
+Исключение: профиль команды и профиль игрока могут показывать «герой» с фоном-командой (логотип/обложка), но это всё равно картинка с градиентом, а не плоский тёмный блок.
+
+---
+
+## Правила экранов
+
+### Главная (`/home`)
+
+1. Приветствие — без тёмного блока. Просто `text-[28px] font-bold`: «Привет, Иван». Под ним строка `text-foreground-secondary` с городом.
+2. Карточка ближайшего события — фото-баннер по правилам выше + триплет-метрика (взнос, мин., участники) + кнопки «Приду / Не приду».
+3. Сигналы (если есть): мелкие stat-карточки в 2 колонки — задолженность по событию, новые заявки, ожидающие подтверждения. Цвет — по смыслу (warning/danger/нейтральный).
+4. Быстрые действия — две кнопки-карточки в grid-2: «Найти игру», «Команды». Иконка + лейбл, без описаний.
+5. «Мои команды» — список, по правилам строки команды (см. ниже).
+
+Не делать: тёмный hero, дублирование «Ближайшее событие» эйбрау + h1, «нет событий» как пустую карточку (если нет события — показывай «Найди игру» как primary CTA).
+
+### События — лента (`/team/[id]/events`)
+
+1. Заголовок «События» + кнопка `+` в углу (для организатора).
+2. Группы: «Предстоящие», «Прошедшие». Эйбрау сверху каждой.
+3. Карточка события в ленте — компактная: фото-обложка слева 80×80, справа дата + место + статус + 1 строка `Придут N · вы: приду`. Без дублей, без ценника в ленте (он внутри события).
+
+### Событие — детали (`/team/[id]/events/[eventId]`)
+
+Структура снизу вверх должна совпадать со скриншотом-референсом:
+1. Хедер с back/поделиться.
+2. **Фото-баннер** + статус-пилюли + дата + venue.
+3. **Триплет-метрика** (взнос / мин. игроков / участники X/Y с прогрессом).
+4. **Карточка ответа**: «Приду / Не приду» + строка статуса.
+5. **Придут (N)** — стек аватарок + «Показать всех» (без числа справа от стека).
+6. **Не придут (N)** — то же самое, аватарки `grayscale`.
+7. **Управление** (только организатор) — секция-список: «Площадка → Указать», «Финансы → Ожидаемый сбор: X из Y ₸». Без отдельных карточек на каждый пункт.
+8. **Bottom action bar** (только организатор, status=planned): «Завершить» / «Отменить».
+
+Запрещено:
+- Карточка финансов отдельно от управления, если организатор уже видит её строкой в «Управление».
+- «Голоса (N)» как отдельная секция — только «Придут / Не придут».
+- Эйбрау «Тип события» отдельно — это статус-пилюля поверх баннера.
+- Любые красные числа, кроме «−N ₸» долга или «не придут N» при N > мин.игроков.
+
+### Состав (`/team/[id]/roster`)
+
+Точно по референсу:
+1. Хедер «Состав» + поиск + плюс.
+2. **Сводка-карточка**: «Состав в сборе 9 / 12» + 3-цветный бар + легенда (активные/под вопросом/дефицит).
+3. **Сбоку две мини-карточки** (col-2 на узких — переносим вниз grid-2): «3 под вопросом» (warning), «0 вратарей» (danger).
+4. **Чипы-фильтры**: Все / Вратари / Защитники / Полузащ. / Нападающие. Активный — primary.
+5. **Группы**: «ЯДРО · 9», «РЕЗЕРВ · 3» — эйбрау + список строк-игроков с мини-баром и числом справа.
+
+### Финансы (`/team/[id]/finances`, организатор)
+
+1. Большая карточка «Реальный баланс» — крупное число (40px), цвет — primary если ≥0, danger если <0. Подпись пояснением.
+2. Сводные мини-метрики (grid-2 или grid-3): касса, долги игроков, остаток к оплате площадкам. Цвет — по смыслу.
+3. **Задолженности** — список-строки игроков с числом справа (−N ₸ красным, +N ₸ зелёным). Без эйбрау «−» и «+» как объяснения снизу — это понятно по цвету.
+4. **Площадки** — список событий с долгом. Каждая строка — ссылка в событие.
+5. **Депозит** — bottom action bar или одна primary-кнопка «Внести депозит» снизу, не нейтральная карточка с плюсом.
+
+### Профиль игрока
+
+1. Heroбез тёмной плитки. Аватар 96px по центру (или слева для сторонних профилей), имя 28px, под ним «Город · Район».
+2. Бейдж «Ищет команду» — `bg-primary-soft text-primary` пилюля, не тёмная.
+3. Чипы-табы: Обо мне / Результаты / Надёжность.
+4. Внутри табов — карточки с прозрачным фоном страницы (`background`) и обычные `bg-background-card` блоки.
+
+---
+
+## Что мы убираем (анти-паттерны)
+
+Это всё нужно искоренить в итерациях 24–29. Сводный список — в [ui-consistency-audit.md](../ui-consistency-audit.md).
+
+- **Тёмные hero-блоки** на главной, в профиле команды, в профиле игрока. Допустимы только фото-баннеры событий.
+- **Oswald uppercase** в заголовках, эйбрау-метках секций (`text-xs uppercase font-display text-foreground-secondary`), кнопках. Заменяем на sans-serif с font-semibold.
+- **Олива `#4d5e23`** как primary. Заменяем на vivid green `#22C55E`.
+- **`text-green-600` / `text-red-500` / `bg-green-600`** хардкод в коде. Заменяем на `text-primary` / `text-danger` / `bg-primary`.
+- **Border вокруг каждой карточки.** По умолчанию карточка без border, отделяется тенью + фоном.
+- **Дублирование данных:** «Голоса (N)» сверху и «Придут (N)» снизу; «4 аватара + Показать всех + 16/18» — выбираем одно представление.
+- **Эйбрау на каждый блок.** Если карточка одна и её смысл очевиден из заголовка — эйбрау не нужен.
+- **Кнопки `.bg-primary/10 text-primary` для бейджей роли.** Заменяем на `bg-primary-soft text-primary`.
+- **Нативные `<select>` без обёртки** в формах создания. Используем `Select.tsx` единый.
+- **Иконка `+` юникодом или текстом.** Используем SVG из `Icons.tsx`.
+- **«Сохраняю…», «Загружаю…»** как состояние кнопки. Используем спиннер-иконку или `disabled + opacity`.
+
+---
+
+## Чек-лист перед коммитом UI-изменений
+
+1. Использую только токены из этого документа? (нет хардкод-хексов, `text-green-600` и т.п.)
+2. Карточки имеют `shadow-card`, не border?
+3. Заголовки — `font-sans` + жирность, не uppercase Oswald?
+4. Числа — `tabular-nums`?
+5. Действия пользователя — primary; всё остальное — secondary?
+6. Цвет несёт смысл? (нет «красивого красного»)
+7. Состояния пустоты, загрузки, ошибки — на месте?
+8. Тап-таргеты ≥ 44px?
+9. Нет дублирующейся информации в соседних блоках?
+10. Изменения вписываются в правила экрана из раздела «Правила экранов»?
