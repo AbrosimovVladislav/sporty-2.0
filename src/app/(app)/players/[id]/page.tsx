@@ -5,6 +5,15 @@ import { useParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { SkeletonCard, SkeletonList } from "@/components/Skeleton";
 import BackButton from "@/components/BackButton";
+import {
+  Card,
+  Button,
+  Pill,
+  Avatar,
+  MiniStatCard,
+  SectionEyebrow,
+  BottomActionBar,
+} from "@/components/ui";
 
 type Player = {
   id: string;
@@ -117,177 +126,165 @@ export default function PlayerProfilePage() {
   if (player === null) {
     return (
       <div className="flex flex-1 items-center justify-center">
-        <p className="text-foreground-secondary text-sm">Игрок не найден</p>
+        <p className="text-foreground-secondary text-[15px]">Игрок не найден</p>
       </div>
     );
   }
 
   const age = player.birth_date ? calcAge(player.birth_date) : null;
+  const locationParts = [player.city].filter(Boolean);
 
   return (
     <>
-      <div className="flex flex-1 flex-col p-4 gap-4">
-        <div className="relative bg-background-dark text-foreground-on-dark rounded-lg p-5">
-          <BackButton fallbackHref="/players" className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm text-white" />
-          <p className="text-foreground-on-dark-muted text-xs uppercase font-display tracking-wide pl-10">
-            Профиль
-          </p>
-          <h1 className="text-3xl font-display font-bold uppercase mt-1">{player.name}</h1>
-          <div className="flex flex-wrap gap-2 mt-3">
-            {player.city && (
-              <span className="text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-                {player.city}
-              </span>
-            )}
-            {player.sport && (
-              <span className="text-xs text-foreground-on-dark-muted bg-background-dark-elevated rounded-full px-3 py-1">
-                {player.sport}
-              </span>
-            )}
-            {player.looking_for_team && (
-              <span className="text-xs text-primary bg-primary/20 rounded-full px-3 py-1 font-medium">
-                Ищет команду
-              </span>
-            )}
-          </div>
+      <div className="flex flex-1 flex-col gap-4 p-4 pb-24">
+        {/* Hero — light */}
+        <div className="bg-background-card rounded-lg shadow-card px-4 pt-6 pb-5 relative">
+          <BackButton
+            fallbackHref="/players"
+            className="absolute top-4 left-4 w-9 h-9 rounded-full bg-background-muted flex items-center justify-center text-foreground"
+          />
 
-          {canInvite && (
-            <button
-              onClick={() => setSheetOpen(true)}
-              className="mt-4 w-full bg-primary text-primary-foreground rounded-lg py-2.5 text-sm font-medium font-display"
-            >
-              Пригласить в команду
-            </button>
+          <Avatar size="xl" src={null} name={player.name} className="mx-auto" />
+
+          <h1 className="text-[28px] font-bold text-foreground text-center leading-tight mt-3">
+            {player.name}
+          </h1>
+
+          {locationParts.length > 0 && (
+            <p className="text-[13px] text-foreground-secondary text-center mt-1">
+              {locationParts.join(" · ")}
+            </p>
+          )}
+
+          {player.looking_for_team && (
+            <div className="flex justify-center mt-3">
+              <Pill variant="role">Ищет команду</Pill>
+            </div>
           )}
         </div>
 
-        <section className="bg-background-card border border-border rounded-lg p-5 flex flex-col gap-2">
-          <p className="text-xs uppercase font-display text-foreground-secondary">О себе</p>
-          {player.bio && <p className="text-sm mt-1">{player.bio}</p>}
-          <div className="flex flex-wrap gap-x-6 gap-y-1 mt-1">
-            {player.position && (
-              <div>
-                <p className="text-xs text-foreground-secondary">Позиция</p>
-                <p className="text-sm font-medium">{player.position}</p>
-              </div>
-            )}
-            {player.skill_level && (
-              <div>
-                <p className="text-xs text-foreground-secondary">Уровень</p>
-                <p className="text-sm font-medium">{player.skill_level}</p>
-              </div>
-            )}
-            {age !== null && (
-              <div>
-                <p className="text-xs text-foreground-secondary">Возраст</p>
-                <p className="text-sm font-medium">{age} лет</p>
-              </div>
-            )}
-            {player.preferred_time && (
-              <div>
-                <p className="text-xs text-foreground-secondary">Время</p>
-                <p className="text-sm font-medium">{player.preferred_time}</p>
-              </div>
-            )}
-          </div>
-          {!player.bio && !player.position && !player.skill_level && !age && !player.preferred_time && (
-            <p className="text-sm text-foreground-secondary mt-1">Информация не заполнена</p>
-          )}
-        </section>
+        {/* О себе */}
+        {(player.bio || player.position || player.skill_level || age !== null || player.preferred_time) && (
+          <Card>
+            <SectionEyebrow tone="muted">О себе</SectionEyebrow>
+            {player.bio && <p className="text-[15px] mb-3 leading-relaxed">{player.bio}</p>}
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              {player.position && (
+                <div>
+                  <p className="text-[13px] text-foreground-secondary">Позиция</p>
+                  <p className="text-[15px] font-medium">{player.position}</p>
+                </div>
+              )}
+              {player.skill_level && (
+                <div>
+                  <p className="text-[13px] text-foreground-secondary">Уровень</p>
+                  <p className="text-[15px] font-medium">{player.skill_level}</p>
+                </div>
+              )}
+              {age !== null && (
+                <div>
+                  <p className="text-[13px] text-foreground-secondary">Возраст</p>
+                  <p className="text-[15px] font-medium">{age} лет</p>
+                </div>
+              )}
+              {player.preferred_time && (
+                <div>
+                  <p className="text-[13px] text-foreground-secondary">Время</p>
+                  <p className="text-[15px] font-medium">{player.preferred_time}</p>
+                </div>
+              )}
+            </div>
+          </Card>
+        )}
 
+        {/* Статистика */}
         {stats && (
           <>
-            <section className="bg-background-card border border-border rounded-lg p-5">
-              <p className="text-xs uppercase font-display text-foreground-secondary">Статистика</p>
-              <div className="flex gap-6 mt-2">
-                <div>
-                  <p className="text-2xl font-display font-bold">{stats.playedCount}</p>
-                  <p className="text-xs text-foreground-secondary">сыграно</p>
-                </div>
-                {stats.reliability !== null && (
-                  <div>
-                    <p className="text-2xl font-display font-bold">{stats.reliability}%</p>
-                    <p className="text-xs text-foreground-secondary">надёжность</p>
-                  </div>
-                )}
-              </div>
-              {stats.votedYesCount > 0 && (
-                <p className="text-xs text-foreground-secondary mt-2">
-                  Посетил {stats.attendedCount} из {stats.votedYesCount} записанных событий
-                </p>
+            <div className="grid grid-cols-2 gap-3">
+              <MiniStatCard label="Сыграно" value={stats.playedCount} />
+              {stats.reliability !== null && (
+                <MiniStatCard label="Надёжность" value={`${stats.reliability}%`} />
               )}
-            </section>
+            </div>
+
+            {stats.votedYesCount > 0 && (
+              <p className="text-[13px] text-foreground-secondary -mt-1 px-1">
+                Посетил {stats.attendedCount} из {stats.votedYesCount} записанных событий
+              </p>
+            )}
 
             {stats.recentEvents.length > 0 && (
-              <section className="bg-background-card border border-border rounded-lg p-5">
-                <p className="text-xs uppercase font-display text-foreground-secondary mb-3">
-                  Последние события
-                </p>
-                <ul className="flex flex-col gap-2">
-                  {stats.recentEvents.map((e) => (
-                    <li key={e.event_id} className="flex items-center justify-between">
-                      <div>
-                        <p className="text-sm font-medium">
-                          {TYPE_LABEL[e.type] ?? e.type}
-                        </p>
-                        <p className="text-xs text-foreground-secondary">
-                          {new Date(e.date).toLocaleDateString("ru-RU", {
-                            day: "numeric",
-                            month: "short",
-                            year: "numeric",
-                          })}
-                        </p>
-                      </div>
-                      <span
-                        className={`text-xs font-medium rounded-full px-2.5 py-1 ${
-                          e.attended
-                            ? "bg-green-100 text-green-700"
-                            : "bg-red-100 text-red-600"
-                        }`}
-                      >
-                        {e.attended ? "Был" : "Не пришёл"}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <div>
+                <SectionEyebrow tone="muted">Последние события</SectionEyebrow>
+                <Card padding="sm">
+                  <ul className="divide-y divide-border">
+                    {stats.recentEvents.map((e) => (
+                      <li key={e.event_id} className="flex items-center justify-between px-1 py-3">
+                        <div>
+                          <p className="text-[15px] font-medium">{TYPE_LABEL[e.type] ?? e.type}</p>
+                          <p className="text-[13px] text-foreground-secondary">
+                            {new Date(e.date).toLocaleDateString("ru-RU", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })}
+                          </p>
+                        </div>
+                        <Pill variant={e.attended ? "role" : "statusDanger"}>
+                          {e.attended ? "Был" : "Не пришёл"}
+                        </Pill>
+                      </li>
+                    ))}
+                  </ul>
+                </Card>
+              </div>
             )}
           </>
         )}
       </div>
 
+      {/* Invite bottom bar */}
+      {canInvite && (
+        <BottomActionBar>
+          <Button variant="primary" className="w-full" onClick={() => setSheetOpen(true)}>
+            Пригласить в команду
+          </Button>
+        </BottomActionBar>
+      )}
+
       {/* Bottom sheet — invite */}
       {sheetOpen && (
         <div className="fixed inset-0 z-50 flex flex-col justify-end">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setSheetOpen(false)} />
-          <div className="relative bg-background rounded-t-2xl p-5 flex flex-col gap-3 max-h-[70vh] overflow-y-auto">
+          <div className="absolute inset-0 bg-background-overlay" onClick={() => setSheetOpen(false)} />
+          <div className="relative bg-background-card rounded-t-xl p-5 flex flex-col gap-3 max-h-[70vh] overflow-y-auto shadow-pop">
             <div className="w-10 h-1 bg-border rounded-full mx-auto mb-1" />
-            <p className="text-sm font-display uppercase text-foreground-secondary tracking-wide">
-              Выбери команду
-            </p>
-            {orgTeams!.map((t) => (
-              <button
-                key={t.id}
-                disabled={inviting === t.id}
-                onClick={() => invite(t.id)}
-                className="flex items-center justify-between bg-background-card border border-border rounded-lg px-4 py-3 text-left disabled:opacity-50"
-              >
-                <div>
-                  <p className="font-medium text-sm">{t.name}</p>
-                  <p className="text-xs text-foreground-secondary mt-0.5">{t.city}</p>
-                </div>
-                {inviting === t.id && (
-                  <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-                )}
-              </button>
-            ))}
+            <p className="text-[17px] font-semibold">Выбери команду</p>
+            <ul className="flex flex-col gap-2">
+              {orgTeams!.map((t) => (
+                <li key={t.id}>
+                  <button
+                    disabled={!!inviting}
+                    onClick={() => invite(t.id)}
+                    className="w-full flex items-center justify-between bg-background rounded-lg px-4 py-3 text-left disabled:opacity-50 border border-border"
+                  >
+                    <div>
+                      <p className="text-[15px] font-medium">{t.name}</p>
+                      <p className="text-[13px] text-foreground-secondary mt-0.5">{t.city}</p>
+                    </div>
+                    {inviting === t.id && (
+                      <div className="w-4 h-4 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                    )}
+                  </button>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       )}
 
       {/* Toast */}
       {toast && (
-        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-background-dark text-foreground-on-dark text-sm px-4 py-2 rounded-lg shadow-lg">
+        <div className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 bg-foreground text-foreground-on-dark text-[14px] px-4 py-2 rounded-lg shadow-pop">
           {toast}
         </div>
       )}

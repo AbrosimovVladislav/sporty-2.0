@@ -601,26 +601,26 @@
 
 #### 28.1 Финансы команды
 
-- **28.1.1** [team/[id]/finances/page.tsx](../src/app/(app)/team/[id]/finances/page.tsx): «Реальный баланс» как `StatCard` с большим числом (40px). Под ним grid-2 мини-`StatCard`: «Долги игроков», «К оплате площадкам».
-- **28.1.2** Разбить «Показатели» на 3 секции: «Касса», «Сборы» (ожидаемый/собранный), «Расходы площадкам».
-- **28.1.3** «Задолженности» — список-строки с мини-аватаром игрока. Убрать пояснение про «−/+».
-- **28.1.4** «Площадки» — список-ссылок, статус справа (`оплачено` / `−N ₸`).
-- **28.1.5** «Внести депозит» — `BottomActionBar` или primary-кнопка (не нейтральная карточка).
-- **28.1.6** `DepositModal` — мигрировать на `Select` компонент, заголовок без uppercase Oswald, кнопка через `Button`.
-- **28.1.7** Обновить [features/team/[team]-finances-tab.md](features/team/[team]-finances-tab.md).
+- ✅ **28.1.1** [team/[id]/finances/page.tsx](../src/app/(app)/team/[id]/finances/page.tsx): «Реальный баланс» как `StatCard` с большим числом (40px). Под ним grid-2 мини-`StatCard`: «Долги игроков», «К оплате площадкам».
+- ✅ **28.1.2** Разбить «Показатели» на 3 секции: «Касса», «Сборы» (ожидаемый/собранный), «Расходы площадкам».
+- ✅ **28.1.3** «Задолженности» — список-строки с мини-аватаром игрока. Убрать пояснение про «−/+».
+- ✅ **28.1.4** «Площадки» — список-ссылок, статус справа (`оплачено` / `−N ₸`).
+- ✅ **28.1.5** «Внести депозит» — `BottomActionBar` с primary-кнопкой.
+- ✅ **28.1.6** `DepositModal` — заголовок без uppercase Oswald, кнопка через `Button`, стилизованный нативный select для игрока.
+- ✅ **28.1.7** Обновить [features/team/[team]-finances-tab.md](features/team/[team]-finances-tab.md).
 
 #### 28.2 Профиль игрока
 
-- **28.2.1** [profile/page.tsx](../src/app/(app)/profile/page.tsx) и [players/[id]/page.tsx](../src/app/(app)/players/[id]/page.tsx): убрать тёмный hero. Аватар крупно, имя 28px чёрным, под ним город · район мелко.
-- **28.2.2** Бейдж «Ищет команду» — `Pill kind="role"` `bg-primary-soft text-primary`.
+- ✅ **28.2.1** [profile/page.tsx](../src/app/(app)/profile/page.tsx) и [players/[id]/page.tsx](../src/app/(app)/players/[id]/page.tsx): убрать тёмный hero. Аватар крупно, имя 28px чёрным, под ним город · район мелко.
+- ✅ **28.2.2** Бейдж «Ищет команду» — `Pill kind="role"` `bg-primary-soft text-primary`.
 - **28.2.3** Inline-редактирование (своя страница): добавить иконку pencil рядом с полем. Активное поле — fieldset с обводкой `border-strong`.
-- **28.2.4** Кнопка камеры аватарки — `IconButton kind="on-photo"` если поверх аватара, иначе `kind="light"`.
-- **28.2.5** Чужой профиль — кнопка «Пригласить в команду» через `BottomActionBar`.
-- **28.2.6** Обновить [features/player/[player]-profile.md](features/player/[player]-profile.md).
+- ✅ **28.2.4** Кнопка камеры аватарки — `IconButton kind="on-photo"` поверх аватара.
+- ✅ **28.2.5** Чужой профиль — кнопка «Пригласить в команду» через `BottomActionBar`.
+- ✅ **28.2.6** Обновить [features/player/[player]-profile.md](features/player/[player]-profile.md).
 
 #### 28.3 PlayerCard (bottom-sheet)
 
-- **28.3.1** [src/components/PlayerCard.tsx](../src/components/PlayerCard.tsx): убрать `font-display uppercase`, использовать `Pill`/`Card`/`Button` из ui-набора, добавить organizerActions slot для action-кнопок (сделать организатором, удалить из команды).
+- ✅ **28.3.1** [src/components/PlayerCard.tsx](../src/components/PlayerCard.tsx): убрать `font-display uppercase`, использовать `Pill`/`Card`/`Button`/`Avatar` из ui-набора, добавить `organizerActions` slot для action-кнопок.
 
 **Зависимости.** Итерация 24, 27 (PlayerCard расширен).
 **Критерий приёмки.** Все экраны финансов и профиля без тёмного hero, без хардкод-цветов; бейджи в едином стиле.
