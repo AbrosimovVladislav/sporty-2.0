@@ -2,54 +2,86 @@
 
 :root {
   /* Background */
-  --background: #f5f4ef;
+  --background: #F4F5F7;
   --background-card: #ffffff;
+  --background-muted: #F0F2F5;
+  --background-overlay: rgba(0, 0, 0, 0.4);
+  /* Legacy — не использовать в новом UI */
   --background-dark: #1a1a1a;
   --background-dark-elevated: #2a2a2a;
 
   /* Foreground / Text */
-  --foreground: #1a1a1a;
-  --foreground-secondary: #6b6b6b;
+  --foreground: #0F1417;
+  --foreground-secondary: #6B7280;
+  --foreground-muted: #9CA3AF;
   --foreground-on-dark: #ffffff;
   --foreground-on-dark-muted: #a0a0a0;
 
-  /* Primary — olive green */
-  --primary: #4d5e23;
-  --primary-hover: #5e7129;
+  /* Primary — vivid green */
+  --primary: #22C55E;
+  --primary-hover: #16A34A;
   --primary-foreground: #ffffff;
+  --primary-soft: #DCFCE7;
+
+  /* Semantic */
+  --warning: #F59E0B;
+  --warning-soft: #FEF3C7;
+  --danger: #EF4444;
+  --danger-soft: #FEE2E2;
 
   /* Borders & Dividers */
-  --border: #e5e5e0;
+  --border: #E5E7EB;
+  --border-strong: #D1D5DB;
+  /* Legacy */
   --border-dark: #333333;
+
+  /* Shadows */
+  --shadow-card: 0 1px 2px rgba(15, 20, 23, 0.04), 0 1px 3px rgba(15, 20, 23, 0.06);
+  --shadow-pop: 0 6px 20px rgba(15, 20, 23, 0.08);
 
   /* Radius */
   --radius-sm: 8px;
   --radius-md: 12px;
   --radius-lg: 16px;
+  --radius-xl: 20px;
   --radius-full: 9999px;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-background-card: var(--background-card);
+  --color-background-muted: var(--background-muted);
+  --color-background-overlay: var(--background-overlay);
   --color-background-dark: var(--background-dark);
   --color-background-dark-elevated: var(--background-dark-elevated);
 
   --color-foreground: var(--foreground);
   --color-foreground-secondary: var(--foreground-secondary);
+  --color-foreground-muted: var(--foreground-muted);
   --color-foreground-on-dark: var(--foreground-on-dark);
   --color-foreground-on-dark-muted: var(--foreground-on-dark-muted);
 
   --color-primary: var(--primary);
   --color-primary-hover: var(--primary-hover);
   --color-primary-foreground: var(--primary-foreground);
+  --color-primary-soft: var(--primary-soft);
+
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
 
   --color-border: var(--border);
+  --color-border-strong: var(--border-strong);
   --color-border-dark: var(--border-dark);
+
+  --shadow-card: var(--shadow-card);
+  --shadow-pop: var(--shadow-pop);
 
   --radius-sm: var(--radius-sm);
   --radius-md: var(--radius-md);
   --radius-lg: var(--radius-lg);
+  --radius-xl: var(--radius-xl);
   --radius-full: var(--radius-full);
 
   --font-sans: var(--font-geist-sans);

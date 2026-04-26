@@ -475,44 +475,44 @@
 
 #### 24.1 Токены
 
-- **24.1.1** Обновить [src/app/globals.css](../src/app/globals.css): новая палитра primary (`#22C55E` / `#16A34A` / `#DCFCE7`), новые токены `--background-muted`, `--foreground-muted`, `--warning`, `--warning-soft`, `--danger`, `--danger-soft`, `--border-strong`, `--shadow-card`, `--shadow-pop`. Старые `--background-dark*` оставить, но больше не использовать в продуктовом UI.
-- **24.1.2** Пробросить новые токены через `@theme inline` — чтобы Tailwind видел `bg-warning`, `text-danger`, `shadow-card` и т.п.
-- **24.1.3** Добавить utility-радиус `--radius-xl` (20px), `--radius-md` (12px) — выровнять с дизайн-системой.
+- ✅ **24.1.1** Обновить [src/app/globals.css](../src/app/globals.css): новая палитра primary (`#22C55E` / `#16A34A` / `#DCFCE7`), новые токены `--background-muted`, `--foreground-muted`, `--warning`, `--warning-soft`, `--danger`, `--danger-soft`, `--border-strong`, `--shadow-card`, `--shadow-pop`. Старые `--background-dark*` оставить, но больше не использовать в продуктовом UI.
+- ✅ **24.1.2** Пробросить новые токены через `@theme inline` — чтобы Tailwind видел `bg-warning`, `text-danger`, `shadow-card` и т.п.
+- ✅ **24.1.3** Добавить utility-радиус `--radius-xl` (20px), `--radius-md` (12px) — выровнять с дизайн-системой.
 - **24.1.4** Прогнать визуальную проверку: убедиться, что фон всех экранов = новый `background`, текст читается на новом primary.
 
 #### 24.2 Базовые ui-компоненты
 
 Создать в `src/components/ui/`:
 
-- **24.2.1** `Card.tsx` — `<Card padding="md" elevated>` оборачивает в `bg-background-card rounded-lg p-4 shadow-card`.
-- **24.2.2** `Button.tsx` — variant: `primary | secondary | danger`, size: `md | lg`, состояние `loading` со спиннером.
-- **24.2.3** `IconButton.tsx` — круглый, 40×40, на светлом / на фото.
-- **24.2.4** `Pill.tsx` — variant: `filter | filterActive | status | role | counter`. Цветовые пресеты согласованы с дизайн-системой.
-- **24.2.5** `Avatar.tsx` — size sm/md/lg/xl + fallback инициалов; `AvatarStack.tsx` (max=4 + «+N»).
-- **24.2.6** `MiniBar.tsx` — 5 точек/палочек, value/max, цвет (primary по умолчанию, danger при низком).
-- **24.2.7** `SectionEyebrow.tsx` — `<SectionEyebrow tone="primary | muted | danger">ЯДРО · 9</SectionEyebrow>`.
-- **24.2.8** `EmptyState.tsx` — иконка, текст, опциональное действие.
-- **24.2.9** `BottomActionBar.tsx` — sticky-полоса; пробрасывает в layout-контекст флаг `hideBottomTabs`.
-- **24.2.10** `ScreenHeader.tsx` — back-кнопка + заголовок + правый ряд IconButton-ов (`actions={[...]}`).
-- **24.2.11** `PhotoBanner.tsx` — `<PhotoBanner src={...} fallback="event" status={[...]}>` — рендерит фото/градиент + статус-пилюли + content-overlay.
-- **24.2.12** `StatCard.tsx` — главное число + подпись + опциональный цвет/прогресс-бар.
+- ✅ **24.2.1** `Card.tsx` — `<Card padding="md" elevated>` оборачивает в `bg-background-card rounded-lg p-4 shadow-card`.
+- ✅ **24.2.2** `Button.tsx` — variant: `primary | secondary | danger`, size: `md | lg`, состояние `loading` со спиннером.
+- ✅ **24.2.3** `IconButton.tsx` — круглый, 40×40, на светлом / на фото.
+- ✅ **24.2.4** `Pill.tsx` — variant: `filter | filterActive | status | statusDanger | statusWarning | statusMuted | role | counter`. Цветовые пресеты согласованы с дизайн-системой.
+- ✅ **24.2.5** `Avatar.tsx` — size sm/md/lg/xl + fallback инициалов; `AvatarStack` (max=4 + «+N») в том же файле.
+- ✅ **24.2.6** `MiniBar.tsx` — 5 палочек, value/max, цвет (primary по умолчанию, danger, warning).
+- ✅ **24.2.7** `SectionEyebrow.tsx` — `<SectionEyebrow tone="primary | muted | danger">ЯДРО · 9</SectionEyebrow>`.
+- ✅ **24.2.8** `EmptyState.tsx` — иконка, текст, опциональное действие.
+- ✅ **24.2.9** `BottomActionBar.tsx` — sticky-полоса; пробрасывает в `UIChromeContext` флаг `hideBottomTabs`.
+- ✅ **24.2.10** `ScreenHeader.tsx` — back-кнопка + заголовок + правый ряд действий (`actions={[...]}`).
+- ✅ **24.2.11** `PhotoBanner.tsx` — фото/градиент + статус-пилюли + overlay-контент.
+- ✅ **24.2.12** `StatCard.tsx` + `MiniStatCard.tsx` — главное число + подпись + опциональный прогресс-бар.
 
 #### 24.3 BottomTabs
 
-- **24.3.1** Добавить контекст `UIChromeContext` (`hideBottomTabs: boolean`). `BottomActionBar` ставит `true` при mount, снимает при unmount.
-- **24.3.2** [BottomTabs.tsx](../src/components/BottomTabs.tsx) — скрывает себя если `hideBottomTabs === true` или `typing`.
+- ✅ **24.3.1** Добавить `UIChromeContext` (`hideBottomTabs: boolean`). `BottomActionBar` ставит `true` при mount, снимает при unmount. `UIChromeProvider` подключён в `(app)/layout.tsx`.
+- ✅ **24.3.2** [BottomTabs.tsx](../src/components/BottomTabs.tsx) — скрывает себя если `hideBottomTabs === true` или `typing`.
 
 #### 24.4 BackButton — рестайлинг
 
-- **24.4.1** [BackButton.tsx](../src/components/BackButton.tsx): добавить `kind: "light" | "on-photo"`. Дефолт `light` (`bg-background-card shadow-card`), `on-photo` — текущий полупрозрачный.
+- ✅ **24.4.1** [BackButton.tsx](../src/components/BackButton.tsx): добавлен `kind: "light" | "on-photo"`. Дефолт `light` (`bg-background-card shadow-card`), `on-photo` — полупрозрачный для фото-баннеров.
 
 #### 24.5 Skeleton
 
-- **24.5.1** [Skeleton.tsx](../src/components/Skeleton.tsx): использовать `bg-background-muted` вместо `bg-border`. Проверить во всех местах.
+- ✅ **24.5.1** [Skeleton.tsx](../src/components/Skeleton.tsx): использует `bg-background-muted` вместо `bg-border`.
 
 **Зависимости.** Нет. Это база для итераций 25–29.
 
-**Критерий приёмки.** Базовые компоненты `Card`, `Button`, `Pill`, `Avatar`, `BottomActionBar`, `ScreenHeader`, `PhotoBanner` готовы и могут быть использованы. Старые экраны ещё не переделаны — это нормально, они останутся в старом стиле до своей итерации.
+**Критерий приёмки.** ✅ Базовые компоненты `Card`, `Button`, `Pill`, `Avatar`, `BottomActionBar`, `ScreenHeader`, `PhotoBanner` готовы и могут быть использованы. Старые экраны ещё не переделаны — они останутся в старом стиле до своей итерации.
 
 ---
 

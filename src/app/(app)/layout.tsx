@@ -1,5 +1,6 @@
 import { BottomTabs, type Tab } from "@/components/BottomTabs";
 import { HomeIcon, SearchIcon, ShieldIcon, UsersIcon, UserIcon } from "@/components/Icons";
+import { UIChromeProvider } from "@/components/ui/UIChromeContext";
 
 const globalTabs: Tab[] = [
   { label: "Главная",  href: "/home",    icon: <HomeIcon /> },
@@ -11,9 +12,11 @@ const globalTabs: Tab[] = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col flex-1 pb-16">
-      {children}
-      <BottomTabs tabs={globalTabs} />
-    </div>
+    <UIChromeProvider>
+      <div className="flex flex-col flex-1 pb-16">
+        {children}
+        <BottomTabs tabs={globalTabs} />
+      </div>
+    </UIChromeProvider>
   );
 }

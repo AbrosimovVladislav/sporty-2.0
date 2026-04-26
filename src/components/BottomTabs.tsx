@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useContext, useEffect, useState } from "react";
+import { UIChromeContext } from "@/components/ui/UIChromeContext";
 
 export type Tab = {
   label: string;
@@ -34,6 +35,7 @@ function isTabActive(tab: Tab, pathname: string): boolean {
 export function BottomTabs({ tabs }: { tabs: Tab[] }) {
   const pathname = usePathname();
   const [typing, setTyping] = useState(false);
+  const { hideBottomTabs } = useContext(UIChromeContext);
 
   useEffect(() => {
     let timer: ReturnType<typeof setTimeout>;
@@ -46,7 +48,6 @@ export function BottomTabs({ tabs }: { tabs: Tab[] }) {
     }
     function handleFocusOut(e: FocusEvent) {
       if (isTypingTarget(e.target)) {
-        // Debounce: wait to see if focus moves to another input
         timer = setTimeout(() => setTyping(false), 150);
       }
     }
@@ -59,7 +60,7 @@ export function BottomTabs({ tabs }: { tabs: Tab[] }) {
     };
   }, []);
 
-  if (typing) return null;
+  if (typing || hideBottomTabs) return null;
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-background-card border-t border-border">

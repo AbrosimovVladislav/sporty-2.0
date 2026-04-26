@@ -1,7 +1,7 @@
 type Props = { className?: string };
 
 export function Skeleton({ className = "" }: Props) {
-  return <div className={`bg-border rounded animate-pulse ${className}`} />;
+  return <div className={`bg-background-muted rounded animate-pulse ${className}`} />;
 }
 
 export function SkeletonLine({ className = "" }: Props) {
@@ -10,7 +10,7 @@ export function SkeletonLine({ className = "" }: Props) {
 
 export function SkeletonCard({ className = "" }: Props) {
   return (
-    <div className={`bg-background-card border border-border rounded-lg p-4 flex flex-col gap-2 ${className}`}>
+    <div className={`bg-background-card rounded-lg p-4 shadow-card flex flex-col gap-2 ${className}`}>
       <SkeletonLine className="w-1/2" />
       <SkeletonLine className="w-1/3 h-3" />
     </div>

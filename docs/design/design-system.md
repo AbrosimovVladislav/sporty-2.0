@@ -4,6 +4,8 @@
 
 Референсы: [ref.png](ref.png), скриншоты в Figma — экраны «Состав» и «Карточка события».
 
+> **Итерация 24 выполнена.** Токены обновлены (primary = `#22C55E`, добавлены warning/danger/muted/shadow). Базовые компоненты `src/components/ui/` созданы. `UIChromeContext` + `BottomTabs` скрывают нижние табы при активном `BottomActionBar`. `BackButton` поддерживает `kind="light"|"on-photo"`. `Skeleton` использует `bg-background-muted`.
+
 ---
 
 ## Принципы
