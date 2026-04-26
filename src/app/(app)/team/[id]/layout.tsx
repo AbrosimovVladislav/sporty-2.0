@@ -4,13 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { use } from "react";
 import { TeamProvider, useTeam } from "./team-context";
-import BackButton from "@/components/BackButton";
+import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SPORT_LABEL } from "@/lib/catalogs";
 
 type TeamSubTab = {
   label: string;
   href: (id: string) => string;
-  /** Active when pathname matches exactly this resolved href. */
   exact?: boolean;
   organizerOnly?: boolean;
 };
@@ -22,46 +21,33 @@ const subTabs: TeamSubTab[] = [
   { label: "Финансы", href: (id) => `/team/${id}/finances`, organizerOnly: true },
 ];
 
-function TeamHeader() {
+function TeamScreenHeader() {
   const team = useTeam();
 
   if (team.status === "loading") {
     return (
-      <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-        <p className="text-foreground-on-dark-muted text-sm uppercase font-display">Команда</p>
-        <div className="h-8 w-48 rounded bg-foreground-on-dark-muted/20 mt-2 animate-pulse" />
-        <div className="h-4 w-32 rounded bg-foreground-on-dark-muted/20 mt-2 animate-pulse" />
-      </div>
+      <header className="flex items-center gap-3 px-4 pt-4 pb-3">
+        <div className="w-10 h-10 rounded-full bg-background-muted animate-pulse shrink-0" />
+        <div className="flex-1">
+          <div className="h-7 w-48 bg-background-muted rounded animate-pulse" />
+          <div className="h-4 w-32 bg-background-muted rounded animate-pulse mt-1" />
+        </div>
+      </header>
     );
   }
 
-  if (team.status === "not_found") {
-    return (
-      <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-        <h1 className="text-2xl font-display font-bold uppercase">Команда не найдена</h1>
-      </div>
-    );
-  }
-
-  if (team.status === "error") {
-    return (
-      <div className="bg-background-dark text-foreground-on-dark rounded-lg p-6">
-        <h1 className="text-2xl font-display font-bold uppercase">{team.message}</h1>
-      </div>
-    );
+  if (team.status !== "ready") {
+    return <ScreenHeader title="Команда не найдена" fallbackHref="/teams" />;
   }
 
   const sportLabel = SPORT_LABEL[team.team.sport] ?? team.team.sport;
 
   return (
-    <div className="relative bg-background-dark text-foreground-on-dark rounded-lg p-6">
-      <BackButton fallbackHref="/teams" className="absolute top-4 left-4 w-9 h-9 rounded-full bg-black/40 flex items-center justify-center backdrop-blur-sm text-white" />
-      <p className="text-foreground-on-dark-muted text-sm uppercase font-display pl-10">Команда</p>
-      <h1 className="text-3xl font-display font-bold uppercase mt-1">{team.team.name}</h1>
-      <p className="text-foreground-on-dark-muted text-sm mt-1">
-        {team.team.city} · {sportLabel}
-      </p>
-    </div>
+    <ScreenHeader
+      title={team.team.name}
+      subtitle={`${team.team.city} · ${sportLabel}`}
+      fallbackHref="/teams"
+    />
   );
 }
 
@@ -85,10 +71,10 @@ function TeamSubNav({ id }: { id: string }) {
               key={href}
               href={href}
               onClick={() => reload?.()}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors ${
+              className={`rounded-full px-3 py-1 inline-flex items-center justify-center whitespace-nowrap transition-colors ${
                 isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-background-card text-foreground border border-border"
+                  ? "bg-primary text-primary-foreground shadow-card text-[13px] font-semibold"
+                  : "bg-background-card text-foreground border border-border text-[13px] font-medium"
               }`}
             >
               {tab.label}
@@ -112,13 +98,9 @@ export default function TeamLayout({
   return (
     <TeamProvider teamId={id}>
       <div className="flex flex-1 flex-col">
-        <div className="px-6 pt-6 pb-4">
-          <TeamHeader />
-        </div>
-
+        <TeamScreenHeader />
         <TeamSubNav id={id} />
-
-        <div className="flex flex-1 flex-col px-6 py-4 gap-4">{children}</div>
+        <div className="flex flex-1 flex-col px-4 py-4 gap-4">{children}</div>
       </div>
     </TeamProvider>
   );

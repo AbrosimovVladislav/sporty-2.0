@@ -1,213 +1,255 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { PlayerCard } from "@/components/PlayerCard";
 import { useTeam, type TeamMember } from "../team-context";
 import { SkeletonList } from "@/components/Skeleton";
+import { Avatar } from "@/components/ui/Avatar";
+import { StatCard, MiniStatCard } from "@/components/ui/StatCard";
+import { Pill } from "@/components/ui/Pill";
+import { SectionEyebrow } from "@/components/ui/SectionEyebrow";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Button } from "@/components/ui/Button";
+import { MiniBar } from "@/components/ui/MiniBar";
+import { Card } from "@/components/ui/Card";
+import { UsersIcon } from "@/components/Icons";
+import { SKILL_LEVELS } from "@/lib/catalogs";
+
+const POSITION_FILTERS = ["Все", "Вратари", "Защитники", "Полузащ.", "Нападающие", "Универсалы"];
+
+const POSITION_MAP: Record<string, string> = {
+  "Вратари": "Вратарь",
+  "Защитники": "Защитник",
+  "Полузащ.": "Полузащитник",
+  "Нападающие": "Нападающий",
+  "Универсалы": "Универсал",
+};
+
+function skillToLevel(skill: string | null): number {
+  if (!skill) return 0;
+  const idx = (SKILL_LEVELS as readonly string[]).indexOf(skill);
+  return idx >= 0 ? idx + 1 : 0;
+}
+
+type OpenMember = {
+  userId: string;
+  memberId: string;
+  isSelf: boolean;
+  canPromote: boolean;
+  canRemove: boolean;
+};
 
 export default function RosterPage() {
   const team = useTeam();
   const auth = useAuth();
-  const [openPlayerId, setOpenPlayerId] = useState<string | null>(null);
+  const router = useRouter();
+  const [posFilter, setPosFilter] = useState("Все");
+  const [openMember, setOpenMember] = useState<OpenMember | null>(null);
+  const [processing, setProcessing] = useState<string | null>(null);
 
-  const requesterId = auth.status === "authenticated" ? auth.user.id : null;
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
 
-  if (team.status === "loading") {
-    return <SkeletonList count={4} />;
-  }
+  if (team.status === "loading") return <SkeletonList count={4} />;
+  if (team.status !== "ready") return null;
 
-  if (team.status !== "ready") {
-    return null;
-  }
-
+  const teamId = team.team.id;
+  const reload = team.reload;
   const organizers = team.members.filter((m) => m.role === "organizer");
   const players = team.members.filter((m) => m.role === "player");
   const isOrganizer = team.role === "organizer";
 
+  const totalCount = team.members.length;
+  const goalkeeperCount = team.members.filter((m) => m.user.position === "Вратарь").length;
+  const noPositionCount = players.filter((m) => !m.user.position).length;
+
+  const filteredPlayers =
+    posFilter === "Все"
+      ? players
+      : players.filter((m) => m.user.position === POSITION_MAP[posFilter]);
+
+  function openPlayerCard(member: TeamMember) {
+    if (!userId) return;
+    const isSelf = member.user.id === userId;
+    setOpenMember({
+      userId: member.user.id,
+      memberId: member.id,
+      isSelf,
+      canPromote: isOrganizer && !isSelf && member.role === "player",
+      canRemove: isOrganizer && !(isSelf && organizers.length <= 1),
+    });
+  }
+
+  async function handlePromote(memberId: string) {
+    if (!userId || processing) return;
+    setProcessing(memberId);
+    try {
+      await fetch(`/api/teams/${teamId}/members/${memberId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      setOpenMember(null);
+      reload();
+    } finally {
+      setProcessing(null);
+    }
+  }
+
+  async function handleRemove(memberId: string) {
+    if (!userId || processing) return;
+    setProcessing(memberId);
+    try {
+      await fetch(`/api/teams/${teamId}/members/${memberId}?userId=${userId}`, {
+        method: "DELETE",
+      });
+      setOpenMember(null);
+      reload();
+    } finally {
+      setProcessing(null);
+    }
+  }
+
   if (team.members.length === 0) {
     return (
-      <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-        В команде пока никого нет
-      </section>
+      <EmptyState
+        icon={<UsersIcon />}
+        text="В команде пока никого нет"
+        action={
+          isOrganizer
+            ? { label: "Найти игроков", onClick: () => router.push("/players") }
+            : undefined
+        }
+      />
     );
   }
 
   return (
     <>
+      {/* Summary stats */}
+      <StatCard value={totalCount} label="Состав команды" />
+      <div className="grid grid-cols-2 gap-3">
+        <MiniStatCard
+          value={goalkeeperCount}
+          label="вратарей"
+          color={goalkeeperCount === 0 ? "danger" : "default"}
+        />
+        <MiniStatCard
+          value={noPositionCount}
+          label="без позиции"
+          color={noPositionCount > 0 ? "warning" : "default"}
+        />
+      </div>
+
+      {/* Position filter */}
+      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
+        {POSITION_FILTERS.map((pos) => (
+          <Pill
+            key={pos}
+            variant={posFilter === pos ? "filterActive" : "filter"}
+            onClick={() => setPosFilter(pos)}
+            className="shrink-0"
+          >
+            {pos}
+          </Pill>
+        ))}
+      </div>
+
+      {/* Organizers group */}
       {organizers.length > 0 && (
-        <RosterGroup
-          title="Организаторы"
-          items={organizers}
-          teamId={team.team.id}
-          isOrganizer={isOrganizer}
-          showPromote={false}
-          showRemove={isOrganizer && organizers.length > 1}
-          onChanged={team.reload}
-          onOpenPlayer={isOrganizer ? setOpenPlayerId : null}
-        />
+        <section>
+          <SectionEyebrow tone="primary" className="mb-2">
+            ОРГАНИЗАТОРЫ · {organizers.length}
+          </SectionEyebrow>
+          <Card padding="sm">
+            <ul className="divide-y divide-border">
+              {organizers.map((m) => (
+                <MemberRow key={m.id} member={m} onClick={() => openPlayerCard(m)} />
+              ))}
+            </ul>
+          </Card>
+        </section>
       )}
+
+      {/* Players group */}
       {players.length > 0 && (
-        <RosterGroup
-          title="Игроки"
-          items={players}
-          teamId={team.team.id}
-          isOrganizer={isOrganizer}
-          showPromote={isOrganizer}
-          showRemove={isOrganizer}
-          onChanged={team.reload}
-          onOpenPlayer={isOrganizer ? setOpenPlayerId : null}
-        />
+        <section>
+          <SectionEyebrow tone="muted" className="mb-2">
+            ИГРОКИ · {filteredPlayers.length}
+            {posFilter !== "Все" ? ` / ${players.length}` : ""}
+          </SectionEyebrow>
+          {filteredPlayers.length > 0 ? (
+            <Card padding="sm">
+              <ul className="divide-y divide-border">
+                {filteredPlayers.map((m) => (
+                  <MemberRow key={m.id} member={m} onClick={() => openPlayerCard(m)} />
+                ))}
+              </ul>
+            </Card>
+          ) : (
+            <p className="text-[14px] text-foreground-secondary text-center py-4">
+              Нет игроков с этой позицией
+            </p>
+          )}
+        </section>
       )}
-      {requesterId && openPlayerId && (
+
+      {/* PlayerCard bottom sheet */}
+      {userId && openMember && (
         <PlayerCard
-          teamId={team.team.id}
-          requesterId={requesterId}
-          targetUserId={openPlayerId}
-          onClose={() => setOpenPlayerId(null)}
+          teamId={teamId}
+          requesterId={userId}
+          targetUserId={openMember.userId}
+          onClose={() => setOpenMember(null)}
+          organizerActions={
+            isOrganizer && !openMember.isSelf ? (
+              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
+                {openMember.canPromote && (
+                  <Button
+                    variant="secondary"
+                    loading={processing === openMember.memberId}
+                    onClick={() => handlePromote(openMember.memberId)}
+                  >
+                    Сделать организатором
+                  </Button>
+                )}
+                {openMember.canRemove && (
+                  <Button
+                    variant="danger"
+                    loading={processing === openMember.memberId}
+                    onClick={() => handleRemove(openMember.memberId)}
+                  >
+                    Удалить из команды
+                  </Button>
+                )}
+              </div>
+            ) : null
+          }
         />
       )}
     </>
   );
 }
 
-function RosterGroup({
-  title,
-  items,
-  teamId,
-  isOrganizer,
-  showPromote,
-  showRemove,
-  onChanged,
-  onOpenPlayer,
-}: {
-  title: string;
-  items: TeamMember[];
-  teamId: string;
-  isOrganizer: boolean;
-  showPromote: boolean;
-  showRemove: boolean;
-  onChanged: () => void;
-  onOpenPlayer: ((userId: string) => void) | null;
-}) {
-  return (
-    <section>
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-2">{title}</p>
-      <ul className="flex flex-col gap-2">
-        {items.map((m) => (
-          <MemberRow
-            key={m.id}
-            member={m}
-            teamId={teamId}
-            isOrganizer={isOrganizer}
-            showPromote={showPromote}
-            showRemove={showRemove}
-            onChanged={onChanged}
-            onOpenPlayer={onOpenPlayer}
-          />
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-function MemberRow({
-  member,
-  teamId,
-  isOrganizer,
-  showPromote,
-  showRemove,
-  onChanged,
-  onOpenPlayer,
-}: {
-  member: TeamMember;
-  teamId: string;
-  isOrganizer: boolean;
-  showPromote: boolean;
-  showRemove: boolean;
-  onChanged: () => void;
-  onOpenPlayer: ((userId: string) => void) | null;
-}) {
-  const auth = useAuth();
-  const userId = auth.status === "authenticated" ? auth.user.id : null;
-  const [processing, setProcessing] = useState(false);
-
-  const isSelf = member.user.id === userId;
-
-  async function handlePromote() {
-    if (!userId || processing) return;
-    setProcessing(true);
-    try {
-      await fetch(`/api/teams/${teamId}/members/${member.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId }),
-      });
-      onChanged();
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  async function handleRemove() {
-    if (!userId || processing) return;
-    setProcessing(true);
-    try {
-      await fetch(`/api/teams/${teamId}/members/${member.id}?userId=${userId}`, {
-        method: "DELETE",
-      });
-      onChanged();
-    } finally {
-      setProcessing(false);
-    }
-  }
-
-  const canOpenCard = onOpenPlayer !== null;
+function MemberRow({ member, onClick }: { member: TeamMember; onClick: () => void }) {
+  const level = skillToLevel(member.user.skill_level);
 
   return (
-    <li className="bg-background-card border border-border rounded-lg px-4 py-3">
-      <div className="flex items-center justify-between">
-        {canOpenCard ? (
-          <button
-            onClick={() => onOpenPlayer!(member.user.id)}
-            className="text-left flex-1"
-          >
-            <span className="font-medium">{member.user.name}</span>
-            {member.user.city && (
-              <span className="text-xs text-foreground-secondary ml-2">{member.user.city}</span>
-            )}
-          </button>
-        ) : (
-          <div>
-            <span className="font-medium">{member.user.name}</span>
-            {member.user.city && (
-              <span className="text-xs text-foreground-secondary ml-2">{member.user.city}</span>
-            )}
-          </div>
-        )}
-        {isOrganizer && !isSelf && (showPromote || showRemove) && (
-          <div className="flex gap-2">
-            {showPromote && (
-              <button
-                onClick={handlePromote}
-                disabled={processing}
-                className="text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full bg-primary/10 text-primary disabled:opacity-50"
-              >
-                Организатор
-              </button>
-            )}
-            {showRemove && (
-              <button
-                onClick={handleRemove}
-                disabled={processing}
-                className="text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full border border-border text-foreground-secondary disabled:opacity-50"
-              >
-                Удалить
-              </button>
-            )}
-          </div>
-        )}
-      </div>
+    <li>
+      <button
+        onClick={onClick}
+        className="w-full flex items-center gap-3 py-3 px-1 min-h-[56px] text-left"
+      >
+        <Avatar name={member.user.name} size="sm" />
+        <div className="flex-1 min-w-0">
+          <p className="text-[15px] font-semibold truncate">{member.user.name}</p>
+          <p className="text-[13px] text-foreground-secondary truncate">
+            {member.user.position ?? "Позиция не указана"}
+          </p>
+        </div>
+        {level > 0 && <MiniBar value={level} max={5} />}
+      </button>
     </li>
   );
 }

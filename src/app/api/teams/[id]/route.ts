@@ -11,6 +11,8 @@ type MembershipWithUser = {
     name: string;
     city: string | null;
     sport: string | null;
+    position: string | null;
+    skill_level: string | null;
   } | null;
 };
 
@@ -40,7 +42,7 @@ export async function GET(
 
   const { data: rawMemberships, error: membersError } = await supabase
     .from("team_memberships")
-    .select("id, user_id, role, joined_at, users(id, name, city, sport)")
+    .select("id, user_id, role, joined_at, users(id, name, city, sport, position, skill_level)")
     .eq("team_id", id)
     .order("joined_at", { ascending: true });
 

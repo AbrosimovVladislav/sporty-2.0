@@ -16,6 +16,8 @@ export type TeamMember = {
     name: string;
     city: string | null;
     sport: string | null;
+    position: string | null;
+    skill_level: string | null;
   };
 };
 

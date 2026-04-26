@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 type FinancesData = {
   user: { id: string; name: string; city: string | null };
@@ -20,11 +20,13 @@ export function PlayerCard({
   requesterId,
   targetUserId,
   onClose,
+  organizerActions,
 }: {
   teamId: string;
   requesterId: string;
   targetUserId: string;
   onClose: () => void;
+  organizerActions?: ReactNode;
 }) {
   const [data, setData] = useState<FinancesData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -63,13 +65,13 @@ export function PlayerCard({
           </button>
         </div>
 
-        {error && <p className="text-sm text-red-500">{error}</p>}
+        {error && <p className="text-sm text-danger">{error}</p>}
 
         {data && (
           <>
             <div className="bg-background-card border border-border rounded-lg p-4 mb-4">
               <p className="text-xs uppercase font-display text-foreground-secondary">Сальдо</p>
-              <p className={`text-2xl font-display font-bold mt-1 ${data.totals.balance >= 0 ? "text-green-600" : "text-red-500"}`}>
+              <p className={`text-2xl font-display font-bold mt-1 ${data.totals.balance >= 0 ? "text-primary" : "text-danger"}`}>
                 {data.totals.balance >= 0 ? "+" : ""}{data.totals.balance} ₸
               </p>
               <p className="text-xs text-foreground-secondary mt-1">
@@ -99,13 +101,15 @@ export function PlayerCard({
                         {h.type === "deposit" && <span className="ml-1 text-primary">• депозит</span>}
                       </p>
                     </div>
-                    <span className="text-sm font-medium text-green-600">+{h.amount} ₸</span>
+                    <span className="text-sm font-medium text-primary">+{h.amount} ₸</span>
                   </li>
                 ))}
               </ul>
             )}
           </>
         )}
+
+        {organizerActions}
       </div>
     </div>
   );
