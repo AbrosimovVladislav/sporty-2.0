@@ -31,7 +31,11 @@ Bottom sheet с историей посещений и финансовым ба
 
 Возвращает: `user`, `totals { expected, paid, balance }`, `history[]` по completed-событиям.
 
-## UX
+## UI
 
-- Выезжает снизу (fixed inset, чёрный полупрозрачный overlay)
-- Закрывается кликом по overlay или по крестику
+- Bottom sheet: `bg-background-card rounded-t-xl shadow-pop`
+- Хедер: `Avatar md` + имя (`text-[17px] font-semibold`) + город
+- Сальдо: число `text-[28px] tabular-nums`, `text-primary` если ≥0, `text-danger` если <0
+- История: `divide-y divide-border`, депозит помечается `Pill variant="role"`
+- `organizerActions` slot — кнопки через `Button` (promote/remove) снизу
+- Закрывается кликом по `bg-background-overlay` overlay или крестику

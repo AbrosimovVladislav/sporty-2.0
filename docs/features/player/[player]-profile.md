@@ -4,7 +4,7 @@
 
 ## Хедер
 
-Тёмный блок с аватаром, именем и бейджами. Аватар — круглое фото 80px с overlay-кнопкой загрузки (иконка камеры). Без фото — инициалы. Бейджи: город, вид спорта, «Ищет команду» (если включено).
+Светлый блок (`bg-background-card shadow-card`). Аватар 96px по центру с `IconButton kind="on-photo"` поверх (камера). Без фото — инициалы. Имя 28px жирным, под ним «Город · Район» мелко серым. Бейдж «Ищет команду» — `Pill variant="role"` (зелёный).
 
 Загрузка аватара: `POST /api/users/[id]/avatar` (multipart/form-data) → Supabase Storage bucket `avatars` → обновляет `users.avatar_url`.
 
@@ -33,13 +33,14 @@ SVG circular progress (`CircularProgress.tsx`) + процент + подпись
 
 ### Настройки
 
-Форма редактирования всех полей профиля + toggle «Ищу команду» + кнопка «Сохранить». Единственное место редактирования профиля.
+Форма редактирования всех полей профиля + toggle «Ищу команду» + кнопка «Сохранить» (`Button`). Единственное место редактирования профиля.
 
 | Поле | Тип |
 |------|-----|
 | О себе (bio) | textarea |
-| Позиция | text |
-| Уровень (skill_level) | text |
+| Позиция | Select (POSITIONS) |
+| Уровень (skill_level) | Select (SKILL_LEVELS) |
+| Район | DistrictSelect |
 | Время тренировок (preferred_time) | text |
 | Дата рождения (birth_date) | date |
 | Ищу команду (looking_for_team) | toggle |

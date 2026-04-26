@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { PlayerCard } from "@/components/PlayerCard";
+import { PlayerCard, type OrgAction } from "@/components/PlayerCard";
 import { useTeam, type TeamMember } from "../team-context";
 import { SkeletonList } from "@/components/Skeleton";
 import { Avatar } from "@/components/ui/Avatar";
@@ -11,7 +11,6 @@ import { StatCard, MiniStatCard } from "@/components/ui/StatCard";
 import { Pill } from "@/components/ui/Pill";
 import { SectionEyebrow } from "@/components/ui/SectionEyebrow";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { Button } from "@/components/ui/Button";
 import { MiniBar } from "@/components/ui/MiniBar";
 import { Card } from "@/components/ui/Card";
 import { UsersIcon } from "@/components/Icons";
@@ -26,6 +25,7 @@ const POSITION_MAP: Record<string, string> = {
   "Нападающие": "Нападающий",
   "Универсалы": "Универсал",
 };
+
 
 function skillToLevel(skill: string | null): number {
   if (!skill) return 0;
@@ -203,28 +203,22 @@ export default function RosterPage() {
           targetUserId={openMember.userId}
           onClose={() => setOpenMember(null)}
           organizerActions={
-            isOrganizer && !openMember.isSelf ? (
-              <div className="flex flex-col gap-2 mt-4 pt-4 border-t border-border">
-                {openMember.canPromote && (
-                  <Button
-                    variant="secondary"
-                    loading={processing === openMember.memberId}
-                    onClick={() => handlePromote(openMember.memberId)}
-                  >
-                    Сделать организатором
-                  </Button>
-                )}
-                {openMember.canRemove && (
-                  <Button
-                    variant="danger"
-                    loading={processing === openMember.memberId}
-                    onClick={() => handleRemove(openMember.memberId)}
-                  >
-                    Удалить из команды
-                  </Button>
-                )}
-              </div>
-            ) : null
+            isOrganizer && !openMember.isSelf
+              ? ([
+                  openMember.canPromote && {
+                    label: "Сделать организатором",
+                    variant: "secondary" as const,
+                    loading: processing === openMember.memberId,
+                    onClick: () => handlePromote(openMember.memberId),
+                  },
+                  openMember.canRemove && {
+                    label: "Удалить из команды",
+                    variant: "danger" as const,
+                    loading: processing === openMember.memberId,
+                    onClick: () => handleRemove(openMember.memberId),
+                  },
+                ].filter(Boolean) as OrgAction[])
+              : undefined
           }
         />
       )}
