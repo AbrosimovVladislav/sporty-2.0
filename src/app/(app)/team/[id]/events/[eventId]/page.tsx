@@ -3,9 +3,13 @@
 import { use, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { SkeletonCard } from "@/components/Skeleton";
-import { isAttendanceAttended } from "@/lib/finances";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { useTeam } from "../../team-context";
+import { PhotoBanner } from "@/components/ui/PhotoBanner";
+import { SectionEyebrow } from "@/components/ui/SectionEyebrow";
+import { Button } from "@/components/ui/Button";
+import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { Avatar, AvatarStack } from "@/components/ui/Avatar";
 
 const STATUS_LABEL: Record<string, string> = {
   planned: "Запланировано",
@@ -51,6 +55,8 @@ export default function EventDetailPage({
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [attendances, setAttendances] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [completing, setCompleting] = useState(false);
+  const [cancelling, setCancelling] = useState(false);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const isOrganizer = team.status === "ready" && team.role === "organizer";
@@ -70,10 +76,26 @@ export default function EventDetailPage({
     loadEvent();
   }, [loadEvent]);
 
+  async function handleStatus(status: "completed" | "cancelled") {
+    if (!userId) return;
+    const setter = status === "completed" ? setCompleting : setCancelling;
+    setter(true);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/events/${eventId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId, status }),
+      });
+      if (res.ok) loadEvent();
+    } finally {
+      setter(false);
+    }
+  }
+
   if (loading) {
     return (
-      <div className="flex flex-col p-4 gap-4">
-        <SkeletonCard className="h-32" />
+      <div className="flex flex-col gap-4">
+        <SkeletonCard className="h-48" />
         <SkeletonCard className="h-24" />
       </div>
     );
@@ -81,9 +103,9 @@ export default function EventDetailPage({
 
   if (!event) {
     return (
-      <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
+      <div className="bg-background-card rounded-lg shadow-card p-6 text-center text-foreground-secondary">
         Событие не найдено
-      </section>
+      </div>
     );
   }
 
@@ -91,50 +113,75 @@ export default function EventDetailPage({
   const noVotes = attendances.filter((a) => a.vote === "no");
   const myAttendance = userId ? attendances.find((a) => a.user_id === userId) : null;
   const myVote = myAttendance?.vote ?? null;
+  const showBottomBar = isOrganizer && event.status === "planned" && !!userId;
+
+  const typePill = (
+    <span className="bg-primary text-primary-foreground text-[12px] font-semibold uppercase tracking-wide rounded-full px-3 py-1">
+      {EVENT_TYPE_LABEL[event.type] ?? event.type}
+    </span>
+  );
+  const statusPillCls =
+    event.status === "cancelled"
+      ? "bg-danger-soft/90 text-danger"
+      : event.status === "completed"
+      ? "bg-white/80 text-foreground-secondary"
+      : "bg-white/90 text-foreground";
+  const statusPill = (
+    <span className={`${statusPillCls} text-[12px] font-semibold uppercase tracking-wide rounded-full px-3 py-1`}>
+      {STATUS_LABEL[event.status] ?? event.status}
+    </span>
+  );
 
   return (
-    <>
-      {/* Event info card */}
-      <section className="bg-background-card border border-border rounded-lg p-5">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-display font-semibold uppercase px-2 py-1 rounded bg-primary/10 text-primary">
-            {EVENT_TYPE_LABEL[event.type] ?? event.type}
-          </span>
-          <span className="text-xs font-display uppercase px-2 py-1 rounded bg-background text-foreground-secondary">
-            {STATUS_LABEL[event.status] ?? event.status}
-          </span>
-        </div>
-
-        <p className="text-2xl font-display font-bold mt-3">{formatDate(event.date)}</p>
-
-        {event.venue && (
-          <div className="mt-3">
-            <p className="text-sm font-medium">{event.venue.name}</p>
-            <p className="text-xs text-foreground-secondary">{event.venue.address}</p>
-          </div>
-        )}
-
-        {event.description && (
-          <p className="text-sm text-foreground-secondary mt-3">{event.description}</p>
-        )}
-
-        <div className="flex gap-6 mt-4 text-sm">
-          {event.price_per_player > 0 && (
-            <div>
-              <p className="text-xs text-foreground-secondary">Цена</p>
-              <p className="font-medium">{event.price_per_player} ₸</p>
-            </div>
-          )}
+    <div className={`flex flex-col gap-4 ${showBottomBar ? "pb-24" : ""}`}>
+      {/* 1. Photo banner */}
+      <PhotoBanner
+        fallback="event"
+        statusPills={[typePill, statusPill]}
+        overlayContent={
           <div>
-            <p className="text-xs text-foreground-secondary">Мин. игроков</p>
-            <p className="font-medium">{event.min_players}</p>
+            <p className="text-[20px] font-semibold leading-tight">{formatBannerDate(event.date)}</p>
+            {event.venue && (
+              <p className="text-[14px] opacity-90 mt-1">{event.venue.name}</p>
+            )}
           </div>
-        </div>
-      </section>
+        }
+      />
 
-      {/* Vote buttons for team members and guests on public events (planned only) */}
+      {/* 2. Tripler metric */}
+      <div className="bg-background-card rounded-lg shadow-card p-4 grid grid-cols-3 divide-x divide-border">
+        <div className="flex flex-col items-center gap-0.5 pr-3">
+          <span className="text-[18px] font-bold tabular-nums">
+            {event.price_per_player > 0 ? `${event.price_per_player}₸` : "—"}
+          </span>
+          <span className="text-[11px] text-foreground-secondary">взнос</span>
+        </div>
+        <div className="flex flex-col items-center gap-0.5 px-3">
+          <span className="text-[18px] font-bold tabular-nums">{event.min_players}</span>
+          <span className="text-[11px] text-foreground-secondary">мин. игроков</span>
+        </div>
+        <div className="flex flex-col items-center gap-1 pl-3">
+          <span className="text-[18px] font-bold tabular-nums">
+            {yesVotes.length}
+            <span className="text-[13px] font-normal text-foreground-secondary">
+              /{event.min_players}
+            </span>
+          </span>
+          <div className="w-full h-1.5 bg-background-muted rounded-full overflow-hidden">
+            <div
+              className="h-full bg-primary rounded-full"
+              style={{
+                width: `${Math.min(100, (yesVotes.length / event.min_players) * 100)}%`,
+              }}
+            />
+          </div>
+          <span className="text-[11px] text-foreground-secondary">участников</span>
+        </div>
+      </div>
+
+      {/* 3. Vote card (planned) */}
       {(isMember || event.is_public) && event.status === "planned" && userId && (
-        <VoteButtons
+        <VoteCard
           teamId={teamId}
           eventId={eventId}
           userId={userId}
@@ -143,75 +190,88 @@ export default function EventDetailPage({
         />
       )}
 
-      {/* Organizer: complete/cancel event */}
-      {isOrganizer && event.status === "planned" && userId && (
-        <EventStatusActions
+      {/* 4–5. Придут / Не придут (planned & cancelled) */}
+      {event.status !== "completed" && (
+        <>
+          {yesVotes.length > 0 && (
+            <AttendeeGroup
+              label={`ПРИДУТ (${yesVotes.length})`}
+              tone="primary"
+              users={yesVotes.map((a) => ({ id: a.user_id, name: a.user.name }))}
+              grayscale={false}
+            />
+          )}
+          {noVotes.length > 0 && (
+            <AttendeeGroup
+              label={`НЕ ПРИДУТ (${noVotes.length})`}
+              tone="muted"
+              users={noVotes.map((a) => ({ id: a.user_id, name: a.user.name }))}
+              grayscale={true}
+            />
+          )}
+          {attendances.length === 0 && (
+            <div className="bg-background-card rounded-lg shadow-card p-4 text-center text-[13px] text-foreground-secondary">
+              Пока никто не проголосовал
+            </div>
+          )}
+        </>
+      )}
+
+      {/* 6. Participants (completed) */}
+      {event.status === "completed" && (
+        <ParticipantsList
           teamId={teamId}
           eventId={eventId}
-          userId={userId}
-          onChanged={loadEvent}
-        />
-      )}
-
-      {/* Self-mark attendance (completed events, for members) */}
-      {isMember && event.status === "completed" && userId && (
-        <SelfMarkSection
-          teamId={teamId}
-          eventId={eventId}
-          userId={userId}
-          attendance={myAttendance ?? null}
-          onChanged={loadEvent}
-        />
-      )}
-
-      {/* Venue costs (organizer) */}
-      {isOrganizer && userId && (
-        <VenueCostsBlock
-          teamId={teamId}
-          eventId={eventId}
-          userId={userId}
-          venueCost={event.venue_cost}
-          venuePaid={event.venue_paid}
-          onChanged={loadEvent}
-        />
-      )}
-
-      {/* Finance summary (organizer, completed events with price) */}
-      {isOrganizer && event.status === "completed" && event.price_per_player > 0 && (
-        <FinanceSummary attendances={attendances} pricePerPlayer={event.price_per_player} />
-      )}
-
-      {/* Planned event — simple finance estimate for organizer */}
-      {isOrganizer && event.status === "planned" && event.price_per_player > 0 && (
-        <section className="bg-background-card border border-border rounded-lg p-5">
-          <p className="text-xs uppercase font-display text-foreground-secondary">Финансы</p>
-          <p className="text-sm mt-1">
-            Ожидаемый сбор: <span className="font-medium">{yesVotes.length * event.price_per_player} ₸</span>
-            {" "}(из {event.min_players * event.price_per_player} ₸)
-          </p>
-        </section>
-      )}
-
-      {/* Attendees list */}
-      {event.status === "completed" && isOrganizer ? (
-        <OrganizerAttendanceList
-          teamId={teamId}
-          eventId={eventId}
-          userId={userId!}
           attendances={attendances}
-          pricePerPlayer={event.price_per_player}
+          userId={userId ?? ""}
+          isOrganizer={isOrganizer}
           onChanged={loadEvent}
         />
-      ) : (
-        <SimpleAttendanceList attendances={attendances} yesVotes={yesVotes} noVotes={noVotes} />
       )}
-    </>
+
+      {/* 7. Management card (organizer) */}
+      {isOrganizer && userId && (
+        <ManagementCard
+          teamId={teamId}
+          eventId={eventId}
+          userId={userId}
+          event={event}
+          yesVotes={yesVotes}
+          attendances={attendances}
+          onChanged={loadEvent}
+        />
+      )}
+
+      {/* 8. Bottom action bar (organizer + planned) */}
+      {showBottomBar && (
+        <BottomActionBar>
+          <div className="grid grid-cols-2 gap-3">
+            <Button
+              variant="primary"
+              loading={completing}
+              disabled={completing || cancelling}
+              onClick={() => handleStatus("completed")}
+            >
+              Завершить
+            </Button>
+            <Button
+              variant="secondary"
+              loading={cancelling}
+              disabled={completing || cancelling}
+              onClick={() => handleStatus("cancelled")}
+            >
+              Отменить
+            </Button>
+          </div>
+        </BottomActionBar>
+      )}
+    </div>
   );
 }
 
-/* ─── Vote Buttons (planned) ─── */
+/* ─── Vote Card ─── */
 
-function VoteButtons({
+function VoteCard({
   teamId,
   eventId,
   userId,
@@ -241,228 +301,115 @@ function VoteButtons({
     }
   }
 
-  return (
-    <div className="flex gap-3">
-      <button
-        onClick={() => handleVote("yes")}
-        disabled={sending}
-        className={`flex-1 font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors disabled:opacity-50 ${
-          currentVote === "yes"
-            ? "bg-green-600 text-white"
-            : "bg-background-card border border-border text-foreground"
-        }`}
-      >
-        Приду
-      </button>
-      <button
-        onClick={() => handleVote("no")}
-        disabled={sending}
-        className={`flex-1 font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors disabled:opacity-50 ${
-          currentVote === "no"
-            ? "bg-red-500 text-white"
-            : "bg-background-card border border-border text-foreground"
-        }`}
-      >
-        Не приду
-      </button>
-    </div>
-  );
-}
-
-/* ─── Event Status Actions (organizer) ─── */
-
-function EventStatusActions({
-  teamId,
-  eventId,
-  userId,
-  onChanged,
-}: {
-  teamId: string;
-  eventId: string;
-  userId: string;
-  onChanged: () => void;
-}) {
-  const [sending, setSending] = useState(false);
-
-  async function handleStatus(status: "completed" | "cancelled") {
-    if (sending) return;
-    setSending(true);
-    try {
-      const res = await fetch(`/api/teams/${teamId}/events/${eventId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, status }),
-      });
-      if (res.ok) onChanged();
-    } finally {
-      setSending(false);
-    }
-  }
+  const statusText =
+    currentVote === "yes"
+      ? "Вы идёте"
+      : currentVote === "no"
+      ? "Вы не идёте"
+      : "Вы ещё не ответили";
 
   return (
-    <div className="flex gap-3">
-      <button
-        onClick={() => handleStatus("completed")}
-        disabled={sending}
-        className="flex-1 bg-green-600 text-white font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors disabled:opacity-50"
-      >
-        Завершить
-      </button>
-      <button
-        onClick={() => handleStatus("cancelled")}
-        disabled={sending}
-        className="flex-1 border border-border text-foreground-secondary font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors disabled:opacity-50"
-      >
-        Отменить
-      </button>
-    </div>
-  );
-}
-
-/* ─── Self-mark (player marks attended/paid) ─── */
-
-function SelfMarkSection({
-  teamId,
-  eventId,
-  userId,
-  attendance,
-  onChanged,
-}: {
-  teamId: string;
-  eventId: string;
-  userId: string;
-  attendance: AttendanceItem | null;
-  onChanged: () => void;
-}) {
-  const [sending, setSending] = useState(false);
-
-  async function toggle(field: "attended" | "paid") {
-    if (sending) return;
-    setSending(true);
-    try {
-      const currentValue = attendance?.[field] ?? false;
-      const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, [field]: !currentValue }),
-      });
-      if (res.ok) onChanged();
-    } finally {
-      setSending(false);
-    }
-  }
-
-  const attended = attendance?.attended ?? false;
-  const paid = attendance?.paid ?? false;
-
-  return (
-    <section className="bg-background-card border border-border rounded-lg p-5">
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Ваша отметка</p>
-      <div className="flex gap-3">
-        <button
-          onClick={() => toggle("attended")}
+    <section className="bg-background-card rounded-lg shadow-card p-4">
+      <p className="text-[13px] font-semibold text-foreground-secondary mb-3">Ваш ответ</p>
+      <div className="grid grid-cols-2 gap-3">
+        <Button
+          variant={currentVote === "yes" ? "primary" : "secondary"}
           disabled={sending}
-          className={`flex-1 font-display font-semibold uppercase rounded-full px-4 py-2.5 text-sm transition-colors disabled:opacity-50 ${
-            attended
-              ? "bg-green-600 text-white"
-              : "border border-border text-foreground"
-          }`}
+          loading={sending && currentVote !== "yes"}
+          onClick={() => handleVote("yes")}
         >
-          {attended ? "Был(а)" : "Был(а)?"}
-        </button>
-        <button
-          onClick={() => toggle("paid")}
+          Приду
+        </Button>
+        <Button
+          variant={currentVote === "no" ? "danger" : "secondary"}
           disabled={sending}
-          className={`flex-1 font-display font-semibold uppercase rounded-full px-4 py-2.5 text-sm transition-colors disabled:opacity-50 ${
-            paid
-              ? "bg-green-600 text-white"
-              : "border border-border text-foreground"
-          }`}
+          loading={sending && currentVote !== "no"}
+          onClick={() => handleVote("no")}
         >
-          {paid ? "Сдал(а)" : "Сдал(а)?"}
-        </button>
+          Не приду
+        </Button>
       </div>
+      <p className="text-[13px] text-foreground-secondary text-center mt-2">{statusText}</p>
     </section>
   );
 }
 
-/* ─── Finance Summary (completed event) ─── */
+/* ─── Attendee Group (Придут / Не придут) ─── */
 
-function FinanceSummary({
-  attendances,
-  pricePerPlayer,
+function AttendeeGroup({
+  label,
+  tone,
+  users,
+  grayscale,
 }: {
-  attendances: AttendanceItem[];
-  pricePerPlayer: number;
+  label: string;
+  tone: "primary" | "muted";
+  users: { id: string; name: string }[];
+  grayscale: boolean;
 }) {
-  const confirmedAttended = attendances.filter(isAttendanceAttended);
-  const confirmedPaid = attendances.filter((a) => a.paid === true);
-
-  const expected = confirmedAttended.length * pricePerPlayer;
-  const actual = attendances.reduce((sum, a) => sum + (a.paid ? (a.paid_amount ?? pricePerPlayer) : 0), 0);
-  const diff = actual - expected;
+  const [showAll, setShowAll] = useState(false);
 
   return (
-    <section className="bg-background-card border border-border rounded-lg p-5">
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Финансы</p>
-      <div className="flex flex-col gap-1 text-sm">
-        <div className="flex justify-between">
-          <span className="text-foreground-secondary">Были на событии</span>
-          <span className="font-medium">{confirmedAttended.length}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-foreground-secondary">Ожидаемый сбор</span>
-          <span className="font-medium">{expected} ₸</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-foreground-secondary">Сдали деньги</span>
-          <span className="font-medium">{confirmedPaid.length} из {confirmedAttended.length}</span>
-        </div>
-        <div className="flex justify-between">
-          <span className="text-foreground-secondary">Фактический сбор</span>
-          <span className="font-medium">{actual} ₸</span>
-        </div>
-        <div className="flex justify-between pt-1 border-t border-border mt-1">
-          <span className="text-foreground-secondary">Разница</span>
-          <span className={`font-medium ${diff >= 0 ? "text-green-600" : "text-red-500"}`}>
-            {diff >= 0 ? "+" : ""}{diff} ₸
-          </span>
-        </div>
+    <section className="flex flex-col gap-2">
+      <SectionEyebrow tone={tone}>{label}</SectionEyebrow>
+      <div className={grayscale ? "grayscale opacity-70" : ""}>
+        <AvatarStack users={users} max={4} size="sm" />
       </div>
+      {users.length > 4 && !showAll && (
+        <button
+          onClick={() => setShowAll(true)}
+          className="text-primary text-[13px] font-semibold self-start"
+        >
+          Показать всех
+        </button>
+      )}
+      {showAll && (
+        <ul className="flex flex-col gap-1 mt-1">
+          {users.map((u) => (
+            <li key={u.id} className="text-[13px] text-foreground-secondary">
+              {u.name}
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
 }
 
-/* ─── Organizer Attendance List (with confirm toggles) ─── */
+/* ─── Participants List (completed events) ─── */
 
-function OrganizerAttendanceList({
+function ParticipantsList({
   teamId,
   eventId,
-  userId,
   attendances,
-  pricePerPlayer,
+  userId,
+  isOrganizer,
   onChanged,
 }: {
   teamId: string;
   eventId: string;
-  userId: string;
   attendances: AttendanceItem[];
-  pricePerPlayer: number;
+  userId: string;
+  isOrganizer: boolean;
   onChanged: () => void;
 }) {
   const [processing, setProcessing] = useState<string | null>(null);
-  const [amountFor, setAmountFor] = useState<string | null>(null);
-  const [amountInput, setAmountInput] = useState("");
 
-  async function toggleField(targetUserId: string, field: "attended" | "paid", current: boolean | null) {
+  async function toggleField(
+    targetUserId: string,
+    field: "attended" | "paid",
+    current: boolean | null
+  ) {
     if (processing) return;
     setProcessing(targetUserId + field);
     try {
-      const newValue = !current;
+      const body = isOrganizer
+        ? { userId, targetUserId, [field]: !current }
+        : { userId, [field]: !current };
       const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, targetUserId, [field]: newValue }),
+        body: JSON.stringify(body),
       });
       if (res.ok) onChanged();
     } finally {
@@ -470,127 +417,73 @@ function OrganizerAttendanceList({
     }
   }
 
-  async function saveAmount(targetUserId: string) {
-    if (processing) return;
-    const v = parseFloat(amountInput);
-    if (!Number.isFinite(v) || v < 0) return;
-    setProcessing(targetUserId + "amount");
-    try {
-      const res = await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          targetUserId,
-          paid: true,
-          paid_amount: v,
-        }),
-      });
-      if (res.ok) {
-        setAmountFor(null);
-        setAmountInput("");
-        onChanged();
-      }
-    } finally {
-      setProcessing(null);
-    }
-  }
-
   return (
-    <section>
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-2">
-        Участники ({attendances.length})
-      </p>
+    <section className="flex flex-col gap-2">
+      <SectionEyebrow>УЧАСТНИКИ ({attendances.length})</SectionEyebrow>
       {attendances.length === 0 ? (
-        <div className="bg-background-card border border-border rounded-lg p-4 text-center text-foreground-secondary text-sm">
+        <div className="bg-background-card rounded-lg shadow-card p-4 text-center text-[13px] text-foreground-secondary">
           Нет участников
         </div>
       ) : (
-        <ul className="flex flex-col gap-2">
+        <ul className="bg-background-card rounded-lg shadow-card divide-y divide-border">
           {attendances.map((a) => {
-            const attendedStatus = a.attended;
-            const paidStatus = a.paid;
-
+            const canInteract = isOrganizer || a.user_id === userId;
             return (
-              <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-3">
-                <p className="font-medium text-sm mb-2">{a.user.name}</p>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => toggleField(a.user_id, "attended", attendedStatus)}
-                    disabled={processing !== null}
-                    className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
-                      attendedStatus === true
-                        ? "bg-green-600 text-white"
-                        : attendedStatus === false
-                        ? "bg-red-500/10 text-red-500"
-                        : "border border-border text-foreground-secondary"
-                    }`}
-                  >
-                    {attendedStatus === true ? "Был" : attendedStatus === false ? "Не был" : "Был?"}
-                  </button>
-                  <button
-                    onClick={() => toggleField(a.user_id, "paid", paidStatus)}
-                    disabled={processing !== null}
-                    className={`text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 ${
-                      paidStatus === true
-                        ? "bg-green-600 text-white"
-                        : paidStatus === false
-                        ? "bg-red-500/10 text-red-500"
-                        : "border border-border text-foreground-secondary"
-                    }`}
-                  >
-                    {paidStatus === true ? "Сдал" : paidStatus === false ? "Не сдал" : "Сдал?"}
-                  </button>
-                </div>
-                {paidStatus === true && amountFor !== a.user_id && (
-                  <button
-                    onClick={() => {
-                      setAmountFor(a.user_id);
-                      setAmountInput(String(a.paid_amount ?? pricePerPlayer));
-                    }}
-                    disabled={processing !== null}
-                    className="text-xs text-foreground-secondary mt-2 underline underline-offset-2"
-                  >
-                    Сумма: {a.paid_amount ?? pricePerPlayer} ₸ — изменить
-                  </button>
-                )}
-                {amountFor === a.user_id && (
-                  <div className="flex items-center gap-2 mt-2">
-                    <input
-                      type="number"
-                      min="0"
-                      value={amountInput}
-                      onChange={(e) => setAmountInput(e.target.value)}
-                      className="flex-1 bg-background border border-border rounded-md px-3 py-2 text-sm outline-none focus:border-primary"
-                      placeholder="Сумма ₸"
-                      autoFocus
-                    />
+              <li key={a.id} className="flex items-center gap-3 px-4 py-3">
+                <Avatar name={a.user.name} size="sm" />
+                <p className="flex-1 text-[15px] font-semibold truncate">{a.user.name}</p>
+                <div className="flex gap-2 shrink-0">
+                  {canInteract ? (
                     <button
-                      onClick={() => saveAmount(a.user_id)}
+                      onClick={() => toggleField(a.user_id, "attended", a.attended ?? null)}
                       disabled={processing !== null}
-                      className="text-xs font-display font-semibold uppercase px-3 py-2 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+                      className={`text-[12px] font-semibold px-2.5 py-1 rounded-full transition-colors disabled:opacity-50 ${
+                        a.attended === true
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background-muted text-foreground-secondary"
+                      }`}
                     >
-                      Ок
+                      {a.attended === true ? "Был" : "Был?"}
                     </button>
+                  ) : (
+                    a.attended !== null && (
+                      <span
+                        className={`text-[12px] px-2.5 py-1 rounded-full ${
+                          a.attended
+                            ? "bg-primary-soft text-primary"
+                            : "bg-background-muted text-foreground-secondary"
+                        }`}
+                      >
+                        {a.attended ? "Был" : "Не был"}
+                      </span>
+                    )
+                  )}
+                  {canInteract ? (
                     <button
-                      onClick={() => {
-                        setAmountFor(null);
-                        setAmountInput("");
-                      }}
-                      className="text-xs text-foreground-secondary px-2"
+                      onClick={() => toggleField(a.user_id, "paid", a.paid ?? null)}
+                      disabled={processing !== null}
+                      className={`text-[12px] font-semibold px-2.5 py-1 rounded-full transition-colors disabled:opacity-50 ${
+                        a.paid === true
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-background-muted text-foreground-secondary"
+                      }`}
                     >
-                      ×
+                      {a.paid === true ? "Сдал" : "Сдал?"}
                     </button>
-                  </div>
-                )}
-                {/* Show player's own marks if different from confirmed */}
-                {(a.attended !== null || a.paid !== null) && (
-                  <p className="text-xs text-foreground-secondary mt-1.5">
-                    Отметка игрока:
-                    {a.attended !== null && (a.attended ? " был" : " не был")}
-                    {a.paid !== null && (a.paid ? ", сдал" : ", не сдал")}
-                  </p>
-                )}
+                  ) : (
+                    a.paid !== null && (
+                      <span
+                        className={`text-[12px] px-2.5 py-1 rounded-full ${
+                          a.paid
+                            ? "bg-primary-soft text-primary"
+                            : "bg-background-muted text-foreground-secondary"
+                        }`}
+                      >
+                        {a.paid ? "Сдал" : "Не сдал"}
+                      </span>
+                    )
+                  )}
+                </div>
               </li>
             );
           })}
@@ -600,82 +493,32 @@ function OrganizerAttendanceList({
   );
 }
 
-/* ─── Simple Attendance List (non-organizer or planned) ─── */
+/* ─── Management Card (organizer) ─── */
 
-function SimpleAttendanceList({
-  attendances,
-  yesVotes,
-  noVotes,
-}: {
-  attendances: AttendanceItem[];
-  yesVotes: AttendanceItem[];
-  noVotes: AttendanceItem[];
-}) {
-  return (
-    <section>
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-2">
-        Голоса ({attendances.length})
-      </p>
-
-      {yesVotes.length > 0 && (
-        <div className="mb-3">
-          <p className="text-xs text-green-600 font-medium mb-1">Придут ({yesVotes.length})</p>
-          <ul className="flex flex-col gap-1">
-            {yesVotes.map((a) => (
-              <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-2 text-sm">
-                {a.user.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {noVotes.length > 0 && (
-        <div>
-          <p className="text-xs text-red-500 font-medium mb-1">Не придут ({noVotes.length})</p>
-          <ul className="flex flex-col gap-1">
-            {noVotes.map((a) => (
-              <li key={a.id} className="bg-background-card border border-border rounded-lg px-4 py-2 text-sm text-foreground-secondary">
-                {a.user.name}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
-      {attendances.length === 0 && (
-        <div className="bg-background-card border border-border rounded-lg p-4 text-center text-foreground-secondary text-sm">
-          Пока никто не проголосовал
-        </div>
-      )}
-    </section>
-  );
-}
-
-/* ─── Venue Costs Block (organizer only) ─── */
-
-function VenueCostsBlock({
+function ManagementCard({
   teamId,
   eventId,
   userId,
-  venueCost,
-  venuePaid,
+  event,
+  yesVotes,
+  attendances,
   onChanged,
 }: {
   teamId: string;
   eventId: string;
   userId: string;
-  venueCost: number;
-  venuePaid: number;
+  event: EventDetail;
+  yesVotes: AttendanceItem[];
+  attendances: AttendanceItem[];
   onChanged: () => void;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [costInput, setCostInput] = useState(String(venueCost));
+  const [editingVenue, setEditingVenue] = useState(false);
+  const [costInput, setCostInput] = useState(String(event.venue_cost));
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    setCostInput(String(venueCost));
-  }, [venueCost]);
+    setCostInput(String(event.venue_cost));
+  }, [event.venue_cost]);
 
   async function patch(body: Record<string, unknown>) {
     if (saving) return;
@@ -687,7 +530,7 @@ function VenueCostsBlock({
         body: JSON.stringify({ userId, ...body }),
       });
       if (res.ok) {
-        setEditing(false);
+        setEditingVenue(false);
         onChanged();
       }
     } finally {
@@ -695,91 +538,124 @@ function VenueCostsBlock({
     }
   }
 
-  const paid = venueCost > 0 && venuePaid >= venueCost;
+  const venuePaid = event.venue_cost > 0 && event.venue_paid >= event.venue_cost;
 
-  if (editing) {
-    return (
-      <section className="bg-background-card border border-border rounded-lg p-5">
-        <p className="text-xs uppercase font-display text-foreground-secondary mb-3">Площадка — расходы</p>
-        <div className="flex flex-col gap-3">
-          <div className="flex flex-col gap-1">
-            <label className="text-sm text-foreground-secondary">Стоимость, ₸</label>
-            <input
-              type="number"
-              min="0"
-              value={costInput}
-              onChange={(e) => setCostInput(e.target.value)}
-              className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary"
-            />
-          </div>
-          <div className="flex gap-2">
-            <button
-              onClick={() => patch({ venue_cost: parseFloat(costInput) || 0 })}
-              disabled={saving}
-              className="flex-1 bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-4 py-2 disabled:opacity-50"
-            >
-              {saving ? "Сохраняю…" : "Сохранить"}
-            </button>
-            <button
-              onClick={() => {
-                setEditing(false);
-                setCostInput(String(venueCost));
-              }}
-              className="px-4 py-2 rounded-full border border-border text-foreground-secondary font-display font-semibold uppercase"
-            >
-              Отмена
-            </button>
-          </div>
-        </div>
-      </section>
-    );
-  }
+  // Finance summary for completed events
+  const expectedCollected =
+    attendances.filter((a) => a.attended === true).length * event.price_per_player;
+  const actualCollected = attendances.reduce(
+    (sum, a) => sum + (a.paid ? (a.paid_amount ?? event.price_per_player) : 0),
+    0
+  );
 
   return (
-    <section className="bg-background-card border border-border rounded-lg p-5">
-      <div className="flex justify-between items-baseline mb-2">
-        <p className="text-xs uppercase font-display text-foreground-secondary">Площадка — расходы</p>
-        <button
-          onClick={() => setEditing(true)}
-          className="text-xs text-primary font-display font-semibold uppercase"
-        >
-          {venueCost === 0 ? "Указать" : "Изменить"}
-        </button>
-      </div>
-      {venueCost === 0 ? (
-        <p className="text-sm text-foreground-secondary">Стоимость не указана</p>
-      ) : (
-        <div className="flex items-center justify-between gap-3">
-          <span className="text-sm">
-            <span className="text-foreground-secondary">Стоимость:</span>{" "}
-            <span className="font-medium">{venueCost} ₸</span>
-          </span>
-          {paid ? (
+    <section className="bg-background-card rounded-lg shadow-card overflow-hidden">
+      <h3 className="px-4 pt-4 pb-2 text-[11px] uppercase tracking-wide font-semibold text-foreground-secondary">
+        Управление
+      </h3>
+      <ul className="divide-y divide-border">
+        {/* Venue cost row */}
+        {editingVenue ? (
+          <li className="px-4 py-3 flex flex-col gap-3">
+            <div className="flex flex-col gap-1">
+              <label className="text-[13px] text-foreground-secondary">Стоимость площадки, ₸</label>
+              <input
+                type="number"
+                min="0"
+                value={costInput}
+                onChange={(e) => setCostInput(e.target.value)}
+                autoFocus
+                className="bg-background border border-border rounded-md px-4 py-3 text-foreground outline-none focus:border-primary"
+              />
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="primary"
+                loading={saving}
+                onClick={() => patch({ venue_cost: parseFloat(costInput) || 0 })}
+                className="flex-1"
+              >
+                Сохранить
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  setEditingVenue(false);
+                  setCostInput(String(event.venue_cost));
+                }}
+                className="flex-1"
+              >
+                Отмена
+              </Button>
+            </div>
+          </li>
+        ) : (
+          <li className="flex items-center gap-3 px-4 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-medium">Площадка</p>
+              <p className="text-[13px] text-foreground-secondary">
+                {event.venue_cost === 0
+                  ? "Стоимость не указана"
+                  : `${event.venue_cost} ₸ · ${venuePaid ? "оплачено" : `оплачено ${event.venue_paid}`}`}
+              </p>
+            </div>
             <button
-              onClick={() => patch({ venue_paid: 0 })}
-              disabled={saving}
-              className="text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full bg-green-600 text-white disabled:opacity-50"
+              onClick={() => setEditingVenue(true)}
+              className="text-[13px] text-primary font-semibold shrink-0"
             >
-              ✓ Оплачено
+              {event.venue_cost === 0 ? "Указать" : "Изменить"}
             </button>
-          ) : (
+          </li>
+        )}
+
+        {/* Venue paid toggle */}
+        {event.venue_cost > 0 && !editingVenue && (
+          <li className="flex items-center gap-3 px-4 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-medium">Оплата площадки</p>
+              <p className="text-[13px] text-foreground-secondary">
+                {venuePaid
+                  ? "Оплачено полностью"
+                  : event.venue_paid > 0
+                  ? `Оплачено ${event.venue_paid} из ${event.venue_cost} ₸`
+                  : "Не оплачено"}
+              </p>
+            </div>
             <button
-              onClick={() => patch({ venue_paid: venueCost })}
+              onClick={() => patch({ venue_paid: venuePaid ? 0 : event.venue_cost })}
               disabled={saving}
-              className="text-xs font-display font-semibold uppercase px-3 py-1.5 rounded-full bg-primary text-primary-foreground disabled:opacity-50"
+              className={`text-[13px] font-semibold px-3 py-1.5 rounded-full transition-colors disabled:opacity-50 shrink-0 ${
+                venuePaid
+                  ? "bg-primary-soft text-primary"
+                  : "bg-background-muted text-foreground-secondary"
+              }`}
             >
-              Оплачено полностью
+              {venuePaid ? "Оплачено" : "Отметить"}
             </button>
-          )}
-        </div>
-      )}
+          </li>
+        )}
+
+        {/* Finance row */}
+        {event.price_per_player > 0 && (
+          <li className="flex items-center gap-3 px-4 py-3">
+            <div className="flex-1 min-w-0">
+              <p className="text-[15px] font-medium">Финансы</p>
+              <p className="text-[13px] text-foreground-secondary">
+                {event.status === "planned"
+                  ? `Ожидаемый сбор: ${yesVotes.length * event.price_per_player} ₸`
+                  : `Собрано: ${actualCollected} из ${expectedCollected} ₸`}
+              </p>
+            </div>
+          </li>
+        )}
+      </ul>
     </section>
   );
 }
 
 /* ─── Helpers ─── */
 
-function formatDate(iso: string): string {
+function formatBannerDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("ru-RU", {
     weekday: "long",

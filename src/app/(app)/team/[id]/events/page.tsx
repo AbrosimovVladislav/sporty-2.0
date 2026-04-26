@@ -7,6 +7,12 @@ import { useTeam } from "../team-context";
 import DistrictSelect from "@/components/DistrictSelect";
 import { SkeletonList } from "@/components/Skeleton";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
+import { SectionEyebrow } from "@/components/ui/SectionEyebrow";
+import { IconButton } from "@/components/ui/IconButton";
+import { Button } from "@/components/ui/Button";
+import { Pill } from "@/components/ui/Pill";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { PlusIcon } from "@/components/Icons";
 
 type EventItem = {
   id: string;
@@ -24,6 +30,13 @@ type EventItem = {
   myVote: "yes" | "no" | null;
   expectedCollected: number;
   actualCollected: number;
+};
+
+const EVENT_TYPE_SHORT: Record<string, string> = {
+  game: "ИГР",
+  training: "ТРЕ",
+  gathering: "СБО",
+  other: "ЕВТ",
 };
 
 export default function EventsPage() {
@@ -62,7 +75,6 @@ export default function EventsPage() {
 
   function handleCreated() {
     setShowForm(false);
-    // Re-fetch events
     if (!teamId) return;
     const params = userId ? `?userId=${userId}` : "";
     fetch(`/api/teams/${teamId}/events${params}`)
@@ -76,14 +88,15 @@ export default function EventsPage() {
 
   return (
     <>
-      {isOrganizer && !showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="w-full bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors hover:bg-primary-hover"
-        >
-          Создать событие
-        </button>
-      )}
+      {/* Header row */}
+      <div className="flex items-center justify-between">
+        <h2 className="text-[22px] font-bold">События</h2>
+        {isOrganizer && !showForm && (
+          <IconButton onClick={() => setShowForm(true)} aria-label="Создать событие">
+            <PlusIcon />
+          </IconButton>
+        )}
+      </div>
 
       {showForm && teamId && userId && (
         <CreateEventForm
@@ -97,16 +110,20 @@ export default function EventsPage() {
       {events === null ? (
         <SkeletonList count={2} />
       ) : events.length === 0 ? (
-        <section className="bg-background-card border border-border rounded-lg p-6 text-center text-foreground-secondary text-sm">
-          Событий пока нет
-        </section>
+        <EmptyState text="Событий пока нет" />
       ) : (
         <>
           {planned.length > 0 && (
-            <EventGroup title="Предстоящие" items={planned} teamId={team.team.id} isOrganizer={isOrganizer} />
+            <section className="flex flex-col gap-2">
+              <SectionEyebrow>ПРЕДСТОЯЩИЕ</SectionEyebrow>
+              <EventList items={planned} teamId={team.team.id} />
+            </section>
           )}
           {past.length > 0 && (
-            <EventGroup title="Прошедшие" items={past} teamId={team.team.id} isOrganizer={isOrganizer} />
+            <section className="flex flex-col gap-2">
+              <SectionEyebrow tone="muted">ПРОШЕДШИЕ</SectionEyebrow>
+              <EventList items={past} teamId={team.team.id} />
+            </section>
           )}
         </>
       )}
@@ -114,79 +131,51 @@ export default function EventsPage() {
   );
 }
 
-function EventGroup({
-  title,
-  items,
-  teamId,
-  isOrganizer,
-}: {
-  title: string;
-  items: EventItem[];
-  teamId: string;
-  isOrganizer: boolean;
-}) {
+function EventList({ items, teamId }: { items: EventItem[]; teamId: string }) {
   return (
-    <section>
-      <p className="text-xs uppercase font-display text-foreground-secondary mb-2">{title}</p>
-      <ul className="flex flex-col gap-3">
-        {items.map((e) => (
-          <li key={e.id}>
-            <Link
-              href={`/team/${teamId}/events/${e.id}`}
-              className="block bg-background-card border border-border rounded-lg p-4"
-            >
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-display font-semibold uppercase px-2 py-1 rounded bg-primary/10 text-primary">
-                  {EVENT_TYPE_LABEL[e.type] ?? e.type}
-                </span>
-                <span className="text-xs text-foreground-secondary">
-                  {formatDate(e.date)}
-                </span>
-              </div>
+    <ul className="flex flex-col gap-3">
+      {items.map((e) => (
+        <li key={e.id}>
+          <Link
+            href={`/team/${teamId}/events/${e.id}`}
+            className="flex gap-3 p-3 bg-background-card rounded-lg shadow-card"
+          >
+            {/* Gradient thumbnail */}
+            <div className="w-20 h-20 shrink-0 rounded-md bg-linear-to-br from-foreground to-foreground-secondary flex items-center justify-center">
+              <span className="text-[10px] font-bold uppercase text-foreground-on-dark tracking-wider">
+                {EVENT_TYPE_SHORT[e.type] ?? "ЕВТ"}
+              </span>
+            </div>
 
+            {/* Content */}
+            <div className="flex-1 min-w-0 flex flex-col justify-center gap-1.5">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-[15px] font-semibold leading-tight">{formatListDate(e.date)}</p>
+                <EventStatusPill status={e.status} />
+              </div>
               {e.venue && (
-                <p className="text-sm text-foreground-secondary mt-2">{e.venue.name}</p>
+                <p className="text-[13px] text-foreground-secondary truncate">{e.venue.name}</p>
               )}
-
-              <div className="flex items-center gap-4 mt-3 text-sm">
-                <span className="text-green-600">✓ {e.yesCount}</span>
-                <span className="text-red-500">✗ {e.noCount}</span>
-                {e.min_players > 1 && (
-                  <span className="text-foreground-secondary">мин. {e.min_players}</span>
-                )}
-              </div>
-
-              {isOrganizer && e.price_per_player > 0 && (
-                <p className="text-xs text-foreground-secondary mt-2">
-                  {e.status === "completed"
-                    ? `Сбор: ${e.actualCollected} из ${e.expectedCollected} ₸`
-                    : `Ожидаемый сбор: ${e.yesCount * e.price_per_player} ₸`}
-                </p>
-              )}
-
-              {isOrganizer && e.venue_cost > 0 && (
-                <p className="text-xs text-foreground-secondary mt-1">
-                  Площадка: {e.venue_cost} ₸
-                  {e.venue_paid > 0 && ` (оплачено ${e.venue_paid})`}
-                </p>
-              )}
-
-              {e.myVote && (
-                <p className="text-xs mt-2">
-                  {e.myVote === "yes" ? (
-                    <span className="text-green-600">Вы: приду</span>
-                  ) : (
-                    <span className="text-red-500">Вы: не приду</span>
-                  )}
-                </p>
-              )}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </section>
+              <p className="text-[13px] text-foreground-secondary tabular-nums">
+                {e.yesCount} придут
+                {e.min_players > 1 && ` · мин. ${e.min_players}`}
+              </p>
+            </div>
+          </Link>
+        </li>
+      ))}
+    </ul>
   );
 }
+
+function EventStatusPill({ status }: { status: string }) {
+  if (status === "planned") return <Pill variant="statusMuted">Запланировано</Pill>;
+  if (status === "completed") return <Pill variant="statusMuted">Завершено</Pill>;
+  if (status === "cancelled") return <Pill variant="statusDanger">Отменено</Pill>;
+  return null;
+}
+
+/* ─── Create Event Form ─── */
 
 type VenueOption = { id: string; name: string; address: string; city: string | null };
 
@@ -260,12 +249,12 @@ function CreateEventForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="bg-background-card border border-border rounded-lg p-5 flex flex-col gap-4"
+      className="bg-background-card rounded-lg shadow-card p-5 flex flex-col gap-4"
     >
-      <p className="text-xs uppercase font-display text-foreground-secondary">Новое событие</p>
+      <p className="text-[17px] font-semibold">Новое событие</p>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm text-foreground-secondary">Тип</label>
+        <label className="text-[13px] text-foreground-secondary">Тип</label>
         <select
           value={type}
           onChange={(e) => setType(e.target.value)}
@@ -280,7 +269,7 @@ function CreateEventForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Дата</label>
+          <label className="text-[13px] text-foreground-secondary">Дата</label>
           <input
             type="date"
             value={date}
@@ -290,7 +279,7 @@ function CreateEventForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Время</label>
+          <label className="text-[13px] text-foreground-secondary">Время</label>
           <input
             type="time"
             value={time}
@@ -303,7 +292,7 @@ function CreateEventForm({
 
       <div className="grid grid-cols-2 gap-3">
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Цена с игрока, ₸</label>
+          <label className="text-[13px] text-foreground-secondary">Цена с игрока, ₸</label>
           <input
             type="number"
             value={price}
@@ -314,7 +303,7 @@ function CreateEventForm({
           />
         </div>
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Мин. игроков</label>
+          <label className="text-[13px] text-foreground-secondary">Мин. игроков</label>
           <input
             type="number"
             value={minPlayers}
@@ -327,7 +316,7 @@ function CreateEventForm({
       </div>
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm text-foreground-secondary">Площадка</label>
+        <label className="text-[13px] text-foreground-secondary">Площадка</label>
         <select
           value={venueMode === "existing" ? selectedVenueId : venueMode}
           onChange={(e) => {
@@ -358,7 +347,7 @@ function CreateEventForm({
       {venueMode === "new" && (
         <>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-foreground-secondary">Название</label>
+            <label className="text-[13px] text-foreground-secondary">Название</label>
             <input
               type="text"
               value={venueName}
@@ -368,7 +357,7 @@ function CreateEventForm({
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-foreground-secondary">Адрес</label>
+            <label className="text-[13px] text-foreground-secondary">Адрес</label>
             <input
               type="text"
               value={venueAddress}
@@ -378,7 +367,7 @@ function CreateEventForm({
             />
           </div>
           <div className="flex flex-col gap-1">
-            <label className="text-sm text-foreground-secondary">Район</label>
+            <label className="text-[13px] text-foreground-secondary">Район</label>
             <DistrictSelect
               city="Алматы"
               value={venueDistrictId}
@@ -391,7 +380,7 @@ function CreateEventForm({
 
       {venueMode !== "none" && (
         <div className="flex flex-col gap-1">
-          <label className="text-sm text-foreground-secondary">Стоимость площадки, ₸</label>
+          <label className="text-[13px] text-foreground-secondary">Стоимость площадки, ₸</label>
           <input
             type="number"
             value={venueCost}
@@ -404,7 +393,7 @@ function CreateEventForm({
       )}
 
       <div className="flex flex-col gap-1">
-        <label className="text-sm text-foreground-secondary">Описание</label>
+        <label className="text-[13px] text-foreground-secondary">Описание</label>
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -429,32 +418,35 @@ function CreateEventForm({
           />
         </button>
         <div>
-          <p className="text-sm font-medium">Публичное событие</p>
-          <p className="text-xs text-foreground-secondary">Видно всем в поиске</p>
+          <p className="text-[15px] font-medium">Публичное событие</p>
+          <p className="text-[13px] text-foreground-secondary">Видно всем в поиске</p>
         </div>
       </div>
 
       <div className="flex gap-3">
-        <button
+        <Button
           type="submit"
-          disabled={sending || !date || !time}
-          className="flex-1 bg-primary text-primary-foreground font-display font-semibold uppercase rounded-full px-6 py-3 transition-colors hover:bg-primary-hover disabled:opacity-50"
+          variant="primary"
+          disabled={!date || !time}
+          loading={sending}
+          className="flex-1"
         >
-          {sending ? "Создаю…" : "Создать"}
-        </button>
-        <button
+          Создать
+        </Button>
+        <Button
           type="button"
+          variant="secondary"
           onClick={onCancel}
-          className="px-6 py-3 rounded-full border border-border text-foreground-secondary font-display font-semibold uppercase"
+          className="flex-1"
         >
           Отмена
-        </button>
+        </Button>
       </div>
     </form>
   );
 }
 
-function formatDate(iso: string): string {
+function formatListDate(iso: string): string {
   const d = new Date(iso);
   return d.toLocaleDateString("ru-RU", {
     day: "numeric",
