@@ -7,6 +7,8 @@ import { TeamProvider, useTeam } from "./team-context";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SPORT_LABEL } from "@/lib/catalogs";
 
+const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
+
 type TeamSubTab = {
   label: string;
   href: (id: string) => string;
@@ -86,6 +88,23 @@ function TeamSubNav({ id }: { id: string }) {
   );
 }
 
+function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNode }) {
+  const pathname = usePathname();
+  const isRoster = ROSTER_PATH_RE.test(pathname ?? "");
+
+  if (isRoster) {
+    return <div className="flex flex-1 flex-col">{children}</div>;
+  }
+
+  return (
+    <div className="flex flex-1 flex-col">
+      <TeamScreenHeader />
+      <TeamSubNav id={id} />
+      <div className="flex flex-1 flex-col px-4 py-4 gap-4">{children}</div>
+    </div>
+  );
+}
+
 export default function TeamLayout({
   children,
   params,
@@ -97,11 +116,7 @@ export default function TeamLayout({
 
   return (
     <TeamProvider teamId={id}>
-      <div className="flex flex-1 flex-col">
-        <TeamScreenHeader />
-        <TeamSubNav id={id} />
-        <div className="flex flex-1 flex-col px-4 py-4 gap-4">{children}</div>
-      </div>
+      <TeamLayoutInner id={id}>{children}</TeamLayoutInner>
     </TeamProvider>
   );
 }
