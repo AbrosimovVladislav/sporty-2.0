@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import {
   formatCountdown,
   formatCountdownLabel,
@@ -22,6 +23,7 @@ type Props = {
   eventId: string;
   userId: string | null;
   teamName: string;
+  type: string;
   status: string;
   date: string;
   photoUrl: string | null;
@@ -42,6 +44,7 @@ export function EventHero({
   eventId,
   userId,
   teamName,
+  type,
   status,
   date,
   photoUrl,
@@ -91,7 +94,7 @@ export function EventHero({
         background: "var(--gray-900)",
       }}
     >
-      <div className="relative h-[210px] w-full">
+      <div className="relative h-[230px] w-full">
         {photoUrl ? (
           <Image
             src={photoUrl}
@@ -107,11 +110,21 @@ export function EventHero({
             style={{ background: "linear-gradient(135deg, var(--gray-700), var(--gray-900))" }}
           />
         )}
+
+        {/* top dim for back/status legibility */}
         <div
-          className="absolute inset-0 pointer-events-none"
+          className="absolute inset-x-0 top-0 h-20 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 28%, rgba(0,0,0,0.55) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)",
+          }}
+        />
+        {/* bottom merge into the dark card — smooth, no visible seam */}
+        <div
+          className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
+          style={{
+            background:
+              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 55%, var(--gray-900) 100%)",
           }}
         />
 
@@ -131,13 +144,11 @@ export function EventHero({
         >
           {STATUS_LABEL[status] ?? status}
         </span>
-      </div>
 
-      <div className="px-[18px] pt-4 pb-5">
         {isPlanned && (
           <div
-            className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium mb-3"
-            style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.85)" }}
+            className="absolute left-4 bottom-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium backdrop-blur-sm"
+            style={{ background: "rgba(0,0,0,0.55)", color: "white" }}
           >
             <span
               className="w-1.5 h-1.5 rounded-full"
@@ -146,9 +157,21 @@ export function EventHero({
             {countdownText}
           </div>
         )}
+      </div>
+
+      <div className="px-[18px] pt-2 pb-5">
+        <button
+          type="button"
+          onClick={() => router.push(`/team/${teamId}`)}
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider mb-2 transition-transform active:scale-[0.97]"
+          style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.85)" }}
+        >
+          <ShieldIcon />
+          {teamName}
+        </button>
 
         <h1 className="font-display text-[28px] font-bold uppercase leading-none text-white">
-          {teamName}
+          {EVENT_TYPE_LABEL[type] ?? type}
         </h1>
 
         <p
@@ -302,6 +325,13 @@ function BackIcon() {
     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M19 12H5" />
       <polyline points="12 19 5 12 12 5" />
+    </svg>
+  );
+}
+function ShieldIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
     </svg>
   );
 }

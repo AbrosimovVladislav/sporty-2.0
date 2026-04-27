@@ -132,6 +132,7 @@ export default function EventDetailPage({
         eventId={eventId}
         userId={userId}
         teamName={teamName}
+        type={event.type}
         status={event.status}
         date={event.date}
         photoUrl={event.venue?.photo_url ?? null}

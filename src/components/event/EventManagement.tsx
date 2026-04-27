@@ -195,8 +195,8 @@ function Switch({
       role="switch"
     >
       <span
-        className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow"
-        style={{ transform: checked ? "translateX(22px)" : "translateX(2px)" }}
+        className="absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow"
+        style={{ transform: checked ? "translateX(20px)" : "translateX(0)" }}
       />
     </button>
   );
