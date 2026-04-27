@@ -16,6 +16,7 @@ import {
   EmptyState,
   type FilterChip,
 } from "@/components/ui";
+import { SearchSubnav } from "@/components/search/SearchSubnav";
 import { PlayerListRow } from "@/components/players/PlayerListRow";
 import {
   PlayerFiltersSheet,
@@ -44,11 +45,11 @@ type Stats = {
 type SortMode = "skill" | "recent";
 
 const POSITION_PILLS = [
-  { value: "", label: "Все", fullLabel: "Все позиции" },
-  { value: "Вратарь", label: "ВРТ", fullLabel: "Вратарь" },
-  { value: "Защитник", label: "ЗАЩ", fullLabel: "Защитник" },
-  { value: "Полузащитник", label: "ПЗЩ", fullLabel: "Полузащитник" },
-  { value: "Нападающий", label: "НАП", fullLabel: "Нападающий" },
+  { value: "", label: "Все" },
+  { value: "Вратарь", label: "ВРТ" },
+  { value: "Защитник", label: "ЗАЩ" },
+  { value: "Полузащитник", label: "ПЗЩ" },
+  { value: "Нападающий", label: "НАП" },
 ];
 
 const SORT_OPTIONS = [
@@ -72,7 +73,7 @@ function pluralPlayers(n: number): string {
   return "игроков";
 }
 
-export default function PlayersPage() {
+export default function SearchPlayersPage() {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
 
@@ -154,7 +155,8 @@ export default function PlayersPage() {
     fetch(`/api/players?${params}`)
       .then((r) => r.json())
       .then((d) => {
-        if (!cancelled) setResultsTotal(typeof d.total === "number" ? d.total : null);
+        if (!cancelled)
+          setResultsTotal(typeof d.total === "number" ? d.total : null);
       })
       .catch(() => {
         if (!cancelled) setResultsTotal(null);
@@ -218,10 +220,7 @@ export default function PlayersPage() {
     <div className="flex flex-1 flex-col">
       <PageHeader title="Игроки">
         <HeaderStatGroup>
-          <HeaderStat
-            value={stats?.total ?? "—"}
-            label="Всего"
-          />
+          <HeaderStat value={stats?.total ?? "—"} label="Всего" />
           {userId && (
             <HeaderStat
               value={stats?.inMyTeams ?? "—"}
@@ -235,7 +234,9 @@ export default function PlayersPage() {
         </HeaderStatGroup>
       </PageHeader>
 
-      <div className="px-4 mt-4">
+      <SearchSubnav />
+
+      <div className="px-4 mt-3.5">
         <ListSearchBar
           value={search}
           onChange={setSearch}
@@ -270,7 +271,7 @@ export default function PlayersPage() {
         ) : showEmpty ? (
           <div className="py-10">
             <EmptyState
-              text="По выбранным фильтрам никого не найдено"
+              text="По выбранным фильтрам никого не нашли"
               action={{
                 label: "Сбросить фильтры",
                 onClick: () => {

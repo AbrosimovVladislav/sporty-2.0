@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { use } from "react";
+import { use, useEffect, useState } from "react";
 import { TeamProvider, useTeam } from "./team-context";
 import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import { TeamSwitcherSheet } from "@/components/teams/TeamSwitcherSheet";
+import { useAuth } from "@/lib/auth-context";
+import { setLastActiveTeamId } from "@/lib/lastActiveTeam";
 import { SPORT_LABEL } from "@/lib/catalogs";
 
 const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
@@ -24,8 +27,28 @@ const subTabs: TeamSubTab[] = [
   { label: "Финансы", href: (id) => `/team/${id}/finances`, organizerOnly: true },
 ];
 
-function TeamScreenHeader() {
+function TeamScreenHeader({ teamId }: { teamId: string }) {
   const team = useTeam();
+  const auth = useAuth();
+  const [myTeamCount, setMyTeamCount] = useState(0);
+  const [switcherOpen, setSwitcherOpen] = useState(false);
+
+  useEffect(() => {
+    if (auth.status !== "authenticated") {
+      setMyTeamCount(0);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/users/${auth.user.id}/teams`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setMyTeamCount((d.teams ?? []).length);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [auth]);
 
   if (team.status === "loading") {
     return (
@@ -44,13 +67,44 @@ function TeamScreenHeader() {
   }
 
   const sportLabel = SPORT_LABEL[team.team.sport] ?? team.team.sport;
+  const hasMultiple = myTeamCount >= 2;
+  const titleNode = hasMultiple ? (
+    <button
+      type="button"
+      onClick={() => setSwitcherOpen(true)}
+      className="flex items-center gap-1.5 min-w-0 text-left"
+    >
+      <h1 className="text-[28px] font-bold leading-tight truncate">
+        {team.team.name}
+      </h1>
+      <ChevronDownIcon />
+    </button>
+  ) : (
+    <h1 className="text-[28px] font-bold leading-tight truncate">
+      {team.team.name}
+    </h1>
+  );
 
   return (
-    <ScreenHeader
-      title={team.team.name}
-      subtitle={`${team.team.city} · ${sportLabel}`}
-      fallbackHref="/teams"
-    />
+    <>
+      <header className="flex items-center justify-between px-4 pt-4 pb-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          <div className="min-w-0 flex-1">
+            {titleNode}
+            <p className="text-[13px] text-foreground-secondary">
+              {team.team.city} · {sportLabel}
+            </p>
+          </div>
+        </div>
+      </header>
+      {hasMultiple && (
+        <TeamSwitcherSheet
+          open={switcherOpen}
+          currentTeamId={teamId}
+          onClose={() => setSwitcherOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -95,16 +149,39 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
   const isRoster = ROSTER_PATH_RE.test(path);
   const isEventDetail = EVENT_DETAIL_PATH_RE.test(path);
 
+  useEffect(() => {
+    setLastActiveTeamId(id);
+  }, [id]);
+
   if (isRoster || isEventDetail) {
     return <div className="flex flex-1 flex-col">{children}</div>;
   }
 
   return (
     <div className="flex flex-1 flex-col">
-      <TeamScreenHeader />
+      <TeamScreenHeader teamId={id} />
       <TeamSubNav id={id} />
       <div className="flex flex-1 flex-col px-4 py-4 gap-4">{children}</div>
     </div>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      style={{ color: "var(--text-tertiary)" }}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
   );
 }
 

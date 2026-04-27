@@ -22,6 +22,8 @@ type PublicEventRow = {
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
+  const q = searchParams.get("q")?.trim() ?? null;
+  const type = searchParams.get("type")?.trim() ?? null;
   const city = searchParams.get("city")?.trim() ?? null;
   const district_id = searchParams.get("district_id")?.trim() ?? null;
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
@@ -30,11 +32,11 @@ export async function GET(req: NextRequest) {
   const supabase = getServiceClient();
   const now = new Date().toISOString();
 
-  // venues!inner excludes events without a venue — acceptable for public search
   let query = supabase
     .from("events")
     .select(
-      "id, team_id, type, date, price_per_player, min_players, description, venues!inner(id, name, address, city, district_id, districts(id, name)), teams(id, name, city)"
+      "id, team_id, type, date, price_per_player, min_players, description, venues!inner(id, name, address, city, district_id, districts(id, name)), teams!inner(id, name, city)",
+      { count: "exact" },
     )
     .eq("is_public", true)
     .eq("status", "planned")
@@ -43,8 +45,10 @@ export async function GET(req: NextRequest) {
 
   if (city) query = query.eq("venues.city", city);
   if (district_id) query = query.eq("venues.district_id", district_id);
+  if (type) query = query.eq("type", type as "game" | "training" | "gathering" | "other");
+  if (q) query = query.or(`name.ilike.%${q}%`, { foreignTable: "teams" });
 
-  const { data, error } = await query.range(offset, offset + limit - 1);
+  const { data, error, count } = await query.range(offset, offset + limit - 1);
 
   if (error) {
     console.error("Public events fetch error:", error);
@@ -87,5 +91,5 @@ export async function GET(req: NextRequest) {
     yes_count: countMap.get(e.id) ?? 0,
   }));
 
-  return NextResponse.json({ events: result, nextOffset });
+  return NextResponse.json({ events: result, nextOffset, total: count ?? null });
 }

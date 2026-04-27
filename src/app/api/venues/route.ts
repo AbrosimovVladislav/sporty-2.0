@@ -22,7 +22,9 @@ export async function GET(req: NextRequest) {
   const supabase = getServiceClient();
   let query = supabase
     .from("venues")
-    .select("id, name, address, city, district_id, districts(id, name)")
+    .select("id, name, address, city, district_id, districts(id, name)", {
+      count: "exact",
+    })
     .order("name", { ascending: true })
     .range(offset, offset + limit - 1);
 
@@ -34,7 +36,7 @@ export async function GET(req: NextRequest) {
   }
   if (district_id) query = query.eq("district_id", district_id);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) {
     console.error("Venues fetch error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
@@ -50,5 +52,5 @@ export async function GET(req: NextRequest) {
   }));
 
   const nextOffset = venues.length === limit ? offset + limit : null;
-  return NextResponse.json({ venues, nextOffset });
+  return NextResponse.json({ venues, nextOffset, total: count ?? null });
 }

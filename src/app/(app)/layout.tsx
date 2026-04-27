@@ -1,13 +1,12 @@
 import { BottomTabs, type Tab } from "@/components/BottomTabs";
-import { HomeIcon, SearchIcon, ShieldIcon, UsersIcon, UserIcon } from "@/components/Icons";
+import { HomeIcon, SearchIcon, ShieldIcon, UserIcon } from "@/components/Icons";
 import { UIChromeProvider } from "@/components/ui/UIChromeContext";
 
 const globalTabs: Tab[] = [
-  { label: "Главная",  href: "/home",    icon: <HomeIcon /> },
-  { label: "Поиск",   href: "/search",  icon: <SearchIcon /> },
-  { label: "Команды", href: "/teams",   icon: <ShieldIcon />, matchPaths: ["/team"] },
-  { label: "Игроки",  href: "/players", icon: <UsersIcon /> },
-  { label: "Профиль", href: "/profile", icon: <UserIcon /> },
+  { label: "Главная",     href: "/home",    icon: <HomeIcon /> },
+  { label: "Моя команда", href: "/teams",   icon: <ShieldIcon />, matchPaths: ["/team"] },
+  { label: "Поиск",       href: "/search",  icon: <SearchIcon /> },
+  { label: "Профиль",     href: "/profile", icon: <UserIcon /> },
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

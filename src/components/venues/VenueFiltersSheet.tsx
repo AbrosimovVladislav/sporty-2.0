@@ -2,28 +2,25 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SheetChipGroup, type ChipOption } from "@/components/ui";
-import { POSITIONS } from "@/lib/catalogs";
 
-export type PlayerFilters = {
+export type VenueFilters = {
   city: string;
   districtId: string;
-  lookingForTeam: boolean;
-  position: string;
 };
 
 type Props = {
   open: boolean;
-  initial: PlayerFilters;
+  initial: VenueFilters;
   onClose: () => void;
-  onApply: (filters: PlayerFilters) => void;
+  onApply: (filters: VenueFilters) => void;
 };
 
 const CITIES: ChipOption[] = [{ value: "Алматы", label: "Алматы" }];
 
 type District = { id: string; name: string };
 
-export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
-  const [filters, setFilters] = useState<PlayerFilters>(initial);
+export function VenueFiltersSheet({ open, initial, onClose, onApply }: Props) {
+  const [filters, setFilters] = useState<VenueFilters>(initial);
   const [districts, setDistricts] = useState<District[]>([]);
 
   useEffect(() => {
@@ -57,20 +54,10 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
     [districts],
   );
 
-  const positionOptions = useMemo<ChipOption[]>(
-    () => (POSITIONS.football ?? []).map((p) => ({ value: p, label: p })),
-    [],
-  );
-
   if (!open) return null;
 
   function reset() {
-    setFilters({
-      city: "",
-      districtId: "",
-      lookingForTeam: false,
-      position: "",
-    });
+    setFilters({ city: "", districtId: "" });
   }
 
   function apply() {
@@ -119,64 +106,6 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
             onChange={(d) => setFilters((f) => ({ ...f, districtId: d }))}
             emptyHint="Сначала выбери город"
           />
-
-          <SheetChipGroup
-            label="Позиция"
-            options={positionOptions}
-            value={filters.position}
-            onChange={(p) => setFilters((f) => ({ ...f, position: p }))}
-          />
-
-          <button
-            type="button"
-            onClick={() =>
-              setFilters((f) => ({
-                ...f,
-                lookingForTeam: !f.lookingForTeam,
-              }))
-            }
-            className="flex items-center justify-between rounded-[14px] px-4 py-3 transition-colors w-full"
-            style={{
-              background: filters.lookingForTeam
-                ? "var(--green-50)"
-                : "var(--bg-secondary)",
-              border: filters.lookingForTeam
-                ? "1.5px solid var(--green-500)"
-                : "1.5px solid transparent",
-            }}
-          >
-            <div className="flex flex-col items-start">
-              <span
-                className="text-[14px] font-semibold"
-                style={{
-                  color: filters.lookingForTeam
-                    ? "var(--green-700)"
-                    : "var(--text-primary)",
-                }}
-              >
-                Ищет команду
-              </span>
-              <span
-                className="text-[12px]"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                Только игроки, открытые к новым командам
-              </span>
-            </div>
-            <span
-              className="w-5 h-5 rounded-md flex items-center justify-center shrink-0"
-              style={{
-                background: filters.lookingForTeam
-                  ? "var(--green-500)"
-                  : "transparent",
-                border: filters.lookingForTeam
-                  ? "none"
-                  : "1.5px solid var(--gray-300)",
-              }}
-            >
-              {filters.lookingForTeam && <CheckIcon />}
-            </span>
-          </button>
         </div>
 
         <div className="flex gap-2 mt-6">
@@ -202,22 +131,5 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
         </div>
       </div>
     </div>
-  );
-}
-
-function CheckIcon() {
-  return (
-    <svg
-      width="12"
-      height="12"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="3"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polyline points="20 6 9 17 4 12" />
-    </svg>
   );
 }
