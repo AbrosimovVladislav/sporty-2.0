@@ -113,6 +113,6 @@
 ### Frontend
 
 - ✅ Полный rewrite `src/app/(app)/team/[id]/events/[eventId]/page.tsx`
-- ✅ Компоненты в `src/components/event/`: `EventHero`, `EventTitleBlock`, `EventInfoChips`, `EventRSVP`, `EventAttendeesPreview`, `EventAttendeesSheet`, `EventVenueCard`, `EventFinanceForPlayer`, `EventFinanceForOrganizer`, `EventManagement` (inline аккордион для орг-действий: toggle public, завершить, отменить)
+- ✅ Компоненты в `src/components/event/`: `EventHero` (унифицированная dark-карточка: фото + countdown-чип + название + дата + чипы + 7/10 + RSVP, скруглена снизу 28px), `EventAttendeesPreview`, `EventAttendeesSheet`, `EventVenueCard`, `EventFinanceForPlayer`, `EventFinanceForOrganizer`, `EventManagement` (inline аккордион для орг-действий)
 - ✅ Layout-логика: чипы команды скрыты на маршруте `events/[eventId]` (`team/[id]/layout.tsx`)
 

@@ -4,9 +4,6 @@ import { use, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../../team-context";
 import { EventHero } from "@/components/event/EventHero";
-import { EventTitleBlock } from "@/components/event/EventTitleBlock";
-import { EventInfoChips } from "@/components/event/EventInfoChips";
-import { EventRSVP } from "@/components/event/EventRSVP";
 import { EventAttendeesPreview } from "@/components/event/EventAttendeesPreview";
 import { EventAttendeesSheet } from "@/components/event/EventAttendeesSheet";
 import { EventVenueCard } from "@/components/event/EventVenueCard";
@@ -131,18 +128,22 @@ export default function EventDetailPage({
   return (
     <div className="flex flex-1 flex-col pb-8">
       <EventHero
-        type={event.type}
+        teamId={teamId}
+        eventId={eventId}
+        userId={userId}
+        teamName={teamName}
         status={event.status}
         date={event.date}
         photoUrl={event.venue?.photo_url ?? null}
-      />
-
-      <EventTitleBlock teamName={teamName} date={event.date} />
-
-      <EventInfoChips
-        date={event.date}
         venueName={event.venue?.name ?? null}
         pricePerPlayer={event.price_per_player}
+        minPlayers={event.min_players}
+        yesCount={yesAttendances.length}
+        noCount={noAttendances.length}
+        waitingCount={waitingCount}
+        userVote={myVote}
+        canVote={canVote}
+        onVoted={handleVoted}
         onVenueClick={
           event.venue
             ? () =>
@@ -152,18 +153,6 @@ export default function EventDetailPage({
             : undefined
         }
       />
-
-      {canVote && userId && (
-        <EventRSVP
-          teamId={teamId}
-          eventId={eventId}
-          userId={userId}
-          currentVote={myVote}
-          yesCount={yesAttendances.length}
-          minPlayers={event.min_players}
-          onVoted={handleVoted}
-        />
-      )}
 
       {isCompleted && myAttendance && <PastModeStatus attended={myAttendance.attended} />}
 
