@@ -66,24 +66,13 @@ export function EventCompleteCTA({ isPastDue, onComplete }: Props) {
         type="button"
         onClick={handle}
         disabled={busy}
-        className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-between transition-transform active:scale-[0.99] disabled:opacity-50"
+        className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-center gap-2 transition-transform active:scale-[0.99] disabled:opacity-50"
         style={{ background: "var(--green-500)", color: "white" }}
       >
-        <div className="flex items-center gap-3 text-left">
-          <span
-            className="w-9 h-9 rounded-xl flex items-center justify-center"
-            style={{ background: "rgba(255,255,255,0.2)" }}
-          >
-            <CheckIcon />
-          </span>
-          <div>
-            <p className="text-[14px] font-bold">Завершить событие</p>
-            <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.75)" }}>
-              Yes-голосовавшие отметятся «был» автоматически
-            </p>
-          </div>
-        </div>
-        <ArrowIcon />
+        <CheckIcon />
+        <span className="text-[15px] font-bold">
+          {busy ? "Завершаем..." : "Завершить событие"}
+        </span>
       </button>
     </section>
   );
@@ -101,14 +90,6 @@ function CheckIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
-    </svg>
-  );
-}
-function ArrowIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
     </svg>
   );
 }

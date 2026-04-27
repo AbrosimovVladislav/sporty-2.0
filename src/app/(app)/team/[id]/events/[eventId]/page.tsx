@@ -156,10 +156,6 @@ export default function EventDetailPage({
         photoUrl={event.venue?.photo_url ?? null}
         venueName={event.venue?.name ?? null}
         pricePerPlayer={event.price_per_player}
-        minPlayers={event.min_players}
-        yesCount={yesAttendances.length}
-        noCount={noAttendances.length}
-        waitingCount={waitingCount}
         userVote={myVote}
         canVote={canVote}
         onVoted={handleVoted}
@@ -190,37 +186,11 @@ export default function EventDetailPage({
         />
       )}
 
-      {isCompleted && isOrganizer && (
-        <section className="px-4 mt-5">
-          <button
-            type="button"
-            onClick={() => setAttSheetOpen(true)}
-            className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-between transition-transform active:scale-[0.99]"
-            style={{ background: "var(--green-500)", color: "white" }}
-          >
-            <div className="flex items-center gap-3 text-left">
-              <span
-                className="w-9 h-9 rounded-xl flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.2)" }}
-              >
-                <CheckListIcon />
-              </span>
-              <div>
-                <p className="text-[14px] font-bold">Отметить участников и оплаты</p>
-                <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.75)" }}>
-                  Кто был, кто сдал
-                </p>
-              </div>
-            </div>
-            <ArrowRightIcon />
-          </button>
-        </section>
-      )}
-
       <EventAttendeesPreview
         yes={yesAttendances}
         no={noAttendances}
         waiting={waitingCount}
+        minPlayers={event.min_players}
         onOpen={() => setAttSheetOpen(true)}
       />
 
@@ -290,19 +260,3 @@ export default function EventDetailPage({
   );
 }
 
-function CheckListIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="9 11 12 14 22 4" />
-      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-    </svg>
-  );
-}
-function ArrowRightIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <line x1="5" y1="12" x2="19" y2="12" />
-      <polyline points="12 5 19 12 12 19" />
-    </svg>
-  );
-}

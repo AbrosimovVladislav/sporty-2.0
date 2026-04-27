@@ -9,7 +9,6 @@ import {
   formatCountdownLabel,
   formatFullDate,
   formatPrice,
-  formatTime,
 } from "@/lib/format";
 
 const STATUS_LABEL: Record<string, string> = {
@@ -29,10 +28,6 @@ type Props = {
   photoUrl: string | null;
   venueName: string | null;
   pricePerPlayer: number;
-  minPlayers: number;
-  yesCount: number;
-  noCount: number;
-  waitingCount: number;
   userVote: "yes" | "no" | null;
   canVote: boolean;
   onVoted: () => void;
@@ -50,10 +45,6 @@ export function EventHero({
   photoUrl,
   venueName,
   pricePerPlayer,
-  minPlayers,
-  yesCount,
-  noCount,
-  waitingCount,
   userVote,
   canVote,
   onVoted,
@@ -182,14 +173,10 @@ export function EventHero({
         </p>
 
         <div className="flex gap-2 mt-3 flex-wrap">
-          <Chip>
-            <ClockIcon />
-            {formatTime(date)}
-          </Chip>
           {venueName && (
             <Chip onClick={onVenueClick}>
               <PinIcon />
-              <span className="truncate max-w-[140px]">{venueName}</span>
+              <span className="truncate max-w-[160px]">{venueName}</span>
             </Chip>
           )}
           <Chip>
@@ -198,57 +185,8 @@ export function EventHero({
           </Chip>
         </div>
 
-        <div className="flex items-center gap-3.5 mt-4 mb-4">
-          <div className="font-display text-[32px] font-extrabold leading-none text-white">
-            {yesCount}
-            <span className="text-white/30 font-medium">/{minPlayers}</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex h-2 rounded-full overflow-hidden gap-0.5 mb-1.5">
-              {yesCount > 0 && (
-                <div
-                  className="rounded-full"
-                  style={{ flex: yesCount, background: "var(--green-500)" }}
-                />
-              )}
-              {noCount > 0 && (
-                <div
-                  className="rounded-full"
-                  style={{ flex: noCount, background: "var(--danger)" }}
-                />
-              )}
-              {waitingCount > 0 && (
-                <div
-                  className="rounded-full"
-                  style={{ flex: waitingCount, background: "rgba(255,255,255,0.1)" }}
-                />
-              )}
-              {yesCount + noCount + waitingCount === 0 && (
-                <div
-                  className="rounded-full flex-1"
-                  style={{ background: "rgba(255,255,255,0.1)" }}
-                />
-              )}
-            </div>
-            <div className="flex gap-2.5 text-[10px] text-white/40">
-              <span className="flex items-center gap-1">
-                <span className="w-[5px] h-[5px] rounded-full" style={{ background: "var(--green-500)" }} />
-                <strong className="text-white/75 font-bold">{yesCount}</strong> да
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-[5px] h-[5px] rounded-full" style={{ background: "var(--danger)" }} />
-                <strong className="text-white/75 font-bold">{noCount}</strong> нет
-              </span>
-              <span className="flex items-center gap-1">
-                <span className="w-[5px] h-[5px] rounded-full" style={{ background: "rgba(255,255,255,0.2)" }} />
-                <strong className="text-white/75 font-bold">{waitingCount}</strong> ждём
-              </span>
-            </div>
-          </div>
-        </div>
-
         {canVote && isPlanned && userId && (
-          <div className="flex gap-2">
+          <div className="flex gap-2 mt-4">
             <button
               type="button"
               disabled={voting}
@@ -332,14 +270,6 @@ function ShieldIcon() {
   return (
     <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-    </svg>
-  );
-}
-function ClockIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5" strokeLinecap="round">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
     </svg>
   );
 }

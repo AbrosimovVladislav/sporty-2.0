@@ -58,6 +58,7 @@ export function EventFinanceForOrganizer({
   const venueFullyPaid = venueCost > 0 && venueRemaining === 0;
   const venuePct = venueCost > 0 ? Math.min(100, (venuePaid / venueCost) * 100) : 0;
   const collectedPct = expected > 0 ? Math.min(100, (collected / expected) * 100) : 0;
+  const allPaid = isCompleted && expected > 0 && collected >= expected;
 
   async function saveCost() {
     setSaving(true);
@@ -112,7 +113,7 @@ export function EventFinanceForOrganizer({
               className="text-[12px] font-semibold"
               style={{ color: "var(--green-600)" }}
             >
-              {editingCost ? "Отмена" : venueCost === 0 ? "Указать стоимость" : "Изменить"}
+              {editingCost ? "Отмена" : venueCost === 0 ? "Указать" : "Изменить"}
             </button>
           </div>
 
@@ -150,37 +151,60 @@ export function EventFinanceForOrganizer({
                 Ок
               </button>
             </div>
+          ) : venueCost === 0 ? (
+            <p
+              className="text-[14px]"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              Стоимость не указана
+            </p>
           ) : (
             <>
               <p
-                className="font-display text-[28px] font-bold leading-none mb-1"
+                className="font-display text-[28px] font-bold leading-none mb-2"
                 style={{ color: "var(--text-primary)" }}
               >
-                {venueCost === 0 ? "—" : formatMoney(venueCost)}
+                {formatMoney(venuePaid)}
+                <span
+                  className="font-display text-[18px] font-medium"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  {" "}/ {formatMoney(venueCost)}
+                </span>
               </p>
-              {venueCost > 0 && (
-                <>
-                  <ProgressBar pct={venuePct} done={venueFullyPaid} />
-                  <p
-                    className="text-[12px] mt-2 mb-3"
+              <ProgressBar pct={venuePct} done={venueFullyPaid} />
+              {venueFullyPaid ? (
+                <div
+                  className="flex items-center justify-between mt-3 pt-3"
+                  style={{ borderTop: "1px solid var(--gray-100)" }}
+                >
+                  <span
+                    className="text-[13px] font-semibold flex items-center gap-1.5"
+                    style={{ color: "var(--green-700)" }}
+                  >
+                    <CheckIcon />
+                    Полностью оплачено
+                  </span>
+                  <button
+                    type="button"
+                    onClick={unpayVenue}
+                    disabled={saving}
+                    className="text-[12px] font-medium disabled:opacity-50"
                     style={{ color: "var(--text-tertiary)" }}
                   >
-                    {venueFullyPaid
-                      ? `Оплачено ${formatMoney(venuePaid)}`
-                      : venuePaid > 0
-                        ? `Оплачено ${formatMoney(venuePaid)} из ${formatMoney(venueCost)}`
-                        : "Ещё не оплачено"}
-                  </p>
-                  {!venueFullyPaid ? (
-                    <BigButton onClick={payVenueInFull} disabled={saving}>
-                      Отметить оплату · {formatMoney(venueRemaining)}
-                    </BigButton>
-                  ) : (
-                    <SmallUndo onClick={unpayVenue} disabled={saving}>
-                      ✓ Оплачено · отменить
-                    </SmallUndo>
-                  )}
-                </>
+                    Отменить
+                  </button>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={payVenueInFull}
+                  disabled={saving}
+                  className="w-full mt-3 py-3 rounded-xl text-[14px] font-bold transition-transform active:scale-[0.98] disabled:opacity-50"
+                  style={{ background: "var(--green-500)", color: "white" }}
+                >
+                  Отметить оплату · {formatMoney(venueRemaining)}
+                </button>
               )}
             </>
           )}
@@ -197,73 +221,88 @@ export function EventFinanceForOrganizer({
                 Сборы с игроков
               </p>
               <span className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                {formatMoney(pricePerPlayer)} × чел
+                {formatMoney(pricePerPlayer)} с человека
               </span>
             </div>
 
-            <p
-              className="font-display text-[28px] font-bold leading-none mb-1"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {isCompleted ? formatMoney(collected) : formatMoney(expected)}
-              {isCompleted && (
-                <span
-                  className="font-display text-[18px] font-medium"
-                  style={{ color: "var(--text-tertiary)" }}
-                >
-                  {" "}
-                  / {formatMoney(expected)}
-                </span>
-              )}
-            </p>
-
-            {isCompleted && expected > 0 && (
+            {isCompleted ? (
               <>
-                <ProgressBar pct={collectedPct} done={collectedPct >= 100} />
                 <p
-                  className="text-[12px] mt-2 mb-3"
-                  style={{ color: "var(--text-tertiary)" }}
+                  className="font-display text-[28px] font-bold leading-none mb-2"
+                  style={{ color: "var(--text-primary)" }}
                 >
-                  {attendances.filter((a) => a.attended === true).length} участвовали
-                </p>
-              </>
-            )}
-
-            {!isCompleted && (
-              <p
-                className="text-[12px] mt-1 mb-1"
-                style={{ color: "var(--text-tertiary)" }}
-              >
-                Ожидаемый сбор · {yesCount} собираются прийти
-              </p>
-            )}
-
-            {isCompleted && debtors.length > 0 && (
-              <>
-                <DebtButton
-                  count={debtors.length}
-                  amount={debtAmount}
-                  expanded={showDebtors}
-                  onClick={() => setShowDebtors((v) => !v)}
-                />
-                {showDebtors && (
-                  <ul
-                    className="mt-3 pt-3 flex flex-col gap-1.5"
-                    style={{ borderTop: "1px solid var(--gray-100)" }}
+                  {formatMoney(collected)}
+                  <span
+                    className="font-display text-[18px] font-medium"
+                    style={{ color: "var(--text-tertiary)" }}
                   >
-                    {debtors.map((d) => (
-                      <li
-                        key={d.user_id}
-                        className="flex items-center justify-between text-[13px]"
+                    {" "}/ {formatMoney(expected)}
+                  </span>
+                </p>
+                {expected > 0 && <ProgressBar pct={collectedPct} done={allPaid} />}
+
+                {allPaid ? (
+                  <div
+                    className="flex items-center gap-1.5 mt-3 pt-3 text-[13px] font-semibold"
+                    style={{
+                      borderTop: "1px solid var(--gray-100)",
+                      color: "var(--green-700)",
+                    }}
+                  >
+                    <CheckIcon />
+                    Все сдали
+                  </div>
+                ) : debtors.length > 0 ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setShowDebtors((v) => !v)}
+                      className="w-full mt-3 py-3 rounded-xl text-[14px] font-bold transition-transform active:scale-[0.98] flex items-center justify-between px-4"
+                      style={{
+                        background: "oklch(0.95 0.06 25)",
+                        color: "var(--danger)",
+                      }}
+                    >
+                      <span>
+                        Должны {debtors.length} {plural(debtors.length, "человек", "человека", "человек")} · {formatMoney(debtAmount)}
+                      </span>
+                      <span style={{ transform: showDebtors ? "rotate(180deg)" : "rotate(0deg)" }}>
+                        <ChevronDownIcon />
+                      </span>
+                    </button>
+                    {showDebtors && (
+                      <ul
+                        className="mt-3 pt-3 flex flex-col gap-1.5"
+                        style={{ borderTop: "1px solid var(--gray-100)" }}
                       >
-                        <span style={{ color: "var(--text-primary)" }}>{d.user.name}</span>
-                        <span className="font-semibold" style={{ color: "var(--danger)" }}>
-                          {formatMoney(pricePerPlayer)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                        {debtors.map((d) => (
+                          <li
+                            key={d.user_id}
+                            className="flex items-center justify-between text-[13px]"
+                          >
+                            <span style={{ color: "var(--text-primary)" }}>{d.user.name}</span>
+                            <span className="font-semibold" style={{ color: "var(--danger)" }}>
+                              {formatMoney(pricePerPlayer)}
+                            </span>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </>
+                ) : null}
+              </>
+            ) : (
+              // Planned mode — expected revenue only
+              <>
+                <p
+                  className="font-display text-[28px] font-bold leading-none mb-1"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {formatMoney(expected)}
+                </p>
+                <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
+                  Ожидается с {yesCount} {plural(yesCount, "игрока", "игроков", "игроков")}
+                </p>
               </>
             )}
           </Card>
@@ -301,78 +340,13 @@ function ProgressBar({ pct, done }: { pct: number; done: boolean }) {
   );
 }
 
-function BigButton({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
+function CheckIcon() {
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full py-3 rounded-xl text-[14px] font-bold transition-transform active:scale-[0.98] disabled:opacity-50"
-      style={{ background: "var(--green-500)", color: "white" }}
-    >
-      {children}
-    </button>
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
   );
 }
-
-function SmallUndo({
-  children,
-  onClick,
-  disabled,
-}: {
-  children: React.ReactNode;
-  onClick: () => void;
-  disabled?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      className="w-full py-2.5 rounded-xl text-[13px] font-semibold transition-transform active:scale-[0.98] disabled:opacity-50"
-      style={{ background: "var(--green-50)", color: "var(--green-700)" }}
-    >
-      {children}
-    </button>
-  );
-}
-
-function DebtButton({
-  count,
-  amount,
-  expanded,
-  onClick,
-}: {
-  count: number;
-  amount: number;
-  expanded: boolean;
-  onClick: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="w-full mt-2 py-3 rounded-xl text-[14px] font-bold transition-transform active:scale-[0.98] flex items-center justify-between px-4"
-      style={{ background: "oklch(0.95 0.06 25)", color: "var(--danger)" }}
-    >
-      <span>
-        Должны {count} {plural(count, "человек", "человека", "человек")} · {formatMoney(amount)}
-      </span>
-      <span style={{ transform: expanded ? "rotate(180deg)" : "rotate(0deg)" }}>
-        <ChevronDownIcon />
-      </span>
-    </button>
-  );
-}
-
 function ChevronDownIcon() {
   return (
     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -380,7 +354,6 @@ function ChevronDownIcon() {
     </svg>
   );
 }
-
 function plural(n: number, one: string, few: string, many: string): string {
   const m = n % 10;
   const tens = n % 100;
