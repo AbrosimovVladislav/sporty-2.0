@@ -9,7 +9,7 @@ type ScheduleEvent = {
   date: string;
   team_id: string;
   team: { id: string; name: string } | null;
-  venue: { id: string; name: string } | null;
+  venue: { id: string; name: string; photo_url: string | null } | null;
   user_vote: "yes" | "no" | null;
 };
 

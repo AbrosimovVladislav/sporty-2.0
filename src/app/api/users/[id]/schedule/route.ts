@@ -7,7 +7,7 @@ type EventRow = {
   date: string;
   team_id: string;
   teams: { id: string; name: string } | null;
-  venues: { id: string; name: string } | null;
+  venues: { id: string; name: string; photo_url: string | null } | null;
 };
 
 export async function GET(
@@ -34,7 +34,7 @@ export async function GET(
 
   let query = supabase
     .from("events")
-    .select("id, type, date, team_id, teams(id, name), venues(id, name)")
+    .select("id, type, date, team_id, teams(id, name), venues(id, name, photo_url)")
     .in("team_id", teamIds)
     .neq("status", "completed")
     .neq("status", "cancelled")
@@ -77,7 +77,7 @@ export async function GET(
     date: e.date,
     team_id: e.team_id,
     team: e.teams,
-    venue: e.venues,
+    venue: e.venues ? { ...e.venues, photo_url: e.venues.photo_url ?? null } : null,
     user_vote: voteByEvent.get(e.id) ?? null,
   }));
 

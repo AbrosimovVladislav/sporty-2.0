@@ -22,7 +22,7 @@ type NextEvent = {
   min_players: number;
   is_public: boolean;
   team: { id: string; name: string } | null;
-  venue: { id: string; name: string; address: string } | null;
+  venue: { id: string; name: string; address: string; photo_url: string | null } | null;
   yes_count: number;
   no_count: number;
   waiting_count: number;
@@ -53,7 +53,7 @@ type ScheduleEvent = {
   date: string;
   team_id: string;
   team: { id: string; name: string } | null;
-  venue: { id: string; name: string } | null;
+  venue: { id: string; name: string; photo_url: string | null } | null;
   user_vote: "yes" | "no" | null;
 };
 
@@ -162,6 +162,7 @@ export default function HomePage() {
             event={nextEvent}
             userId={userId}
             onVoteChange={handleVoteChange}
+            photoUrl={nextEvent.venue?.photo_url ?? null}
           />
         ) : null}
       </HomeHero>

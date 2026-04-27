@@ -10,7 +10,7 @@ type EventRow = {
   min_players: number;
   is_public: boolean;
   teams: { id: string; name: string } | null;
-  venues: { id: string; name: string; address: string } | null;
+  venues: { id: string; name: string; address: string; photo_url: string | null } | null;
 };
 
 export async function GET(
@@ -21,7 +21,7 @@ export async function GET(
   const supabase = getServiceClient();
 
   const SELECT =
-    "id, type, date, team_id, price_per_player, min_players, is_public, status, teams(id, name), venues(id, name, address)";
+    "id, type, date, team_id, price_per_player, min_players, is_public, status, teams(id, name), venues(id, name, address, photo_url)";
 
   const { data: memberships } = await supabase
     .from("team_memberships")
@@ -132,7 +132,9 @@ export async function GET(
       min_players: event.min_players,
       is_public: event.is_public,
       team: event.teams,
-      venue: event.venues,
+      venue: event.venues
+        ? { ...event.venues, photo_url: event.venues.photo_url ?? null }
+        : null,
       yes_count: yes,
       no_count: no,
       waiting_count: waiting,

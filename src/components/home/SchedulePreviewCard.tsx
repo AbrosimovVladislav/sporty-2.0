@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { formatDayShort, formatTime } from "@/lib/format";
 
@@ -11,7 +12,7 @@ type Props = {
     date: string;
     team_id: string;
     team: { id: string; name: string } | null;
-    venue: { id: string; name: string } | null;
+    venue: { id: string; name: string; photo_url: string | null } | null;
     user_vote: "yes" | "no" | null;
   };
 };
@@ -32,12 +33,21 @@ export function SchedulePreviewCard({ event }: Props) {
       style={{ border: "1.5px solid var(--gray-200)", background: "white" }}
     >
       <div className="relative h-20 overflow-hidden">
-        <div
-          className="w-full h-full"
-          style={{
-            background: "linear-gradient(135deg, var(--gray-700), var(--gray-900))",
-          }}
-        />
+        {event.venue?.photo_url ? (
+          <Image
+            src={event.venue.photo_url}
+            alt=""
+            width={600}
+            height={160}
+            className="w-full h-full object-cover"
+            style={{ filter: "brightness(0.8) contrast(1.1)" }}
+          />
+        ) : (
+          <div
+            className="w-full h-full"
+            style={{ background: "linear-gradient(135deg, var(--gray-700), var(--gray-900))" }}
+          />
+        )}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.05) 0%, rgba(0,0,0,0.35) 100%)" }}
