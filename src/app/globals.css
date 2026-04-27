@@ -1,90 +1,199 @@
 @import "tailwindcss";
 
 :root {
-  /* Background */
-  --background: #F4F5F7;
-  --background-card: #ffffff;
-  --background-muted: #F0F2F5;
-  --background-overlay: rgba(0, 0, 0, 0.4);
-  /* Legacy — не использовать в новом UI */
-  --background-dark: #1a1a1a;
-  --background-dark-elevated: #2a2a2a;
+  /* ===== COLOR SCALES ===== */
 
-  /* Foreground / Text */
-  --foreground: #0F1417;
-  --foreground-secondary: #6B7280;
-  --foreground-muted: #9CA3AF;
-  --foreground-on-dark: #ffffff;
-  --foreground-on-dark-muted: #a0a0a0;
+  /* Emerald Green (hue 155) */
+  --green-50:  oklch(0.97 0.02 155);
+  --green-100: oklch(0.93 0.05 155);
+  --green-200: oklch(0.85 0.10 155);
+  --green-300: oklch(0.75 0.15 155);
+  --green-400: oklch(0.65 0.18 155);
+  --green-500: oklch(0.58 0.17 155);
+  --green-600: oklch(0.50 0.15 155);
+  --green-700: oklch(0.42 0.13 155);
+  --green-800: oklch(0.34 0.10 155);
+  --green-900: oklch(0.26 0.07 155);
 
-  /* Primary — vivid green */
-  --primary: #22C55E;
-  --primary-hover: #16A34A;
-  --primary-foreground: #ffffff;
-  --primary-soft: #DCFCE7;
+  /* Warm Gray (hue 80) */
+  --gray-50:  oklch(0.985 0.003 80);
+  --gray-100: oklch(0.96 0.005 80);
+  --gray-200: oklch(0.92 0.005 80);
+  --gray-300: oklch(0.87 0.005 80);
+  --gray-400: oklch(0.70 0.005 80);
+  --gray-500: oklch(0.55 0.005 80);
+  --gray-600: oklch(0.44 0.005 80);
+  --gray-700: oklch(0.35 0.005 80);
+  --gray-800: oklch(0.25 0.005 80);
+  --gray-900: oklch(0.18 0.005 80);
 
-  /* Semantic */
-  --warning: #F59E0B;
-  --warning-soft: #FEF3C7;
-  --danger: #EF4444;
-  --danger-soft: #FEE2E2;
+  /* ===== SEMANTIC STATUS ===== */
+  --danger:  oklch(0.63 0.20 25);
+  --warning: oklch(0.75 0.15 70);
+  --success: var(--green-500);
+  --info:    oklch(0.65 0.15 250);
 
-  /* Borders & Dividers */
-  --border: #E5E7EB;
-  --border-strong: #D1D5DB;
-  /* Legacy */
-  --border-dark: #333333;
+  /* ===== SURFACES ===== */
+  --bg-primary:   #ffffff;
+  --bg-secondary: var(--gray-50);
+  --bg-card:      var(--gray-100);
+  --bg-elevated:  #ffffff;
+  --bg-dark:      var(--gray-900);
 
-  /* Shadows */
-  --shadow-card: 0 1px 2px rgba(15, 20, 23, 0.04), 0 1px 3px rgba(15, 20, 23, 0.06);
-  --shadow-pop: 0 6px 20px rgba(15, 20, 23, 0.08);
+  /* ===== TEXT ===== */
+  --text-primary:   var(--gray-900);
+  --text-secondary: var(--gray-500);
+  --text-tertiary:  var(--gray-400);
+  --text-inverse:   #ffffff;
+  --text-accent:    var(--green-500);
 
-  /* Radius */
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
+  /* ===== SPACING (4px base) ===== */
+  --space-1:  4px;
+  --space-2:  8px;
+  --space-3:  12px;
+  --space-4:  16px;
+  --space-5:  20px;
+  --space-6:  24px;
+  --space-8:  32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --page-px:  16px;
+
+  /* ===== RADII ===== */
+  --radius-sm:   8px;
+  --radius-md:   12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
   --radius-full: 9999px;
+
+  /* ===== SHADOWS ===== */
+  --shadow-sm: 0 1px 2px oklch(0.2 0 0 / 0.06);
+  --shadow-md: 0 2px 8px oklch(0.2 0 0 / 0.08);
+  --shadow-lg: 0 4px 16px oklch(0.2 0 0 / 0.10);
+
+  /* ===== BACKWARD COMPAT ALIASES ===== */
+
+  /* Background */
+  --background:               var(--bg-secondary);
+  --background-card:          var(--bg-primary);
+  --background-muted:         var(--bg-card);
+  --background-overlay:       oklch(0.2 0 0 / 0.4);
+  --background-dark:          var(--bg-dark);
+  --background-dark-elevated: oklch(0.25 0.005 80);
+
+  /* Foreground */
+  --foreground:               var(--text-primary);
+  --foreground-secondary:     var(--text-secondary);
+  --foreground-muted:         var(--text-tertiary);
+  --foreground-on-dark:       var(--text-inverse);
+  --foreground-on-dark-muted: oklch(0.65 0 0);
+
+  /* Primary */
+  --primary:             var(--green-500);
+  --primary-hover:       var(--green-600);
+  --primary-foreground:  #ffffff;
+  --primary-soft:        var(--green-100);
+
+  /* Status soft variants */
+  --danger-soft:  oklch(0.95 0.06 25);
+  --warning-soft: oklch(0.95 0.06 70);
+
+  /* Borders */
+  --border:        var(--gray-200);
+  --border-strong: var(--gray-300);
+  --border-dark:   var(--gray-700);
+
+  /* Legacy shadow names */
+  --shadow-card: var(--shadow-sm);
+  --shadow-pop:  var(--shadow-md);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-background-card: var(--background-card);
-  --color-background-muted: var(--background-muted);
-  --color-background-overlay: var(--background-overlay);
-  --color-background-dark: var(--background-dark);
+  /* Color scales */
+  --color-green-50:  var(--green-50);
+  --color-green-100: var(--green-100);
+  --color-green-200: var(--green-200);
+  --color-green-300: var(--green-300);
+  --color-green-400: var(--green-400);
+  --color-green-500: var(--green-500);
+  --color-green-600: var(--green-600);
+  --color-green-700: var(--green-700);
+  --color-green-800: var(--green-800);
+  --color-green-900: var(--green-900);
+
+  --color-gray-50:  var(--gray-50);
+  --color-gray-100: var(--gray-100);
+  --color-gray-200: var(--gray-200);
+  --color-gray-300: var(--gray-300);
+  --color-gray-400: var(--gray-400);
+  --color-gray-500: var(--gray-500);
+  --color-gray-600: var(--gray-600);
+  --color-gray-700: var(--gray-700);
+  --color-gray-800: var(--gray-800);
+  --color-gray-900: var(--gray-900);
+
+  /* Semantic status */
+  --color-success: var(--success);
+  --color-danger:  var(--danger);
+  --color-warning: var(--warning);
+  --color-info:    var(--info);
+
+  /* Surfaces */
+  --color-bg-primary:   var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-card:      var(--bg-card);
+  --color-bg-elevated:  var(--bg-elevated);
+  --color-bg-dark:      var(--bg-dark);
+
+  /* Text */
+  --color-text-primary:   var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary:  var(--text-tertiary);
+  --color-text-inverse:   var(--text-inverse);
+  --color-text-accent:    var(--text-accent);
+
+  /* Backward compat Tailwind colors */
+  --color-background:               var(--background);
+  --color-background-card:          var(--background-card);
+  --color-background-muted:         var(--background-muted);
+  --color-background-overlay:       var(--background-overlay);
+  --color-background-dark:          var(--background-dark);
   --color-background-dark-elevated: var(--background-dark-elevated);
 
-  --color-foreground: var(--foreground);
-  --color-foreground-secondary: var(--foreground-secondary);
-  --color-foreground-muted: var(--foreground-muted);
-  --color-foreground-on-dark: var(--foreground-on-dark);
+  --color-foreground:               var(--foreground);
+  --color-foreground-secondary:     var(--foreground-secondary);
+  --color-foreground-muted:         var(--foreground-muted);
+  --color-foreground-on-dark:       var(--foreground-on-dark);
   --color-foreground-on-dark-muted: var(--foreground-on-dark-muted);
 
-  --color-primary: var(--primary);
-  --color-primary-hover: var(--primary-hover);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary-soft: var(--primary-soft);
+  --color-primary:             var(--primary);
+  --color-primary-hover:       var(--primary-hover);
+  --color-primary-foreground:  var(--primary-foreground);
+  --color-primary-soft:        var(--primary-soft);
 
-  --color-warning: var(--warning);
+  --color-danger-soft:  var(--danger-soft);
   --color-warning-soft: var(--warning-soft);
-  --color-danger: var(--danger);
-  --color-danger-soft: var(--danger-soft);
 
-  --color-border: var(--border);
+  --color-border:        var(--border);
   --color-border-strong: var(--border-strong);
-  --color-border-dark: var(--border-dark);
+  --color-border-dark:   var(--border-dark);
 
+  /* Shadows */
+  --shadow-sm:   var(--shadow-sm);
+  --shadow-md:   var(--shadow-md);
+  --shadow-lg:   var(--shadow-lg);
   --shadow-card: var(--shadow-card);
-  --shadow-pop: var(--shadow-pop);
+  --shadow-pop:  var(--shadow-pop);
 
-  --radius-sm: var(--radius-sm);
-  --radius-md: var(--radius-md);
-  --radius-lg: var(--radius-lg);
-  --radius-xl: var(--radius-xl);
+  /* Radii */
+  --radius-sm:   var(--radius-sm);
+  --radius-md:   var(--radius-md);
+  --radius-lg:   var(--radius-lg);
+  --radius-xl:   var(--radius-xl);
   --radius-full: var(--radius-full);
 
-  --font-sans: var(--font-geist-sans);
+  /* Fonts */
+  --font-sans:    var(--font-geist-sans);
   --font-display: var(--font-oswald);
 }
 
