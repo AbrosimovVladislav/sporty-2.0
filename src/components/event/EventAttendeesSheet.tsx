@@ -7,26 +7,36 @@ type Attendance = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
+  paid: boolean | null;
+  user: { id: string; name: string };
+};
+
+type Member = {
+  id: string;
   user: { id: string; name: string };
 };
 
 type Props = {
   open: boolean;
   attendances: Attendance[];
-  totalMembers: number;
+  members: Member[];
   isOrganizer: boolean;
   isCompleted: boolean;
+  currentUserId: string | null;
   onAttendedToggle?: (userId: string, attended: boolean) => void;
+  onPaidToggle?: (userId: string, paid: boolean) => void;
   onClose: () => void;
 };
 
 export function EventAttendeesSheet({
   open,
   attendances,
-  totalMembers,
+  members,
   isOrganizer,
   isCompleted,
+  currentUserId,
   onAttendedToggle,
+  onPaidToggle,
   onClose,
 }: Props) {
   useEffect(() => {
@@ -40,10 +50,15 @@ export function EventAttendeesSheet({
 
   if (!open) return null;
 
-  const yes = attendances.filter((a) => a.vote === "yes");
-  const no = attendances.filter((a) => a.vote === "no");
-  const respondedIds = new Set(attendances.filter((a) => a.vote !== null).map((a) => a.user_id));
-  const waitingCount = Math.max(0, totalMembers - respondedIds.size);
+  const attByUser = new Map(attendances.map((a) => [a.user_id, a]));
+  const yesIds = new Set(attendances.filter((a) => a.vote === "yes").map((a) => a.user_id));
+  const noIds = new Set(attendances.filter((a) => a.vote === "no").map((a) => a.user_id));
+
+  const yesMembers = members.filter((m) => yesIds.has(m.user.id));
+  const noMembers = members.filter((m) => noIds.has(m.user.id));
+  const waitingMembers = members.filter(
+    (m) => !yesIds.has(m.user.id) && !noIds.has(m.user.id),
+  );
 
   return (
     <div
@@ -56,10 +71,8 @@ export function EventAttendeesSheet({
         style={{ boxShadow: "var(--shadow-lg)" }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="px-5 pt-3 pb-2 flex items-center justify-between">
-          <div className="flex-1 flex justify-center">
-            <div className="w-10 h-1 rounded-full" style={{ background: "var(--gray-200)" }} />
-          </div>
+        <div className="px-5 pt-3 pb-2 flex justify-center">
+          <div className="w-10 h-1 rounded-full" style={{ background: "var(--gray-200)" }} />
         </div>
         <div className="px-5 pb-3 flex items-center justify-between">
           <h3 className="text-[18px] font-bold">Участники</h3>
@@ -76,33 +89,41 @@ export function EventAttendeesSheet({
 
         <div className="px-3 pb-6">
           <Section
-            label={`Идут (${yes.length})`}
-            tone="yes"
-            attendances={yes}
+            label={`Идут (${yesMembers.length})`}
+            dot="var(--green-500)"
+            members={yesMembers}
+            attByUser={attByUser}
             isOrganizer={isOrganizer}
             isCompleted={isCompleted}
+            currentUserId={currentUserId}
+            showAttendance
             onAttendedToggle={onAttendedToggle}
+            onPaidToggle={onPaidToggle}
           />
           <Section
-            label={`Не идут (${no.length})`}
-            tone="no"
-            attendances={no}
+            label={`Не идут (${noMembers.length})`}
+            dot="var(--danger)"
+            members={noMembers}
+            attByUser={attByUser}
             isOrganizer={isOrganizer}
             isCompleted={isCompleted}
+            currentUserId={currentUserId}
+            showAttendance={false}
+            onAttendedToggle={onAttendedToggle}
+            onPaidToggle={onPaidToggle}
           />
-          {waitingCount > 0 && (
-            <div className="mt-4 px-3">
-              <p
-                className="text-[11px] font-semibold uppercase mb-2"
-                style={{ letterSpacing: "0.06em", color: "var(--text-tertiary)" }}
-              >
-                Ждём ответа ({waitingCount})
-              </p>
-              <p className="text-[14px]" style={{ color: "var(--text-tertiary)" }}>
-                {waitingCount} {plural(waitingCount, "игрок ещё не ответил", "игрока ещё не ответили", "игроков ещё не ответили")}
-              </p>
-            </div>
-          )}
+          <Section
+            label={`Ждут ответа (${waitingMembers.length})`}
+            dot="var(--gray-300)"
+            members={waitingMembers}
+            attByUser={attByUser}
+            isOrganizer={isOrganizer}
+            isCompleted={isCompleted}
+            currentUserId={currentUserId}
+            showAttendance={false}
+            onAttendedToggle={onAttendedToggle}
+            onPaidToggle={onPaidToggle}
+          />
         </div>
       </div>
     </div>
@@ -111,21 +132,28 @@ export function EventAttendeesSheet({
 
 function Section({
   label,
-  tone,
-  attendances,
+  dot,
+  members,
+  attByUser,
   isOrganizer,
   isCompleted,
+  currentUserId,
+  showAttendance,
   onAttendedToggle,
+  onPaidToggle,
 }: {
   label: string;
-  tone: "yes" | "no";
-  attendances: Attendance[];
+  dot: string;
+  members: Member[];
+  attByUser: Map<string, Attendance>;
   isOrganizer: boolean;
   isCompleted: boolean;
+  currentUserId: string | null;
+  showAttendance: boolean;
   onAttendedToggle?: (userId: string, attended: boolean) => void;
+  onPaidToggle?: (userId: string, paid: boolean) => void;
 }) {
-  if (attendances.length === 0) return null;
-  const dotColor = tone === "yes" ? "var(--green-500)" : "var(--danger)";
+  if (members.length === 0) return null;
 
   return (
     <div className="mt-4 px-3">
@@ -133,57 +161,96 @@ function Section({
         className="text-[11px] font-semibold uppercase mb-2 flex items-center gap-1.5"
         style={{ letterSpacing: "0.06em", color: "var(--text-tertiary)" }}
       >
-        <span className="w-1.5 h-1.5 rounded-full" style={{ background: dotColor }} />
+        <span className="w-1.5 h-1.5 rounded-full" style={{ background: dot }} />
         {label}
       </p>
       <ul className="flex flex-col gap-0.5">
-        {attendances.map((a) => (
-          <li key={a.user_id} className="flex items-center gap-3 px-2 py-2">
-            <Avatar name={a.user.name} size="sm" />
-            <p className="flex-1 text-[14px] font-medium truncate" style={{ color: "var(--text-primary)" }}>
-              {a.user.name}
-            </p>
-            {isCompleted && tone === "yes" && (
-              isOrganizer && onAttendedToggle ? (
-                <button
-                  type="button"
-                  onClick={() => onAttendedToggle(a.user_id, !(a.attended === true))}
-                  className="text-[12px] font-semibold px-3 py-1 rounded-full"
-                  style={
-                    a.attended === true
-                      ? { background: "var(--green-500)", color: "white" }
-                      : { background: "var(--gray-100)", color: "var(--text-secondary)" }
-                  }
+        {members.map((m) => {
+          const att = attByUser.get(m.user.id);
+          const isMe = currentUserId === m.user.id;
+          const canEdit = isOrganizer || isMe;
+          return (
+            <li key={m.user.id} className="flex items-center gap-3 px-2 py-2">
+              <Avatar name={m.user.name} size="sm" />
+              <div className="flex-1 min-w-0">
+                <p
+                  className="text-[14px] font-medium truncate"
+                  style={{ color: "var(--text-primary)" }}
                 >
-                  {a.attended === true ? "Был" : "Был?"}
-                </button>
-              ) : (
-                a.attended !== null && (
-                  <span
-                    className="text-[12px] px-3 py-1 rounded-full"
-                    style={
-                      a.attended
-                        ? { background: "var(--green-50)", color: "var(--green-700)" }
-                        : { background: "var(--gray-100)", color: "var(--text-tertiary)" }
+                  {m.user.name}
+                  {isMe && (
+                    <span
+                      className="ml-1.5 text-[11px] font-semibold"
+                      style={{ color: "var(--green-600)" }}
+                    >
+                      (вы)
+                    </span>
+                  )}
+                </p>
+              </div>
+              {isCompleted && showAttendance && (
+                <div className="flex gap-1.5 shrink-0">
+                  <Toggle
+                    label={att?.attended === true ? "Был" : att?.attended === false ? "Не был" : "Был?"}
+                    active={att?.attended === true}
+                    canEdit={canEdit && !!onAttendedToggle}
+                    onClick={() =>
+                      onAttendedToggle?.(m.user.id, !(att?.attended === true))
                     }
-                  >
-                    {a.attended ? "Был" : "Не был"}
-                  </span>
-                )
-              )
-            )}
-          </li>
-        ))}
+                  />
+                  <Toggle
+                    label={att?.paid === true ? "Сдал" : "Сдал?"}
+                    active={att?.paid === true}
+                    canEdit={canEdit && !!onPaidToggle}
+                    onClick={() => onPaidToggle?.(m.user.id, !(att?.paid === true))}
+                  />
+                </div>
+              )}
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
-function plural(n: number, one: string, few: string, many: string): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return many;
-  if (m === 1) return one;
-  if (m >= 2 && m <= 4) return few;
-  return many;
+function Toggle({
+  label,
+  active,
+  canEdit,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  canEdit: boolean;
+  onClick: () => void;
+}) {
+  if (!canEdit) {
+    return (
+      <span
+        className="text-[12px] px-2.5 py-1 rounded-full inline-block"
+        style={
+          active
+            ? { background: "var(--green-50)", color: "var(--green-700)" }
+            : { background: "var(--gray-100)", color: "var(--text-tertiary)" }
+        }
+      >
+        {label}
+      </span>
+    );
+  }
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="text-[12px] font-semibold px-2.5 py-1 rounded-full transition-colors"
+      style={
+        active
+          ? { background: "var(--green-500)", color: "white" }
+          : { background: "var(--gray-100)", color: "var(--text-secondary)" }
+      }
+    >
+      {label}
+    </button>
+  );
 }

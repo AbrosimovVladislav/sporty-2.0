@@ -10,6 +10,7 @@ import { EventVenueCard } from "@/components/event/EventVenueCard";
 import { EventFinanceForPlayer } from "@/components/event/EventFinanceForPlayer";
 import { EventFinanceForOrganizer } from "@/components/event/EventFinanceForOrganizer";
 import { EventManagement } from "@/components/event/EventManagement";
+import { EventMyAttendance } from "@/components/event/EventMyAttendance";
 
 type EventDetail = {
   id: string;
@@ -50,11 +51,12 @@ export default function EventDetailPage({
   const [attendances, setAttendances] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [attSheetOpen, setAttSheetOpen] = useState(false);
+  const [completing, setCompleting] = useState(false);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const isOrganizer = team.status === "ready" && team.role === "organizer";
   const isMember = team.status === "ready" && team.role !== "guest";
-  const totalMembers = team.status === "ready" ? team.members.length : 0;
+  const members = team.status === "ready" ? team.members : [];
   const teamName = team.status === "ready" ? team.team.name : "Команда";
 
   const loadEvent = useCallback(async () => {
@@ -83,10 +85,24 @@ export default function EventDetailPage({
 
   async function handleAttendedToggle(targetUserId: string, attended: boolean) {
     if (!userId) return;
+    const isSelf = targetUserId === userId;
+    const body = isSelf ? { userId, attended } : { userId, targetUserId, attended };
     await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ userId, targetUserId, attended }),
+      body: JSON.stringify(body),
+    });
+    await loadEvent();
+  }
+
+  async function handlePaidToggle(targetUserId: string, paid: boolean) {
+    if (!userId) return;
+    const isSelf = targetUserId === userId;
+    const body = isSelf ? { userId, paid } : { userId, targetUserId, paid };
+    await fetch(`/api/teams/${teamId}/events/${eventId}/attendance`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
     });
     await loadEvent();
   }
@@ -117,13 +133,24 @@ export default function EventDetailPage({
   const yesAttendances = attendances.filter((a) => a.vote === "yes");
   const noAttendances = attendances.filter((a) => a.vote === "no");
   const respondedIds = new Set(attendances.filter((a) => a.vote !== null).map((a) => a.user_id));
-  const waitingCount = Math.max(0, totalMembers - respondedIds.size);
+  const waitingCount = Math.max(0, members.length - respondedIds.size);
   const myAttendance = userId ? attendances.find((a) => a.user_id === userId) : null;
   const myVote = myAttendance?.vote ?? null;
   const myPaid = myAttendance?.paid === true;
+  const myAttended = myAttendance?.attended ?? null;
   const isCompleted = event.status === "completed";
   const isPlanned = event.status === "planned";
   const canVote = isPlanned && !!userId && (isMember || event.is_public);
+  const isPastDue = isPlanned && new Date(event.date).getTime() < Date.now();
+
+  async function handleQuickComplete() {
+    setCompleting(true);
+    try {
+      await patchEvent({ status: "completed" });
+    } finally {
+      setCompleting(false);
+    }
+  }
 
   return (
     <div className="flex flex-1 flex-col pb-8">
@@ -155,7 +182,81 @@ export default function EventDetailPage({
         }
       />
 
-      {isCompleted && myAttendance && <PastModeStatus attended={myAttendance.attended} />}
+      {isOrganizer && isPastDue && (
+        <section className="px-4 mt-5">
+          <div
+            className="rounded-2xl px-4 py-4 flex items-center gap-3"
+            style={{
+              background: "oklch(0.97 0.06 90)",
+              border: "1.5px solid oklch(0.85 0.13 90)",
+            }}
+          >
+            <span
+              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "white", color: "oklch(0.55 0.18 60)" }}
+            >
+              <ClockAlertIcon />
+            </span>
+            <div className="flex-1 min-w-0">
+              <p
+                className="text-[14px] font-semibold"
+                style={{ color: "oklch(0.35 0.12 60)" }}
+              >
+                Событие прошло
+              </p>
+              <p className="text-[12px]" style={{ color: "oklch(0.45 0.1 60)" }}>
+                Завершите его, чтобы отметить участников и оплаты
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={handleQuickComplete}
+              disabled={completing}
+              className="text-[13px] font-semibold rounded-full px-4 py-2 shrink-0 disabled:opacity-50"
+              style={{ background: "var(--green-500)", color: "white" }}
+            >
+              {completing ? "..." : "Завершить"}
+            </button>
+          </div>
+        </section>
+      )}
+
+      {isCompleted && !isOrganizer && userId && (
+        <EventMyAttendance
+          attended={myAttended}
+          paid={myPaid}
+          pricePerPlayer={event.price_per_player}
+          onToggleAttended={() => handleAttendedToggle(userId, myAttended !== true)}
+          onTogglePaid={() => handlePaidToggle(userId, !myPaid)}
+        />
+      )}
+
+      {isCompleted && isOrganizer && (
+        <section className="px-4 mt-5">
+          <button
+            type="button"
+            onClick={() => setAttSheetOpen(true)}
+            className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-between transition-transform active:scale-[0.99]"
+            style={{ background: "var(--green-500)", color: "white" }}
+          >
+            <div className="flex items-center gap-3 text-left">
+              <span
+                className="w-9 h-9 rounded-xl flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.2)" }}
+              >
+                <CheckListIcon />
+              </span>
+              <div>
+                <p className="text-[14px] font-bold">Отметить участников и оплаты</p>
+                <p className="text-[12px]" style={{ color: "rgba(255,255,255,0.75)" }}>
+                  Кто был, кто сдал
+                </p>
+              </div>
+            </div>
+            <ArrowRightIcon />
+          </button>
+        </section>
+      )}
 
       <EventAttendeesPreview
         yes={yesAttendances}
@@ -193,12 +294,16 @@ export default function EventDetailPage({
           venuePaid={event.venue_paid}
           attendances={attendances}
           yesCount={yesAttendances.length}
+          onPatch={patchEvent}
         />
       ) : (
         <EventFinanceForPlayer
           pricePerPlayer={event.price_per_player}
           isCompleted={isCompleted}
           myPaid={myPaid}
+          onTogglePaid={
+            userId ? () => handlePaidToggle(userId, !myPaid) : undefined
+          }
         />
       )}
 
@@ -215,32 +320,39 @@ export default function EventDetailPage({
       <EventAttendeesSheet
         open={attSheetOpen}
         attendances={attendances}
-        totalMembers={totalMembers}
+        members={members}
         isOrganizer={isOrganizer}
         isCompleted={isCompleted}
-        onAttendedToggle={isOrganizer ? handleAttendedToggle : undefined}
+        currentUserId={userId}
+        onAttendedToggle={handleAttendedToggle}
+        onPaidToggle={handlePaidToggle}
         onClose={() => setAttSheetOpen(false)}
       />
     </div>
   );
 }
 
-function PastModeStatus({ attended }: { attended: boolean | null }) {
-  const [bg, color, label] =
-    attended === true
-      ? ["var(--green-50)", "var(--green-700)", "✓ Вы были"]
-      : attended === false
-        ? ["oklch(0.95 0.06 25)", "var(--danger)", "Вы не пришли"]
-        : ["var(--gray-100)", "var(--text-secondary)", "Присутствие ещё не отмечено"];
-
+function ClockAlertIcon() {
   return (
-    <section className="px-4 mt-5">
-      <div
-        className="rounded-xl px-4 py-3 text-[14px] font-semibold"
-        style={{ background: bg, color }}
-      >
-        {label}
-      </div>
-    </section>
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
+function CheckListIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="9 11 12 14 22 4" />
+      <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+    </svg>
+  );
+}
+function ArrowRightIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <line x1="5" y1="12" x2="19" y2="12" />
+      <polyline points="12 5 19 12 12 19" />
+    </svg>
   );
 }

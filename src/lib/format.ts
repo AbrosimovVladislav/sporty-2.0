@@ -34,6 +34,10 @@ export function formatPrice(price: number): string {
   return `${price.toLocaleString("ru-RU")} ₸`;
 }
 
+export function formatMoney(amount: number): string {
+  return `${amount.toLocaleString("ru-RU")} ₸`;
+}
+
 export function formatTime(dateStr: string): string {
   return new Date(dateStr).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
 }
