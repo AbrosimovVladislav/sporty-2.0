@@ -21,7 +21,6 @@ export async function GET(
 ) {
   const { id: userId } = await params;
   const supabase = getServiceClient();
-  const now = new Date().toISOString();
 
   const { data: rawMemberships } = await supabase
     .from("team_memberships")
@@ -43,8 +42,8 @@ export async function GET(
     .from("events")
     .select("id, type, date, team_id, min_players, price_per_player")
     .in("team_id", teamIds)
-    .eq("status", "planned")
-    .gt("date", now)
+    .neq("status", "completed")
+    .neq("status", "cancelled")
     .order("date", { ascending: true });
 
   const nextEvents = (rawNextEvents ?? []) as unknown as NextEventRow[];

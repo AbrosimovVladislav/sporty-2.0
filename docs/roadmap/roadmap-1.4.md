@@ -25,89 +25,41 @@
 
 ## ⬜ Итерация 31 — Главная страница (Home v8)
 
-**Цель:** реализовать главную страницу строго по дизайну Claude Design (Home v8), сохранив всю существующую функциональность и добавив новые блоки.
+**Цель:** реализовать главную страницу строго по дизайну Claude Design (Home v8), сохранив всю функциональность и добавив новые блоки.
 
 ### Структура (сверху вниз)
 
-1. **Hero-зона** (зелёный фон `green-600` + диагональная текстура, скругление снизу 28px):
-   - Header: «Привет, [имя]» + bell-иконка справа: red-dot если есть pending-заявки в команды-орг; тап → bottom-sheet со списком заявок (тап на пункт → переход к заявкам команды)
-   - Тёмная карточка ближайшего события (`gray-900`):
-     - Фото-баннер 140px с overlay-градиентом
-     - Бейджи типа/статуса (top-left)
-     - Countdown «через 2д» (Oswald, bottom-right на фото)
-     - Заголовок команды (Oswald uppercase 22px белый)
-     - 3 чипа: время, площадка, цена
-     - Явка: вариант **bignum** — крупные «7 / 10» + 3-сегментный бар (yes / no / waiting) + легенда
-     - RSVP-кнопки «Приду» / «Не приду» с галочкой на выбранной
+1. ✅ **Hero-зона** (зелёный фон + диагональная текстура, скругление снизу 28px):
+   - Header: «Привет, [имя]» + bell-иконка справа: red-dot если есть pending-заявки в команды-орг; тап → bottom-sheet со списком заявок
+   - Тёмная карточка ближайшего события (`gray-900`): фото-баннер 140px, бейджи типа/статуса, countdown «через 2д» (Oswald), заголовок команды (Oswald uppercase), 3 чипа (время/площадка/цена), явка-bignum (крупные «7 / 10» + 3-сегментный бар yes/no/waiting + легенда), RSVP-кнопки «Приду» / «Не приду» с галочкой на выбранной
 
-2. **Карточка заявок** (только орг, только если есть):
-   - Иконка + «3 заявки во вступление» + «ХК Волки · 2, ХК Лагман · 1» + бейдж счётчика
-   - Тап → переход к экрану заявок (если одна команда — сразу туда; если несколько — выбор)
+2. ✅ **Карточка заявок** (только орг, только если есть): иконка + «3 заявки во вступление» + разбивка по командам + бейдж счётчика; тап → sheet со списком (тап на пункт → заявки команды)
 
-3. **Quick Actions** (grid-2):
-   - Primary «Найти событие» → `/search` (вкладка «События»)
-   - Secondary «Найти команду» → `/search` (вкладка «Команды»)
+3. ✅ **Quick Actions** (grid-2): «Найти событие» (primary) → `/search?tab=events`, «Найти команду» (secondary) → `/search?tab=teams`
 
-4. **Мои команды (пульс)** (горизонтальный скролл):
-   - 200px карточки: лого (gradient), название, спорт+город, пилюля ближайшего события, 3 stat-колонки (явка / долгов / заявок)
-   - Только организаторы видят заявки и долги; для player-команд — только явка
-   - Тап → `/team/[id]`
+4. ✅ **Пульс команд** (горизонтальный скролл): 210px карточки с лого (gradient), названием, спорт+город, пилюлей ближайшего события и 3 stat-колонками (явка / долгов / заявок). Долги и заявки — только для команд, где user = organizer
 
-5. **Расписание** (вертикальный список):
-   - 3 ближайших события **после** hero-события (дата + день недели как Oswald-стрипа на фото, статус явки top-right pill, низ — название + meta)
-   - Линк «Все события →» в шапке секции → `/search?my=1` (фильтр «события моих команд»)
+5. ✅ **Расписание** (вертикальный список): 3 ближайших события **после** hero, дата как Oswald-стрипа на градиенте, статус явки top-right pill, низ — название + meta. Линк «Все события →» в шапке
 
-6. **Bottom nav** — без изменений (уже есть в `(app)/layout.tsx`)
+6. ✅ **Bottom nav** — без изменений
 
 ### Backend / API
 
-- ⬜ Расширить `GET /api/users/[id]/next-event` — добавить `no_count`, `waiting_count`, `total_members` для трёхсегментного бара
-- ⬜ Новый: `GET /api/users/[id]/pending-requests` — для блока заявок (только команды, где user = organizer; группировка по командам)
-- ⬜ Новый: `GET /api/users/[id]/teams-pulse` — массив команд пользователя с агрегатами: ближайшее событие, явка/min, долги, заявки
-- ⬜ Новый: `GET /api/users/[id]/schedule?limit=3&offset=1` — следующие N событий после ближайшего, со статусом явки пользователя
-- ⬜ Расширить `GET /api/events/public` — поддержать `?my=1&userId=...` для фильтра «события моих команд» (фильтр игнорирует `is_public`)
+- ✅ Расширен `GET /api/users/[id]/next-event` — добавлены `no_count`, `waiting_count`, `total_members` для трёхсегментного бара
+- ✅ `GET /api/users/[id]/pending-requests` — для блока заявок (только команды, где user = organizer; группировка по командам)
+- ✅ `GET /api/users/[id]/teams-pulse` — массив команд пользователя с агрегатами: ближайшее событие, явка/min, долги, заявки
+- ✅ `GET /api/users/[id]/schedule?limit=3&excludeId=<heroId>` — следующие N событий со статусом явки; `excludeId` исключает hero-событие (надёжнее offset, т.к. hero может приходить из voted-yes вне команд)
+- ⬜ Фильтр «события моих команд» в `GET /api/events/public?my=1&userId=...` — пока не реализован, линк ведёт на общую вкладку событий
 
 ### Frontend
 
-- ⬜ Новые компоненты в `src/components/home/`:
-  - `HeroEventCard.tsx` — тёмная карточка события + countdown + явка-bignum + RSVP
-  - `RequestsCard.tsx` — карточка-сигнал заявок
-  - `QuickActions.tsx` — пара кнопок «Создать / Найти»
-  - `TeamPulseCard.tsx` — карточка команды для горизонтального скролла
-  - `SchedulePreviewCard.tsx` — строка-карточка предстоящего события
-- ⬜ Полный rewrite `src/app/(app)/home/page.tsx`
-- ⬜ Search: принимать `?my=1` в `EventsTab.tsx`, передавать на API
+- ✅ Компоненты в `src/components/home/`: `HomeHero`, `HeroEventCard`, `RequestsCard`, `RequestsSheet`, `QuickActions`, `TeamPulseSection`, `TeamPulseCard`, `ScheduleSection`, `SchedulePreviewCard`
+- ✅ Полный rewrite `src/app/(app)/home/page.tsx`
+- ✅ Search: поддержка `?tab=events|teams|venues` для прямой навигации с главной
+- ⬜ Search: фильтр `?my=1` для расписания «Все события»
+- ⬜ Реальные фото площадок в hero и в расписании — сейчас градиенты-плейсхолдеры
 
-### Утилиты / типография
+### Утилиты
 
-- ⬜ Helper `formatCountdown(date)` → «сегодня», «завтра», «через 2д»
-- ⬜ В `globals.css` уже есть `--font-display` (Oswald) — использовать для заголовков hero, countdown, дат расписания
-
-### Затронутые файлы
-
-```
-docs/features/player/[player]-home.md          (уже обновлён в предыдущей итерации)
-src/app/globals.css                             (возможно мелкие токены: bell red-dot)
-src/app/(app)/home/page.tsx                     (rewrite)
-src/app/(app)/search/EventsTab.tsx              (поддержка ?my=1)
-src/app/api/events/public/route.ts              (фильтр my)
-src/app/api/users/[id]/next-event/route.ts      (расширить)
-src/app/api/users/[id]/pending-requests/route.ts  (NEW)
-src/app/api/users/[id]/teams-pulse/route.ts       (NEW)
-src/app/api/users/[id]/schedule/route.ts          (NEW)
-src/components/home/HeroEventCard.tsx             (NEW)
-src/components/home/RequestsCard.tsx              (NEW)
-src/components/home/QuickActions.tsx              (NEW)
-src/components/home/TeamPulseCard.tsx             (NEW)
-src/components/home/SchedulePreviewCard.tsx      (NEW)
-src/lib/format.ts                                (helper formatCountdown — может быть новым файлом)
-```
-
-### Порядок реализации
-
-1. Backend: 3 новых API + расширение next-event
-2. Search: поддержка `?my=1`
-3. Компоненты в `src/components/home/`
-4. Rewrite `home/page.tsx`
-5. Smoke-тест на dev-сервере (организатор / игрок / гость без команд)
+- ✅ `src/lib/format.ts`: `formatCountdown`, `formatCountdownLabel`, `formatPrice`, `formatTime`, `formatDayShort`, `formatWeekday`, `formatFullDate`, `teamGradient` (детерминированный градиент по id команды)
 

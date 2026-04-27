@@ -14,15 +14,14 @@ type EventRow = {
 };
 
 export async function GET(
-  req: NextRequest,
+  _req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id: userId } = await params;
   const supabase = getServiceClient();
-  const now = new Date().toISOString();
 
   const SELECT =
-    "id, type, date, team_id, price_per_player, min_players, is_public, teams(id, name), venues(id, name, address)";
+    "id, type, date, team_id, price_per_player, min_players, is_public, status, teams(id, name), venues(id, name, address)";
 
   const { data: memberships } = await supabase
     .from("team_memberships")
@@ -51,8 +50,8 @@ export async function GET(
         const { data } = await supabase
           .from("events")
           .select(SELECT)
-          .eq("status", "planned")
-          .gt("date", now)
+          .neq("status", "completed")
+          .neq("status", "cancelled")
           .in("team_id", teamIds)
           .order("date", { ascending: true })
           .limit(5);
@@ -67,8 +66,8 @@ export async function GET(
         const { data } = await supabase
           .from("events")
           .select(SELECT)
-          .eq("status", "planned")
-          .gt("date", now)
+          .neq("status", "completed")
+          .neq("status", "cancelled")
           .in("id", votedEventIds)
           .order("date", { ascending: true })
           .limit(5);

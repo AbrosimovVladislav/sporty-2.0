@@ -20,7 +20,6 @@ export async function GET(
   const excludeId = searchParams.get("excludeId");
 
   const supabase = getServiceClient();
-  const now = new Date().toISOString();
 
   const { data: memberships } = await supabase
     .from("team_memberships")
@@ -37,8 +36,8 @@ export async function GET(
     .from("events")
     .select("id, type, date, team_id, teams(id, name), venues(id, name)")
     .in("team_id", teamIds)
-    .eq("status", "planned")
-    .gt("date", now)
+    .neq("status", "completed")
+    .neq("status", "cancelled")
     .order("date", { ascending: true })
     .limit(limit + 1);
 
