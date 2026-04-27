@@ -40,11 +40,11 @@ export function ListSearchBar({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
-          className="w-full pl-10 pr-9 py-3 rounded-[14px] text-[14px] outline-none"
+          className="w-full pl-10 pr-9 py-3 rounded-[14px] text-[14px] outline-none transition-colors focus:border-green-500"
           style={{
-            background: "var(--bg-secondary)",
+            background: "var(--bg-card)",
             color: "var(--text-primary)",
-            border: "1.5px solid transparent",
+            border: "1.5px solid var(--gray-200)",
           }}
         />
       </div>
@@ -54,7 +54,11 @@ export function ListSearchBar({
           onClick={onFilterClick}
           aria-label="Фильтры"
           className="w-[46px] h-[46px] rounded-[14px] flex items-center justify-center relative active:scale-95 transition-transform shrink-0"
-          style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}
+          style={{
+            background: "var(--bg-card)",
+            color: "var(--text-primary)",
+            border: "1.5px solid var(--gray-200)",
+          }}
         >
           <FunnelIcon />
           {filterActiveCount > 0 && (

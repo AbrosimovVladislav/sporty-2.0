@@ -30,8 +30,11 @@ export function FilterPills({ options, value, onChange }: Props) {
             aria-label={opt.fullLabel ?? opt.label}
             className="rounded-[10px] px-1 py-2 text-[12px] font-semibold transition-colors active:scale-[0.98] truncate"
             style={{
-              background: active ? "var(--gray-900)" : "var(--bg-secondary)",
+              background: active ? "var(--gray-900)" : "var(--bg-card)",
               color: active ? "white" : "var(--text-secondary)",
+              border: active
+                ? "1px solid var(--gray-900)"
+                : "1px solid var(--gray-200)",
             }}
           >
             {opt.label}

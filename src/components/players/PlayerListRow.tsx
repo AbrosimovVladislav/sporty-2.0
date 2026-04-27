@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { Avatar, MiniBar } from "@/components/ui";
-import { skillToBars } from "./skillToBars";
+import { reliabilityToBars } from "./reliabilityToBars";
 
 type Props = {
   id: string;
   name: string;
   avatarUrl?: string | null;
   position?: string | null;
-  skillLevel?: string | null;
   city?: string | null;
   district?: string | null;
   lookingForTeam?: boolean;
+  reliability?: number | null;
+  played?: number;
 };
 
 export function PlayerListRow({
@@ -20,13 +21,14 @@ export function PlayerListRow({
   name,
   avatarUrl,
   position,
-  skillLevel,
   city,
   district,
   lookingForTeam,
+  reliability,
+  played = 0,
 }: Props) {
   const subtitle = [position, district || city].filter(Boolean).join(" · ");
-  const bars = skillToBars(skillLevel);
+  const bars = reliabilityToBars(reliability ?? null, played);
 
   return (
     <Link
@@ -54,20 +56,25 @@ export function PlayerListRow({
           </p>
         )}
       </div>
-      {bars > 0 ? (
-        <div className="shrink-0 flex items-center gap-2">
-          <MiniBar value={bars} max={5} />
-        </div>
-      ) : (
-        <div className="shrink-0">
+      <div
+        className="shrink-0"
+        aria-label={
+          bars === 0
+            ? "Надёжность: нет данных"
+            : `Надёжность ${reliability ?? 0}%`
+        }
+      >
+        {bars === 0 ? (
           <span
-            className="text-[11px] font-semibold uppercase"
-            style={{ color: "var(--text-tertiary)", letterSpacing: "0.04em" }}
+            className="text-[13px] font-semibold"
+            style={{ color: "var(--text-tertiary)" }}
           >
             —
           </span>
-        </div>
-      )}
+        ) : (
+          <MiniBar value={bars} max={5} />
+        )}
+      </div>
     </Link>
   );
 }

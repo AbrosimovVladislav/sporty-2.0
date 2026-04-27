@@ -40,13 +40,21 @@ Query params:
 Ответ:
 ```json
 {
-  "players": [{ "id", "name", "avatar_url", "city", "position", "skill_level", "looking_for_team", "district_id", "district": { "id", "name" } }],
+  "players": [{
+    "id", "name", "avatar_url",
+    "city", "district_id", "district": { "id", "name" },
+    "position", "skill_level", "looking_for_team",
+    "reliability": 87,    // % посещения completed-событий, на которые был ответ "приду", null если votedYes=0
+    "played": 13          // attended=true в completed-событиях
+  }],
   "nextOffset": 20,
   "total": 42
 }
 ```
 
-`total` приходит из PostgREST `count: exact` — используется для счётчика «Найдено N игроков» в meta-row.
+`total` приходит из PostgREST `count: exact` — используется для счётчика «Найдено N игроков».
+
+`reliability` и `played` считаются bulk-запросом по `event_attendances + events.status='completed'` для всех игроков страницы (один доп. запрос на каждую страницу пагинации, не N+1 на игрока).
 
 ### GET /api/players/stats
 
@@ -98,7 +106,7 @@ Query: `?userId=&city=`
 4. **`FilterPills`** — grid-5 быстрых позиций: «Все / ВРТ / ЗАЩ / ПЗЩ / НАП». Универсал доступен только через filter-sheet
 5. **`ActiveFilterChips`** — pill'ы применённых sheet-фильтров (город, «Ищет команду», sheet-позиция) с ✕-удалением. Не показывается, если фильтров нет
 6. Эйбрау «Результаты · N»
-7. Список `PlayerListRow` (Avatar 44px + имя + опц. бейдж «Ищет команду» + мета «Позиция · Район/Город» + 5-bar мини-бар справа), разделители 1px `var(--gray-100)`
+7. Список `PlayerListRow` (Avatar 44px + имя + опц. бейдж «Ищет команду» + мета «Позиция · Район/Город» + 5-bar мини-бар надёжности справа: `100→5, 80-99→4, 60-79→3, 40-59→2, 1-39→1, played=0→прочерк`), разделители 1px `var(--gray-100)`
 8. Infinite scroll через `usePaginatedList` + `InfiniteScrollSentinel`
 9. Empty state с кнопкой «Сбросить фильтры», если ничего не найдено
 

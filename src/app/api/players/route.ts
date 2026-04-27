@@ -13,6 +13,12 @@ type PlayerRow = {
   districts: { id: string; name: string } | null;
 };
 
+type AttendanceRow = {
+  user_id: string;
+  vote: "yes" | "no" | null;
+  attended: boolean | null;
+};
+
 type SortMode = "skill" | "recent";
 
 export async function GET(req: NextRequest) {
@@ -55,17 +61,56 @@ export async function GET(req: NextRequest) {
   const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const players = ((data ?? []) as unknown as PlayerRow[]).map((p) => ({
-    id: p.id,
-    name: p.name,
-    avatar_url: p.avatar_url,
-    city: p.city,
-    position: p.position,
-    skill_level: p.skill_level,
-    looking_for_team: p.looking_for_team,
-    district_id: p.district_id,
-    district: p.districts ?? null,
-  }));
+  const baseRows = (data ?? []) as unknown as PlayerRow[];
+  const ids = baseRows.map((p) => p.id);
+
+  const reliabilityMap = new Map<
+    string,
+    { reliability: number | null; played: number }
+  >();
+  for (const id of ids) reliabilityMap.set(id, { reliability: null, played: 0 });
+
+  if (ids.length > 0) {
+    const { data: attendances } = await supabase
+      .from("event_attendances")
+      .select("user_id, vote, attended, events!inner(status)")
+      .in("user_id", ids)
+      .eq("events.status", "completed");
+
+    const buckets = new Map<string, { yes: number; attended: number }>();
+    for (const id of ids) buckets.set(id, { yes: 0, attended: 0 });
+
+    for (const row of (attendances ?? []) as unknown as AttendanceRow[]) {
+      const b = buckets.get(row.user_id);
+      if (!b) continue;
+      if (row.vote === "yes") b.yes++;
+      if (row.attended === true) b.attended++;
+    }
+
+    for (const [id, b] of buckets) {
+      reliabilityMap.set(id, {
+        reliability: b.yes > 0 ? Math.round((b.attended / b.yes) * 100) : null,
+        played: b.attended,
+      });
+    }
+  }
+
+  const players = baseRows.map((p) => {
+    const stats = reliabilityMap.get(p.id) ?? { reliability: null, played: 0 };
+    return {
+      id: p.id,
+      name: p.name,
+      avatar_url: p.avatar_url,
+      city: p.city,
+      position: p.position,
+      skill_level: p.skill_level,
+      looking_for_team: p.looking_for_team,
+      district_id: p.district_id,
+      district: p.districts ?? null,
+      reliability: stats.reliability,
+      played: stats.played,
+    };
+  });
 
   const nextOffset = players.length === limit ? offset + limit : null;
   return NextResponse.json({ players, nextOffset, total: count ?? null });

@@ -531,7 +531,7 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
       <CaptainBadge />                          <!-- опц.: 18×18 green-500, "C" -->
       <SeekingBadge>Ищет команду</SeekingBadge> <!-- опц. pill -->
     </div>
-    <p class="text-[13px] text-text-secondary truncate">Позиция · Уровень · Город</p>
+    <p class="text-[13px] text-text-secondary truncate">Позиция · Район/Город</p>
   </div>
   <div class="flex items-center gap-2 shrink-0">
     <MiniBar value={4} max={5} />               <!-- 5×(4×14) px -->
@@ -545,7 +545,7 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 - Капитан: 18px circle `bg-green-500` + белая «C» (9px font-extrabold)
 - «Ищет команду»: pill `bg-green-50 text-green-600 px-1.5 py-0.5 text-[10px] font-semibold rounded-full`
 
-**Правый блок:** только одна метрика — обычно мини-бар (5 палочек). Цифра справа от бара только если у нас есть **числовой рейтинг** (post-MVP). Пока — только бар.
+**Правый блок:** только одна метрика — обычно мини-бар (5 палочек). Для каталога игроков бар отображает **надёжность** (% посещения completed-событий, на которые был ответ «приду»): `100→5, 80-99→4, 60-79→3, 40-59→2, 1-39→1, played=0→прочерк`. Цифра справа от бара только если есть **числовой рейтинг** (post-MVP).
 
 **Разделитель строк:** `border-bottom: 1px var(--gray-100)`. Последняя строка — без border. Никаких карточек-боксов вокруг каждой строки.
 
@@ -622,8 +622,8 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 4. **Эйбрау «РЕЗУЛЬТАТЫ · N»** + список строк-игроков по паттерну `ListRow`:
    - Avatar 44px (фото из `users.avatar_url`, иначе цветная подложка с инициалом)
    - Имя + опц. бейдж «Ищет команду»
-   - Мета: «Позиция · Уровень · Город» (district если есть)
-   - Справа: 5-bar мини-бар (маппинг `skill_level` → 1..5: Новичок=1, Любитель=2, Уверенный=3, Полупрофи=4, Про=5)
+   - Мета: «Позиция · Район/Город» (district приоритетнее city)
+   - Справа: 5-bar мини-бар надёжности (`100→5, 80-99→4, 60-79→3, 40-59→2, 1-39→1, played=0→прочерк`). Сортировка списка по `skill_level` или `created_at` — независимое измерение
 5. Pull-to-load-more (infinite scroll) — без paginator.
 
 Не делать: тёмный hero, отдельные `bg-bg-card border` карточки на каждую строку, красные/оранжевые акценты без смысла, дублирование «N игроков» в эйбрау И в meta-row.

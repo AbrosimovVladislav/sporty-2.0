@@ -55,8 +55,12 @@ function SortDropdown({
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 text-[13px] font-semibold"
-        style={{ color: "var(--green-600)" }}
+        className="flex items-center gap-1 text-[13px] font-semibold rounded-full pl-3 pr-2 py-1 transition-colors"
+        style={{
+          color: "var(--green-700)",
+          background: "var(--bg-card)",
+          border: "1px solid var(--gray-200)",
+        }}
       >
         {current?.label}
         <ChevronDownIcon />
