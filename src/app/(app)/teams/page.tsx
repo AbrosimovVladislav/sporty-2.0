@@ -1,6 +1,6 @@
 "use client";
 
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { usePaginatedList } from "@/lib/usePaginatedList";
@@ -8,11 +8,11 @@ import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
+  HeaderActionButton,
   HeaderStatGroup,
   HeaderStat,
   ListSearchBar,
   ListMeta,
-  FilterPills,
   ActiveFilterChips,
   EmptyState,
   type FilterChip,
@@ -45,8 +45,7 @@ type Stats = {
   lookingForPlayers: number;
 };
 
-type Scope = "all" | "mine";
-type SortMode = "mine_first" | "recent";
+type SortMode = "mine_first" | "newest";
 
 const EMPTY_FILTERS: TeamFilters = {
   city: "",
@@ -54,11 +53,6 @@ const EMPTY_FILTERS: TeamFilters = {
   sport: "",
   lookingForPlayers: false,
 };
-
-const SCOPE_PILLS = [
-  { value: "all", label: "Все" },
-  { value: "mine", label: "Только мои" },
-];
 
 function pluralTeams(n: number): string {
   const m = n % 10;
@@ -80,11 +74,11 @@ function teamMatchesFilters(t: MyTeam, q: string, f: TeamFilters): boolean {
 
 export default function TeamsPage() {
   const auth = useAuth();
+  const router = useRouter();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [scope, setScope] = useState<Scope>("all");
   const [sort, setSort] = useState<SortMode>("mine_first");
   const [filters, setFilters] = useState<TeamFilters>(EMPTY_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -150,10 +144,7 @@ export default function TeamsPage() {
     [myTeams, debouncedSearch, filters],
   );
 
-  const showGrouped =
-    scope === "all" && sort === "mine_first" && visibleMyTeams.length > 0;
-  const showFlat = !showGrouped && scope === "all";
-  const showOnlyMine = scope === "mine";
+  const showGrouped = sort === "mine_first" && visibleMyTeams.length > 0;
 
   // Paginated list of "all" teams (excluding mine when grouped)
   const fetcher = useCallback(
@@ -193,12 +184,7 @@ export default function TeamsPage() {
   const [othersTotal, setOthersTotal] = useState<number | null>(null);
   const [allTotal, setAllTotal] = useState<number | null>(null);
 
-  // Fetch counts for meta-row & eyebrows.
   useEffect(() => {
-    if (showOnlyMine) {
-      reset();
-      return;
-    }
     let cancelled = false;
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
@@ -208,7 +194,6 @@ export default function TeamsPage() {
     if (filters.lookingForPlayers) params.set("looking_for_players", "true");
     params.set("limit", "1");
 
-    // total without exclusion (for the meta count)
     fetch(`/api/teams?${params}`)
       .then((r) => r.json())
       .then((d) => {
@@ -247,7 +232,6 @@ export default function TeamsPage() {
     filters.lookingForPlayers,
     showGrouped,
     myTeamIds,
-    showOnlyMine,
   ]);
 
   const activeChips = useMemo<FilterChip[]>(() => {
@@ -284,25 +268,44 @@ export default function TeamsPage() {
     (filters.sport ? 1 : 0) +
     (filters.lookingForPlayers ? 1 : 0);
 
-  const metaCount = showOnlyMine ? visibleMyTeams.length : allTotal;
   const countLabel =
-    metaCount === null
+    allTotal === null
       ? "Загружаем…"
-      : `Найдено ${metaCount} ${pluralTeams(metaCount)}`;
+      : `Найдено ${allTotal} ${pluralTeams(allTotal)}`;
 
   const SORT_OPTIONS = userId
     ? [
         { value: "mine_first", label: "Сначала мои" },
-        { value: "recent", label: "Недавние" },
+        { value: "newest", label: "Сначала новые" },
       ]
-    : [{ value: "recent", label: "Недавние" }];
+    : [{ value: "newest", label: "Сначала новые" }];
 
   const showSkeleton =
-    !showOnlyMine && otherTeams.length === 0 && loading && myTeams === null;
+    otherTeams.length === 0 && loading && myTeams === null;
+
+  const hasFilters =
+    debouncedSearch.length > 0 ||
+    filters.city.length > 0 ||
+    filters.districtId.length > 0 ||
+    filters.sport.length > 0 ||
+    filters.lookingForPlayers;
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader title="Команды">
+      <PageHeader
+        title="Команды"
+        actions={
+          userId ? (
+            <HeaderActionButton
+              onClick={() => router.push("/teams/create")}
+              ariaLabel="Создать команду"
+            >
+              <PlusIcon />
+              <span>Создать</span>
+            </HeaderActionButton>
+          ) : undefined
+        }
+      >
         <HeaderStatGroup>
           <HeaderStat value={stats?.total ?? "—"} label="Всего" />
           {userId && <HeaderStat value={stats?.mine ?? "—"} label="Мои" />}
@@ -335,37 +338,13 @@ export default function TeamsPage() {
           }
         />
 
-        {userId && (
-          <FilterPills
-            options={SCOPE_PILLS}
-            value={scope}
-            onChange={(v) => setScope(v as Scope)}
-          />
-        )}
-
         {activeChips.length > 0 && (
           <ActiveFilterChips chips={activeChips} className="mt-3.5" />
         )}
       </div>
 
       <div className="px-4 mt-5">
-        {showOnlyMine ? (
-          <OnlyMineSection
-            teams={visibleMyTeams}
-            loading={myTeams === null}
-            hasFilters={
-              debouncedSearch.length > 0 ||
-              filters.city.length > 0 ||
-              filters.districtId.length > 0 ||
-              filters.sport.length > 0 ||
-              filters.lookingForPlayers
-            }
-            onClearFilters={() => {
-              setSearch("");
-              setFilters(EMPTY_FILTERS);
-            }}
-          />
-        ) : showGrouped ? (
+        {showGrouped ? (
           <GroupedSection
             myTeams={visibleMyTeams}
             otherTeams={otherTeams}
@@ -389,32 +368,10 @@ export default function TeamsPage() {
               setSearch("");
               setFilters(EMPTY_FILTERS);
             }}
-            hasFilters={
-              debouncedSearch.length > 0 ||
-              filters.city.length > 0 ||
-              filters.districtId.length > 0 ||
-              filters.sport.length > 0 ||
-              filters.lookingForPlayers
-            }
+            hasFilters={hasFilters}
           />
         )}
       </div>
-
-      {userId && (
-        <div className="px-4 mt-6 mb-2">
-          <Link
-            href="/teams/create"
-            className="block w-full text-center py-3 rounded-[14px] text-[14px] font-semibold"
-            style={{
-              background: "var(--bg-card)",
-              color: "var(--text-primary)",
-              border: "1.5px solid var(--gray-200)",
-            }}
-          >
-            + Создать свою команду
-          </Link>
-        </div>
-      )}
 
       <TeamFiltersSheet
         open={sheetOpen}
@@ -437,6 +394,24 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
     >
       {children}
     </p>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
   );
 }
 
@@ -574,55 +549,5 @@ function FlatSection({
       </ul>
       {hasMore && <InfiniteScrollSentinel onVisible={onLoadMore} />}
     </>
-  );
-}
-
-function OnlyMineSection({
-  teams,
-  loading,
-  hasFilters,
-  onClearFilters,
-}: {
-  teams: MyTeam[];
-  loading: boolean;
-  hasFilters: boolean;
-  onClearFilters: () => void;
-}) {
-  if (loading) return <SkeletonList count={3} />;
-  if (teams.length === 0) {
-    return (
-      <div className="py-10">
-        <EmptyState
-          text={
-            hasFilters
-              ? "В твоих командах ничего не подходит под фильтры"
-              : "Ты ещё не в команде"
-          }
-          action={
-            hasFilters
-              ? { label: "Сбросить фильтры", onClick: onClearFilters }
-              : undefined
-          }
-        />
-      </div>
-    );
-  }
-  return (
-    <ul className="flex flex-col">
-      {teams.map((t) => (
-        <li key={t.id}>
-          <TeamListRow
-            id={t.id}
-            name={t.name}
-            sport={t.sport}
-            city={t.city}
-            district={t.district?.name ?? null}
-            membersCount={t.members_count}
-            lookingForPlayers={t.looking_for_players}
-            myRole={t.role}
-          />
-        </li>
-      ))}
-    </ul>
   );
 }

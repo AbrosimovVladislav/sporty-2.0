@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import CitySelect from "@/components/CitySelect";
-import DistrictSelect from "@/components/DistrictSelect";
+import { useEffect, useMemo, useState } from "react";
+import { SheetChipGroup, type ChipOption } from "@/components/ui";
 import { SPORT_LABEL } from "@/lib/catalogs";
 
 export type TeamFilters = {
@@ -19,17 +18,49 @@ type Props = {
   onApply: (filters: TeamFilters) => void;
 };
 
-const SHEET_INPUT_CLASS =
-  "w-full px-4 py-3 text-[14px] rounded-[14px] outline-none bg-background-muted text-foreground border border-transparent focus:border-primary transition-colors";
+const CITIES: ChipOption[] = [{ value: "Алматы", label: "Алматы" }];
+const SPORT_VALUES = Object.keys(SPORT_LABEL);
+const SPORT_OPTIONS: ChipOption[] = SPORT_VALUES.map((s) => ({
+  value: s,
+  label: SPORT_LABEL[s],
+}));
 
-const SPORT_OPTIONS = Object.keys(SPORT_LABEL);
+type District = { id: string; name: string };
 
 export function TeamFiltersSheet({ open, initial, onClose, onApply }: Props) {
   const [filters, setFilters] = useState<TeamFilters>(initial);
+  const [districts, setDistricts] = useState<District[]>([]);
 
   useEffect(() => {
     if (open) setFilters(initial);
   }, [open, initial]);
+
+  const districtCity = filters.city || (CITIES.length === 1 ? CITIES[0].value : "");
+
+  useEffect(() => {
+    if (!open) return;
+    if (!districtCity) {
+      setDistricts([]);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/districts?city=${encodeURIComponent(districtCity)}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setDistricts(d.districts ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) setDistricts([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, districtCity]);
+
+  const districtOptions = useMemo<ChipOption[]>(
+    () => districts.map((d) => ({ value: d.id, label: d.name })),
+    [districts],
+  );
 
   if (!open) return null;
 
@@ -69,45 +100,33 @@ export function TeamFiltersSheet({ open, initial, onClose, onApply }: Props) {
           Фильтры
         </h2>
 
-        <div className="flex flex-col gap-4">
-          <Field label="Город">
-            <CitySelect
+        <div className="flex flex-col gap-5">
+          {CITIES.length > 1 && (
+            <SheetChipGroup
+              label="Город"
+              options={CITIES}
               value={filters.city}
               onChange={(c) =>
                 setFilters((f) => ({ ...f, city: c, districtId: "" }))
               }
-              className={SHEET_INPUT_CLASS}
             />
-          </Field>
-
-          {filters.city && (
-            <Field label="Район">
-              <DistrictSelect
-                city={filters.city}
-                value={filters.districtId}
-                onChange={(d) => setFilters((f) => ({ ...f, districtId: d }))}
-                className={SHEET_INPUT_CLASS}
-              />
-            </Field>
           )}
 
+          <SheetChipGroup
+            label="Район"
+            options={districtOptions}
+            value={filters.districtId}
+            onChange={(d) => setFilters((f) => ({ ...f, districtId: d }))}
+            emptyHint="Сначала выбери город"
+          />
+
           {SPORT_OPTIONS.length > 1 && (
-            <Field label="Спорт">
-              <select
-                value={filters.sport}
-                onChange={(e) =>
-                  setFilters((f) => ({ ...f, sport: e.target.value }))
-                }
-                className={SHEET_INPUT_CLASS}
-              >
-                <option value="">Любой</option>
-                {SPORT_OPTIONS.map((s) => (
-                  <option key={s} value={s}>
-                    {SPORT_LABEL[s]}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <SheetChipGroup
+              label="Спорт"
+              options={SPORT_OPTIONS}
+              value={filters.sport}
+              onChange={(s) => setFilters((f) => ({ ...f, sport: s }))}
+            />
           )}
 
           <button
@@ -185,29 +204,6 @@ export function TeamFiltersSheet({ open, initial, onClose, onApply }: Props) {
         </div>
       </div>
     </div>
-  );
-}
-
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="flex flex-col gap-1.5">
-      <span
-        className="text-[12px] font-semibold uppercase"
-        style={{
-          letterSpacing: "0.06em",
-          color: "var(--text-tertiary)",
-        }}
-      >
-        {label}
-      </span>
-      {children}
-    </label>
   );
 }
 

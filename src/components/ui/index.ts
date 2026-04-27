@@ -11,9 +11,16 @@ export { ScreenHeader } from "./ScreenHeader";
 export { PhotoBanner } from "./PhotoBanner";
 export { StatCard, MiniStatCard } from "./StatCard";
 export { UIChromeContext, UIChromeProvider } from "./UIChromeContext";
-export { PageHeader, HeaderStatGroup, HeaderStat } from "./PageHeader";
+export {
+  PageHeader,
+  HeaderStatGroup,
+  HeaderStat,
+  HeaderActionButton,
+} from "./PageHeader";
 export { ListSearchBar } from "./ListSearchBar";
 export { ListMeta } from "./ListMeta";
 export { FilterPills } from "./FilterPills";
 export { ActiveFilterChips } from "./ActiveFilterChips";
 export type { FilterChip } from "./ActiveFilterChips";
+export { SheetChipGroup } from "./SheetChipGroup";
+export type { ChipOption } from "./SheetChipGroup";

@@ -483,7 +483,8 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 Используется на всех first-level вкладках вместо тёмного hero. Тот же зелёный, что в Hero на главной (`var(--green-600)`), скруглён снизу 28px, с диагональной текстурой.
 
 **Структура:**
-- Top-row: title (Oswald uppercase, 30px white) слева + bell-кнопка справа (40px circle, `bg-white/15`)
+- Top-row: title (Oswald uppercase, 30px white) слева + опц. action-pill(s) + bell-кнопка справа (40px circle, `bg-white/15`)
+  - Action-pill (`<HeaderActionButton>`): h-10 pill `bg-white/18`, иконка + лейбл (например, «+ Создать»). Используется для основного действия страницы, которое не помещается в primary-CTA внизу. Цвет — белый, чтобы оставаться частью зелёного хедера, а не конкурировать с зелёным CTA внутри списка.
 - Stats-row: 1-3 stat-карточки в `flex gap-2.5` на тёмной полупрозрачной плашке (`bg-black/18`, radius 16px, padding 18/12/16, backdrop-blur 8px)
   - Число: `font-display text-[34px] font-bold` white
   - Лейбл: `text-[11px] text-white/50 leading-[1.4]`
@@ -520,7 +521,9 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 - `bg-green-50 text-green-700 rounded-full px-3 py-1.5 text-[12px] font-semibold`
 - Внутри ✕-кружок (`w-4 h-4 rounded-full bg-[rgba(0,0,0,0.08)]`) — клик по чипу удаляет соответствующий фильтр
 
-**Sheet расширенных фильтров** открывается из filter-btn. Это `fixed inset-0 z-50`, оверлей `bg-[rgba(0,0,0,0.4)]`, body — белый, скругление сверху 24px, drag-handle (`w-10 h-1 bg-gray-300`). Поля по `<Field label>` (`text-[12px] uppercase font-semibold tracking-[0.06em] text-text-tertiary` + control). Внизу — две равные кнопки: «Сбросить» (`bg-bg-secondary`) и «Применить» (`bg-green-500 text-white`).
+**Sheet расширенных фильтров** открывается из filter-btn. Это `fixed inset-0 z-50`, оверлей `bg-[rgba(0,0,0,0.4)]`, body — белый, скругление сверху 24px, drag-handle (`w-10 h-1 bg-gray-300`). Лейбл секции: `text-[12px] uppercase font-semibold tracking-[0.06em] text-text-tertiary`. Внизу — две равные кнопки: «Сбросить» (`bg-bg-secondary`) и «Применить» (`bg-green-500 text-white`).
+
+**Контролы внутри шита** — никаких нативных `<select>` для коротких списков. Используем `<SheetChipGroup>` (`src/components/ui/SheetChipGroup.tsx`): single-select чипы во flex-wrap. Активный чип — `bg-gray-900 text-white`, неактивный — `bg-bg-card 1.5px solid var(--gray-200)`. По дефолту первая опция — пустое значение «Любой» (можно отключить через `emptyLabel={null}`). Для зависимых полей (район по городу) при пустых опциях показываем `emptyHint` («Сначала выбери город»). Boolean-фильтры остаются обычным toggle-блоком (как «Ищут игроков»).
 
 См. эталонную реализацию в [src/app/(app)/players/page.tsx](../../src/app/(app)/players/page.tsx) и [src/components/players/PlayerFiltersSheet.tsx](../../src/components/players/PlayerFiltersSheet.tsx).
 
@@ -561,15 +564,16 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 
 | Компонент | Файл | Назначение |
 |-----------|------|------------|
-| `PageHeader` + `HeaderStatGroup` + `HeaderStat` | [PageHeader.tsx](../../src/components/ui/PageHeader.tsx) | Зелёный hero первого уровня + опц. bell + stats-плашка |
+| `PageHeader` + `HeaderStatGroup` + `HeaderStat` + `HeaderActionButton` | [PageHeader.tsx](../../src/components/ui/PageHeader.tsx) | Зелёный hero первого уровня + опц. bell + stats-плашка + опц. action-pill |
 | `ListSearchBar` | [ListSearchBar.tsx](../../src/components/ui/ListSearchBar.tsx) | Search input + опц. filter-btn с бейджем-счётчиком |
 | `ListMeta` | [ListMeta.tsx](../../src/components/ui/ListMeta.tsx) | «Найдено N» слева + sort-pill с popover справа |
 | `FilterPills` | [FilterPills.tsx](../../src/components/ui/FilterPills.tsx) | Grid быстрых toggle-pills для одного измерения |
 | `ActiveFilterChips` + тип `FilterChip` | [ActiveFilterChips.tsx](../../src/components/ui/ActiveFilterChips.tsx) | Массив `{id, label, onRemove}` с ✕ |
+| `SheetChipGroup` + тип `ChipOption` | [SheetChipGroup.tsx](../../src/components/ui/SheetChipGroup.tsx) | Single-select чипы для шит-фильтров вместо нативного `<select>` |
 
 Domain-специфичные строки (`PlayerListRow`, будущие `TeamListRow`, `EventListRow`) живут рядом с фичей в `src/components/<domain>/`. Они напрямую рендерят `<Link>` со структурой из «`ListRow` — строка списка» выше — отдельный generic-обёрточный компонент `ListRow` не делаем, чтобы не плодить уровни абстракции (структура из 5 строк HTML — не повод для компонента).
 
-**Эталон применения для других каталогов:** при добавлении `/teams`, `/search` (events), `/venues` повторить ровно эту последовательность: `PageHeader` → `ListSearchBar` → `ListMeta` → `FilterPills` → `ActiveFilterChips` → эйбрау «Результаты · N» → список. Sheet-фильтров — новый компонент `<Domain>FiltersSheet` рядом со строкой.
+**Эталон применения для других каталогов:** при добавлении `/search` (events), `/venues` повторить эту последовательность: `PageHeader` → `ListSearchBar` → `ListMeta` → опц. `FilterPills` → `ActiveFilterChips` → эйбрау «Результаты · N» → список. `FilterPills` нужен только если есть одно главное измерение быстрого фильтра (позиция, тип); если такого измерения нет — пропускай этот ряд. Sheet-фильтров — новый компонент `<Domain>FiltersSheet` рядом со строкой, чипами через `<SheetChipGroup>`.
 
 ---
 
@@ -644,29 +648,26 @@ Domain-специфичные строки (`PlayerListRow`, будущие `Tea
 
 ### Команды (`/teams`)
 
-То же применение паттерна, что и `/players`, с одним отличием: вместо комбинируемых фильтров в pills — **бинарный scope-переключатель** (см. правило ниже).
+Применение паттерна без `FilterPills` — у каталога команд нет одного главного быстрого измерения, чтобы туда положить (позиции и спорт-чип не помещаются и захламляют). Вместо scope-переключателя «Все / Только мои» — сортировка `Сначала мои` сразу даёт сгруппированный вид с моими командами наверху.
 
-1. **`PageHeader`**: title «КОМАНДЫ», 3 stat-карточки: «Всего», «Мои» (только для авторизованного), «Ищут игроков».
-2. **`ListSearchBar`**: «Имя команды, город…» + filter-btn → sheet (город, район, спорт, toggle «Ищут игроков»).
-3. **`ListMeta`**: «Найдено N команд» + sort-dropdown («Сначала мои» / «Недавние»). Дефолт — «Сначала мои» для авторизованного, «Недавние» для гостя (sort-dropdown скрыт).
-4. **`FilterPills`** (только для авторизованного): 2 кнопки **«Все» / «Только мои»** — scope-переключатель списка, а не комбинируемый фильтр.
-5. **`ActiveFilterChips`** — только применённые sheet-фильтры (город, спорт, «Ищут игроков»).
-6. **Тело**:
-   - `Все` + `Сначала мои` → две группы: «Мои · N» + «Все остальные · M» (фронт стыкует локальные «мои» сверху и пагинированный остаток снизу через `?exclude_ids=`)
-   - `Все` + `Недавние` → плоский список «Результаты · N»; в строках с моими командами рендерим бейдж «Капитан»/«Я в составе»
-   - `Только мои` → плоский список локально отфильтрованных моих команд
-7. CTA «+ Создать свою команду» — снизу страницы, **не** primary-кнопка в шапке.
+1. **`PageHeader`**: title «КОМАНДЫ», action-pill «+ Создать» (только для авторизованного, через `HeaderActionButton`, ведёт на `/teams/create`), 3 stat-карточки: «Всего», «Мои» (только для авторизованного), «Ищут игроков».
+2. **`ListSearchBar`**: «Имя команды, город…» + filter-btn → sheet (город, район, спорт через `SheetChipGroup`, toggle «Ищут игроков»).
+3. **`ListMeta`**: «Найдено N команд» + sort-dropdown («Сначала мои» / «Сначала новые»). Дефолт — «Сначала мои» для авторизованного, «Сначала новые» для гостя (sort-dropdown скрыт).
+4. **`ActiveFilterChips`** — только применённые sheet-фильтры (город, спорт, «Ищут игроков»).
+5. **Тело**:
+   - `Сначала мои` + есть мои команды → две группы: «Мои · N» (без пагинации, локальная фильтрация) + «Все остальные · M» (пагинированный остаток через `?exclude_ids=`)
+   - `Сначала новые` (или нет моих команд) → плоский список «Результаты · N»; в строках с моими командами рендерим бейдж «Капитан»/«Я в составе»
 
 `TeamListRow`: 44px Avatar (инициал) + имя + опц. бейдж (приоритет: «Капитан» > «Я в составе» > «Ищут игроков») + meta «Спорт · Район/Город» + справа `members_count` с иконкой человечка.
 
-### Правило: scope-переключатель vs filter-pills
+### Правило: scope-переключатели — через сортировку, а не через FilterPills
 
-`FilterPills` используется в двух разных режимах. Помни разницу:
+Раньше думали закодировать «Все / Только мои» как `FilterPills` из 2 опций. Отказались. Если на странице нужно показывать одни и те же сущности в двух «срезах» (всё / только моё), правильный путь — **поведение сортировки**, а не отдельный scope-чип:
 
-- **Multi-pill (3-5 опций) = быстрый фильтр одного измерения** — позиция игрока, тип события. Каждая опция — точное значение поля. Пример: `/players` (Все / ВРТ / ЗАЩ / ПЗЩ / НАП).
-- **Binary toggle (2 опции) = scope-переключатель списка** — меняет, какие записи мы вообще показываем. Не комбинируется с другими scope-измерениями. Пример: `/teams` (Все / Только мои).
+- Дефолтная сортировка должна сразу давать наиболее ценный срез (например, `Сначала мои` группирует «Мои» сверху и «Все остальные» снизу).
+- «Только мои» как отдельный режим — лишний шаг для пользователя; если очень нужен — toggle в sheet, не самостоятельный ряд.
 
-Не пихать в один FilterPills сразу и фильтр-измерение, и scope-переключатель — выбирай, что важнее. Если нужно и то, и другое — scope иди в quick-pills, фильтр в sheet.
+`FilterPills` остаётся **только для одного быстрого фильтр-измерения** (позиция игрока, тип события). 3–5 опций, каждая — точное значение поля. Пример: `/players` (Все / ВРТ / ЗАЩ / ПЗЩ / НАП). Если такого измерения нет — пропускай ряд.
 
 ### Профиль игрока
 

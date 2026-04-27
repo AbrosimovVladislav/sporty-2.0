@@ -7,6 +7,7 @@ type Props = {
   onBellClick?: () => void;
   hasBellDot?: boolean;
   bellAriaLabel?: string;
+  actions?: ReactNode;
   children?: ReactNode;
 };
 
@@ -15,6 +16,7 @@ export function PageHeader({
   onBellClick,
   hasBellDot,
   bellAriaLabel = "Уведомления",
+  actions,
   children,
 }: Props) {
   return (
@@ -40,23 +42,26 @@ export function PageHeader({
           >
             {title}
           </h1>
-          {onBellClick && (
-            <button
-              type="button"
-              onClick={onBellClick}
-              aria-label={bellAriaLabel}
-              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95"
-              style={{ background: "rgba(255,255,255,0.15)" }}
-            >
-              <BellIcon />
-              {hasBellDot && (
-                <span
-                  className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                  style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
-                />
-              )}
-            </button>
-          )}
+          <div className="flex items-center gap-2">
+            {actions}
+            {onBellClick && (
+              <button
+                type="button"
+                onClick={onBellClick}
+                aria-label={bellAriaLabel}
+                className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95"
+                style={{ background: "rgba(255,255,255,0.15)" }}
+              >
+                <BellIcon />
+                {hasBellDot && (
+                  <span
+                    className="absolute top-2 right-2 w-2 h-2 rounded-full"
+                    style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
+                  />
+                )}
+              </button>
+            )}
+          </div>
         </div>
         {children}
       </div>
@@ -93,6 +98,28 @@ export function HeaderStat({ value, label }: { value: ReactNode; label: string }
         {label}
       </span>
     </div>
+  );
+}
+
+export function HeaderActionButton({
+  onClick,
+  ariaLabel,
+  children,
+}: {
+  onClick: () => void;
+  ariaLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="h-10 inline-flex items-center gap-1.5 px-3.5 rounded-full text-white text-[13px] font-semibold transition-transform active:scale-95"
+      style={{ background: "rgba(255,255,255,0.18)", letterSpacing: "0.01em" }}
+    >
+      {children}
+    </button>
   );
 }
 
