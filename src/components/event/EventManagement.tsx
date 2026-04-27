@@ -6,7 +6,6 @@ type Props = {
   isPublic: boolean;
   status: string;
   onTogglePublic: () => Promise<void>;
-  onComplete: () => Promise<void>;
   onCancel: () => Promise<void>;
 };
 
@@ -14,10 +13,8 @@ export function EventManagement({
   isPublic,
   status,
   onTogglePublic,
-  onComplete,
   onCancel,
 }: Props) {
-  const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState<string | null>(null);
   const isPlanned = status === "planned";
 
@@ -33,142 +30,70 @@ export function EventManagement({
 
   return (
     <section className="px-4 mt-6">
+      <p
+        className="text-[11px] font-semibold uppercase mb-2 px-1"
+        style={{ letterSpacing: "0.06em", color: "var(--text-tertiary)" }}
+      >
+        Управление событием
+      </p>
       <div
         className="rounded-2xl overflow-hidden"
         style={{ background: "var(--bg-card)", border: "1.5px solid var(--gray-200)" }}
       >
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          className="w-full flex items-center justify-between px-4 py-3.5 transition-colors active:bg-gray-50"
-          aria-expanded={open}
-        >
-          <div className="flex items-center gap-2.5">
-            <span
-              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "var(--gray-100)", color: "var(--text-secondary)" }}
-            >
-              <SettingsIcon />
-            </span>
-            <span
-              className="text-[15px] font-semibold"
+        <div className="px-4 py-3 flex items-center gap-3">
+          <span
+            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+            style={{ background: "var(--green-50)", color: "var(--green-600)" }}
+          >
+            {isPublic ? <GlobeIcon /> : <LockIcon />}
+          </span>
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-[14px] font-semibold"
               style={{ color: "var(--text-primary)" }}
             >
-              Управление событием
-            </span>
+              Публичное событие
+            </p>
+            <p className="text-[12px] truncate" style={{ color: "var(--text-tertiary)" }}>
+              {isPublic ? "Видно всем в поиске событий" : "Видно только участникам команды"}
+            </p>
           </div>
-          <span
-            className="transition-transform"
-            style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)" }}
+          <Switch
+            checked={isPublic}
+            onChange={() => run("toggle", onTogglePublic)}
+            disabled={busy !== null}
+          />
+        </div>
+
+        {isPlanned && (
+          <button
+            type="button"
+            onClick={() => run("cancel", onCancel)}
+            disabled={busy !== null}
+            className="w-full flex items-center gap-3 px-4 py-3 active:bg-gray-50 disabled:opacity-50"
+            style={{ borderTop: "1px solid var(--gray-100)" }}
           >
-            <ChevronDownIcon />
-          </span>
-        </button>
-
-        {open && (
-          <div style={{ borderTop: "1px solid var(--gray-200)" }}>
-            <Row
-              icon={isPublic ? <GlobeIcon /> : <LockIcon />}
-              title={isPublic ? "Публичное событие" : "Только для команды"}
-              subtitle={
-                isPublic
-                  ? "Видно всем в поиске событий"
-                  : "Видно только участникам команды"
-              }
-              iconBg="var(--green-50)"
-              iconColor="var(--green-600)"
-              right={
-                <Switch
-                  checked={isPublic}
-                  onChange={() => run("toggle", onTogglePublic)}
-                  disabled={busy !== null}
-                />
-              }
-            />
-
-            {isPlanned && (
-              <>
-                <Row
-                  icon={<CheckIcon />}
-                  title="Завершить событие"
-                  subtitle="Перейдёт в архив, можно отметить присутствие"
-                  iconBg="var(--green-50)"
-                  iconColor="var(--green-600)"
-                  loading={busy === "complete"}
-                  disabled={busy !== null}
-                  onClick={() => run("complete", onComplete)}
-                />
-                <Row
-                  icon={<XIcon />}
-                  title="Отменить событие"
-                  subtitle="Все ответы сохранятся, событие не вернуть"
-                  iconBg="oklch(0.95 0.06 25)"
-                  iconColor="var(--danger)"
-                  loading={busy === "cancel"}
-                  disabled={busy !== null}
-                  onClick={() => run("cancel", onCancel)}
-                />
-              </>
-            )}
-          </div>
+            <span
+              className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+              style={{ background: "oklch(0.95 0.06 25)", color: "var(--danger)" }}
+            >
+              {busy === "cancel" ? <Spinner /> : <XIcon />}
+            </span>
+            <div className="flex-1 min-w-0 text-left">
+              <p
+                className="text-[14px] font-semibold"
+                style={{ color: "var(--danger)" }}
+              >
+                Отменить событие
+              </p>
+              <p className="text-[12px] truncate" style={{ color: "var(--text-tertiary)" }}>
+                Все ответы сохранятся, событие не вернуть
+              </p>
+            </div>
+          </button>
         )}
       </div>
     </section>
-  );
-}
-
-function Row({
-  icon,
-  title,
-  subtitle,
-  iconBg,
-  iconColor,
-  right,
-  onClick,
-  disabled,
-  loading,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-  iconBg: string;
-  iconColor: string;
-  right?: React.ReactNode;
-  onClick?: () => void;
-  disabled?: boolean;
-  loading?: boolean;
-}) {
-  const Tag = onClick ? "button" : "div";
-  return (
-    <Tag
-      type={onClick ? "button" : undefined}
-      onClick={onClick}
-      disabled={onClick ? disabled : undefined}
-      className={`w-full flex items-center gap-3 px-4 py-3 ${onClick ? "active:bg-gray-50 disabled:opacity-50" : ""}`}
-      style={{ borderTop: "1px solid var(--gray-100)" }}
-    >
-      <span
-        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-        style={{ background: iconBg, color: iconColor }}
-      >
-        {loading ? <Spinner /> : icon}
-      </span>
-      <div className="flex-1 min-w-0 text-left">
-        <p
-          className="text-[14px] font-semibold truncate"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {title}
-        </p>
-        <p
-          className="text-[12px] truncate"
-          style={{ color: "var(--text-tertiary)" }}
-        >
-          {subtitle}
-        </p>
-      </div>
-      {right && <div className="shrink-0">{right}</div>}
-    </Tag>
   );
 }
 
@@ -184,12 +109,9 @@ function Switch({
   return (
     <button
       type="button"
-      onClick={(e) => {
-        e.stopPropagation();
-        if (!disabled) onChange();
-      }}
+      onClick={onChange}
       disabled={disabled}
-      className="relative w-11 h-6 rounded-full transition-colors disabled:opacity-50"
+      className="relative w-11 h-6 rounded-full transition-colors disabled:opacity-50 shrink-0"
       style={{ background: checked ? "var(--green-500)" : "var(--gray-300)" }}
       aria-checked={checked}
       role="switch"
@@ -202,21 +124,6 @@ function Switch({
   );
 }
 
-function SettingsIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-function ChevronDownIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="6 9 12 15 18 9" />
-    </svg>
-  );
-}
 function GlobeIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -231,13 +138,6 @@ function LockIcon() {
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <rect x="3" y="11" width="18" height="11" rx="2" />
       <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-    </svg>
-  );
-}
-function CheckIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <polyline points="20 6 9 17 4 12" />
     </svg>
   );
 }

@@ -205,5 +205,14 @@ export async function PATCH(
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
+  if (hasStatus && status === "completed") {
+    await supabase
+      .from("event_attendances")
+      .update({ attended: true })
+      .eq("event_id", eventId)
+      .eq("vote", "yes")
+      .is("attended", null);
+  }
+
   return NextResponse.json(update);
 }

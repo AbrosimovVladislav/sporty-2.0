@@ -11,6 +11,7 @@ import { EventFinanceForPlayer } from "@/components/event/EventFinanceForPlayer"
 import { EventFinanceForOrganizer } from "@/components/event/EventFinanceForOrganizer";
 import { EventManagement } from "@/components/event/EventManagement";
 import { EventMyAttendance } from "@/components/event/EventMyAttendance";
+import { EventCompleteCTA } from "@/components/event/EventCompleteCTA";
 
 type EventDetail = {
   id: string;
@@ -51,7 +52,6 @@ export default function EventDetailPage({
   const [attendances, setAttendances] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [attSheetOpen, setAttSheetOpen] = useState(false);
-  const [completing, setCompleting] = useState(false);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const isOrganizer = team.status === "ready" && team.role === "organizer";
@@ -143,15 +143,6 @@ export default function EventDetailPage({
   const canVote = isPlanned && !!userId && (isMember || event.is_public);
   const isPastDue = isPlanned && new Date(event.date).getTime() < Date.now();
 
-  async function handleQuickComplete() {
-    setCompleting(true);
-    try {
-      await patchEvent({ status: "completed" });
-    } finally {
-      setCompleting(false);
-    }
-  }
-
   return (
     <div className="flex flex-1 flex-col pb-8">
       <EventHero
@@ -182,43 +173,11 @@ export default function EventDetailPage({
         }
       />
 
-      {isOrganizer && isPastDue && (
-        <section className="px-4 mt-5">
-          <div
-            className="rounded-2xl px-4 py-4 flex items-center gap-3"
-            style={{
-              background: "oklch(0.97 0.06 90)",
-              border: "1.5px solid oklch(0.85 0.13 90)",
-            }}
-          >
-            <span
-              className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-              style={{ background: "white", color: "oklch(0.55 0.18 60)" }}
-            >
-              <ClockAlertIcon />
-            </span>
-            <div className="flex-1 min-w-0">
-              <p
-                className="text-[14px] font-semibold"
-                style={{ color: "oklch(0.35 0.12 60)" }}
-              >
-                Событие прошло
-              </p>
-              <p className="text-[12px]" style={{ color: "oklch(0.45 0.1 60)" }}>
-                Завершите его, чтобы отметить участников и оплаты
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={handleQuickComplete}
-              disabled={completing}
-              className="text-[13px] font-semibold rounded-full px-4 py-2 shrink-0 disabled:opacity-50"
-              style={{ background: "var(--green-500)", color: "white" }}
-            >
-              {completing ? "..." : "Завершить"}
-            </button>
-          </div>
-        </section>
+      {isOrganizer && isPlanned && (
+        <EventCompleteCTA
+          isPastDue={isPastDue}
+          onComplete={() => patchEvent({ status: "completed" })}
+        />
       )}
 
       {isCompleted && !isOrganizer && userId && (
@@ -312,7 +271,6 @@ export default function EventDetailPage({
           isPublic={event.is_public}
           status={event.status}
           onTogglePublic={() => patchEvent({ is_public: !event.is_public })}
-          onComplete={() => patchEvent({ status: "completed" })}
           onCancel={() => patchEvent({ status: "cancelled" })}
         />
       )}
@@ -332,14 +290,6 @@ export default function EventDetailPage({
   );
 }
 
-function ClockAlertIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <circle cx="12" cy="12" r="10" />
-      <polyline points="12 6 12 12 16 14" />
-    </svg>
-  );
-}
 function CheckListIcon() {
   return (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
