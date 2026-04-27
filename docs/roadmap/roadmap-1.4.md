@@ -128,3 +128,79 @@
 - ✅ Компоненты в `src/components/event/`: `EventHero` (унифицированная dark-карточка: фото + countdown-чип + название + дата + чипы + 7/10 + RSVP, скруглена снизу 28px), `EventAttendeesPreview`, `EventAttendeesSheet` (3 секции с именами, тогглы Был/Сдал в past-режиме), `EventVenueCard`, `EventFinanceForPlayer` (с self-toggle оплаты), `EventFinanceForOrganizer` (inline-edit стоимости, прогресс-бары, должники), `EventManagement` (inline аккордион), `EventMyAttendance` (past-режим самоотметка игроком)
 - ✅ Layout-логика: чипы команды скрыты на маршруте `events/[eventId]` (`team/[id]/layout.tsx`)
 
+---
+
+## ✅ Итерация 33 — Поиск игроков (Players v2) + шаблон листинг-страниц
+
+**Цель:** ввести единый лэйаут first-level каталог-страниц (`PageHeader` + `ListToolbar` + `ListRow`), реализовать его на странице `/players`. Остальные каталоги (`/teams`, `/search` событий) переведём в следующих итерациях.
+
+### Дизайн-система ✅ (готово до начала разработки)
+
+- ✅ `docs/design/design-system.md`: возвращён Oswald (`font-display`) для page-title в green-header, sport-метрик, countdown, event type — формализована таблица типографики
+- ✅ Новая секция «Лэйаут листинг-страниц» с описанием `PageHeader` / `ListToolbar` / `ActiveFilterChips` / `ListRow`
+- ✅ Анти-паттерн «тёмные hero-блоки» уточнён: на first-level каталог-страницах теперь зелёный `PageHeader`, плоский тёмный hero запрещён везде кроме hero события
+
+### Структура страницы `/players` (сверху вниз)
+
+1. ✅ **`PageHeader` (зелёный)**:
+   - Title «ИГРОКИ» (Oswald uppercase 30px white)
+   - 3 stat-карточки: «Всего», «В моих командах», «Ищут команду» (карточка «В моих командах» только для авторизованного пользователя)
+   - Bell — пока опущен, вернётся позже сценарием уведомлений
+
+2. ✅ **`ListSearchBar` + `ListMeta` + `FilterPills`**:
+   - Search-input «Имя, город, позиция…» (debounced 250ms) + filter-btn → `PlayerFiltersSheet`
+   - Meta-row: «Найдено N игроков» + sort-dropdown («По уровню» / «Недавние»)
+   - Position-pills grid-5: «Все / ВРТ / ЗАЩ / ПЗЩ / НАП» (Универсал доступен через filter-sheet)
+
+3. ✅ **`ActiveFilterChips`** — массив применённых sheet-фильтров (город, ищет команду, позиция из sheet) с ✕ для удаления
+
+4. ✅ **Эйбрау «РЕЗУЛЬТАТЫ · N»**
+
+5. ✅ **Список игроков** (`PlayerListRow`):
+   - Avatar 44px (`users.avatar_url` или инициалы)
+   - Имя + опц. бейдж «Ищет команду»
+   - Мета: «Позиция · Район/Город»
+   - Справа: 5-bar мини-бар (`skillToBars()` маппит skill_level → 1..5)
+   - `border-bottom 1px var(--gray-100)` между строками
+
+6. ✅ **Infinite scroll** — `usePaginatedList` + `InfiniteScrollSentinel`
+
+### Backend / API
+
+- ✅ `GET /api/players` расширен: `q` (ilike по `name`), `sort` (`skill` | `recent`, default `skill`), возвращает `avatar_url` и `total` (count exact)
+- ✅ `GET /api/players/stats?userId&city` — счётчики для green-header: `total`, `inMyTeams`, `lookingForTeam`. Скоупится по применённому городу-фильтру (а не всегда городу пользователя)
+- ✅ Миграция `20260427000001_users_skill_rank.sql` — генерируемая колонка `skill_rank smallint` (`Новичок=1 … Про=5`) + индекс `users_skill_rank_idx (skill_rank desc nulls last)` для сортировки «По уровню»
+- ⬜ Уведомления в bell — отложено; пока bell не рендерится на `/players`
+
+### Frontend
+
+#### Shared UI (`src/components/ui/`)
+
+- ✅ `PageHeader.tsx` + `HeaderStatGroup` + `HeaderStat` — зелёный hero первого уровня с диагональной текстурой, скруглением снизу 28px и опциональным bell. Stats-карточки на тёмной плашке `bg-black/18 backdrop-blur`
+- ✅ `ListSearchBar.tsx` — search input + опциональный filter-btn с бейджем-счётчиком + кнопка очистки в input'е
+- ✅ `ListMeta.tsx` — count slot слева + sort-dropdown справа (custom popover с click-outside)
+- ✅ `FilterPills.tsx` — grid с шириной по числу опций; активная `bg-gray-900 text-white`, неактивная `bg-bg-secondary`
+- ✅ `ActiveFilterChips.tsx` — массив `FilterChip[]`, рендерит `bg-green-50 text-green-700` pill с ✕
+
+`ListToolbar` как отдельный компонент решено не делать — три примитива комбинируются прямо в page-компонентах, что даёт больше гибкости (порядок, условный рендер pills, чипов).
+
+#### Player-specific (`src/components/players/`)
+
+- ✅ `PlayerListRow.tsx` — строка списка (Avatar + name + опц. SeekingBadge + meta + MiniBar)
+- ✅ `PlayerFiltersSheet.tsx` — bottom-sheet (город, район, позиция, toggle «Ищет команду») с «Сбросить» / «Применить»
+- ✅ `skillToBars.ts` — маппинг skill_level → 1..5 через `SKILL_LEVELS.indexOf`
+
+#### Rewrite страницы
+
+- ✅ `src/app/(app)/players/page.tsx` полностью переписан: green PageHeader → ListSearchBar → ListMeta → FilterPills → ActiveFilterChips → эйбрау + список + infinite scroll. Тёмный hero и плоские карточки убраны
+
+### Текущее состояние страницы `/players`
+
+Сейчас (до итерации 33): тёмный hero «КАТАЛОГ / Игроки», три инпута (CitySelect, DistrictSelect, position text-input), toggle «Ищет команду», список плоских bordered-карточек. После итерации — полный визуальный refresh, плюс расширенный поиск (по имени) и сортировка.
+
+### Не входит в итерацию 33
+
+- Применение шаблона к `/teams` и `/search` (events/venues) — отдельные итерации
+- Numeric rating (вместо bar-маппинга skill_level) — post-MVP, требует системы оценки
+- Реальная логика уведомлений в bell на каталог-страницах — отдельный сценарий
+

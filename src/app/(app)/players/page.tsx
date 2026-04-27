@@ -1,16 +1,31 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
-import CitySelect from "@/components/CitySelect";
-import DistrictSelect from "@/components/DistrictSelect";
-import { SkeletonList } from "@/components/Skeleton";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useAuth } from "@/lib/auth-context";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
+import { SkeletonList } from "@/components/Skeleton";
+import {
+  PageHeader,
+  HeaderStatGroup,
+  HeaderStat,
+  ListSearchBar,
+  ListMeta,
+  FilterPills,
+  ActiveFilterChips,
+  EmptyState,
+  type FilterChip,
+} from "@/components/ui";
+import { PlayerListRow } from "@/components/players/PlayerListRow";
+import {
+  PlayerFiltersSheet,
+  type PlayerFilters,
+} from "@/components/players/PlayerFiltersSheet";
 
 type Player = {
   id: string;
   name: string;
+  avatar_url: string | null;
   city: string | null;
   position: string | null;
   skill_level: string | null;
@@ -18,112 +33,292 @@ type Player = {
   district: { id: string; name: string } | null;
 };
 
+type Stats = {
+  total: number;
+  inMyTeams: number | null;
+  lookingForTeam: number;
+};
+
+type SortMode = "skill" | "recent";
+
+const POSITION_PILLS = [
+  { value: "", label: "Все", fullLabel: "Все позиции" },
+  { value: "Вратарь", label: "ВРТ", fullLabel: "Вратарь" },
+  { value: "Защитник", label: "ЗАЩ", fullLabel: "Защитник" },
+  { value: "Полузащитник", label: "ПЗЩ", fullLabel: "Полузащитник" },
+  { value: "Нападающий", label: "НАП", fullLabel: "Нападающий" },
+];
+
+const SORT_OPTIONS = [
+  { value: "skill", label: "По уровню" },
+  { value: "recent", label: "Недавние" },
+];
+
+const EMPTY_FILTERS: PlayerFilters = {
+  city: "",
+  districtId: "",
+  lookingForTeam: false,
+  position: "",
+};
+
+function pluralPlayers(n: number): string {
+  const m = n % 10;
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 14) return "игроков";
+  if (m === 1) return "игрок";
+  if (m >= 2 && m <= 4) return "игрока";
+  return "игроков";
+}
+
 export default function PlayersPage() {
-  const [city, setCity] = useState("");
-  const [districtId, setDistrictId] = useState("");
-  const [lookingForTeam, setLookingForTeam] = useState(false);
-  const [position, setPosition] = useState("");
-  const [debouncedPosition, setDebouncedPosition] = useState("");
+  const auth = useAuth();
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
+
+  const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
+  const [positionPill, setPositionPill] = useState("");
+  const [sort, setSort] = useState<SortMode>("skill");
+  const [filters, setFilters] = useState<PlayerFilters>(EMPTY_FILTERS);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedPosition(position), 300);
+    const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
     return () => clearTimeout(t);
-  }, [position]);
+  }, [search]);
+
+  const effectivePosition = positionPill || filters.position;
 
   const fetcher = useCallback(
     (offset: number) => {
       const params = new URLSearchParams();
-      if (city.trim()) params.set("city", city.trim());
-      if (districtId) params.set("district_id", districtId);
-      if (lookingForTeam) params.set("looking_for_team", "true");
-      if (debouncedPosition.trim()) params.set("position", debouncedPosition.trim());
+      if (debouncedSearch) params.set("q", debouncedSearch);
+      if (filters.city) params.set("city", filters.city);
+      if (filters.districtId) params.set("district_id", filters.districtId);
+      if (filters.lookingForTeam) params.set("looking_for_team", "true");
+      if (effectivePosition) params.set("position", effectivePosition);
+      params.set("sort", sort);
       params.set("offset", String(offset));
       return fetch(`/api/players?${params}`)
         .then((r) => r.json())
-        .then((d) => ({ items: (d.players ?? []) as Player[], nextOffset: d.nextOffset as number | null }));
+        .then((d) => ({
+          items: (d.players ?? []) as Player[],
+          nextOffset: d.nextOffset as number | null,
+          total: d.total as number | null,
+        }));
     },
-    [city, districtId, lookingForTeam, debouncedPosition],
+    [
+      debouncedSearch,
+      filters.city,
+      filters.districtId,
+      filters.lookingForTeam,
+      effectivePosition,
+      sort,
+    ],
   );
 
-  const { items: players, loading, loadMore, hasMore, reset } = usePaginatedList(fetcher);
+  const { items: players, loading, loadMore, hasMore, reset } =
+    usePaginatedList<Player>(fetcher);
+  const [resultsTotal, setResultsTotal] = useState<number | null>(null);
 
   useEffect(() => {
-    reset();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [city, districtId, lookingForTeam, debouncedPosition]);
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (userId) params.set("userId", userId);
+    if (filters.city) params.set("city", filters.city);
+    fetch(`/api/players/stats?${params}`)
+      .then((r) => r.json())
+      .then((d: Stats) => {
+        if (!cancelled) setStats(d);
+      })
+      .catch(() => {
+        if (!cancelled) setStats(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, filters.city]);
 
-  function handleCityChange(newCity: string) {
-    setCity(newCity);
-    setDistrictId("");
-  }
+  useEffect(() => {
+    let cancelled = false;
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (filters.city) params.set("city", filters.city);
+    if (filters.districtId) params.set("district_id", filters.districtId);
+    if (filters.lookingForTeam) params.set("looking_for_team", "true");
+    if (effectivePosition) params.set("position", effectivePosition);
+    params.set("sort", sort);
+    params.set("limit", "1");
+    fetch(`/api/players?${params}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!cancelled) setResultsTotal(typeof d.total === "number" ? d.total : null);
+      })
+      .catch(() => {
+        if (!cancelled) setResultsTotal(null);
+      });
+    reset();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    debouncedSearch,
+    filters.city,
+    filters.districtId,
+    filters.lookingForTeam,
+    effectivePosition,
+    sort,
+  ]);
+
+  const activeChips = useMemo<FilterChip[]>(() => {
+    const chips: FilterChip[] = [];
+    if (filters.city) {
+      chips.push({
+        id: "city",
+        label: filters.city,
+        onRemove: () =>
+          setFilters((f) => ({ ...f, city: "", districtId: "" })),
+      });
+    }
+    if (filters.lookingForTeam) {
+      chips.push({
+        id: "looking",
+        label: "Ищет команду",
+        onRemove: () => setFilters((f) => ({ ...f, lookingForTeam: false })),
+      });
+    }
+    if (filters.position && !positionPill) {
+      chips.push({
+        id: "position",
+        label: filters.position,
+        onRemove: () => setFilters((f) => ({ ...f, position: "" })),
+      });
+    }
+    return chips;
+  }, [filters, positionPill]);
+
+  const sheetActiveCount =
+    (filters.city ? 1 : 0) +
+    (filters.districtId ? 1 : 0) +
+    (filters.lookingForTeam ? 1 : 0) +
+    (filters.position && !positionPill ? 1 : 0);
+
+  const showSkeleton = players.length === 0 && loading;
+  const showEmpty = !loading && players.length === 0;
+
+  const countLabel =
+    resultsTotal === null
+      ? "Загружаем…"
+      : `Найдено ${resultsTotal} ${pluralPlayers(resultsTotal)}`;
 
   return (
-    <div className="flex flex-1 flex-col p-4 gap-4">
-      <div className="bg-background-dark text-foreground-on-dark rounded-lg p-5">
-        <p className="text-foreground-on-dark-muted text-xs uppercase font-display tracking-wide">
-          Каталог
-        </p>
-        <h1 className="text-3xl font-display font-bold uppercase mt-1">Игроки</h1>
-      </div>
+    <div className="flex flex-1 flex-col">
+      <PageHeader title="Игроки">
+        <HeaderStatGroup>
+          <HeaderStat
+            value={stats?.total ?? "—"}
+            label="Всего"
+          />
+          {userId && (
+            <HeaderStat
+              value={stats?.inMyTeams ?? "—"}
+              label="В моих командах"
+            />
+          )}
+          <HeaderStat
+            value={stats?.lookingForTeam ?? "—"}
+            label="Ищут команду"
+          />
+        </HeaderStatGroup>
+      </PageHeader>
 
-      <div className="flex flex-col gap-2">
-        <CitySelect value={city} onChange={handleCityChange} />
-        <DistrictSelect city={city} value={districtId} onChange={setDistrictId} />
-        <input
-          type="text"
-          placeholder="Позиция (нападающий, вратарь…)"
-          value={position}
-          onChange={(e) => setPosition(e.target.value)}
-          className="w-full bg-background-card border border-border rounded-lg px-4 py-2.5 text-sm placeholder:text-foreground-secondary focus:outline-none"
+      <div className="px-4 mt-4">
+        <ListSearchBar
+          value={search}
+          onChange={setSearch}
+          onFilterClick={() => setSheetOpen(true)}
+          filterActiveCount={sheetActiveCount}
+          placeholder="Имя, город, позиция…"
         />
-        <button
-          onClick={() => setLookingForTeam((v) => !v)}
-          className={`self-start rounded-full px-4 py-2 text-sm font-medium transition-colors ${
-            lookingForTeam
-              ? "bg-primary text-primary-foreground"
-              : "bg-background-card text-foreground border border-border"
-          }`}
-        >
-          Ищет команду
-        </button>
+
+        <ListMeta
+          countLabel={countLabel}
+          sort={{
+            value: sort,
+            options: SORT_OPTIONS,
+            onChange: (v) => setSort(v as SortMode),
+          }}
+        />
+
+        <FilterPills
+          options={POSITION_PILLS}
+          value={positionPill}
+          onChange={setPositionPill}
+        />
+
+        {activeChips.length > 0 && (
+          <ActiveFilterChips chips={activeChips} className="mt-3.5" />
+        )}
       </div>
 
-      {players.length === 0 && loading ? (
-        <SkeletonList count={3} />
-      ) : players.length === 0 ? (
-        <div className="flex flex-1 items-center justify-center">
-          <p className="text-foreground-secondary text-sm">Игроки не найдены</p>
-        </div>
-      ) : (
-        <>
-          <div className="flex flex-col gap-3">
-            {players.map((p) => (
-              <Link key={p.id} href={`/players/${p.id}`}>
-                <div className="bg-background-card border border-border rounded-lg px-4 py-3 flex items-center justify-between">
-                  <div>
-                    <p className="font-display font-semibold">{p.name}</p>
-                    <p className="text-xs text-foreground-secondary mt-0.5">
-                      {[
-                        p.city && p.district ? `${p.city} · ${p.district.name}` : p.city,
-                        p.position,
-                        p.skill_level,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </p>
-                  </div>
-                  {p.looking_for_team && (
-                    <span className="text-xs font-medium bg-primary/10 text-primary rounded-full px-2.5 py-1 shrink-0 ml-3">
-                      Ищет команду
-                    </span>
-                  )}
-                </div>
-              </Link>
-            ))}
+      <div className="px-4 mt-5">
+        {showSkeleton ? (
+          <SkeletonList count={5} />
+        ) : showEmpty ? (
+          <div className="py-10">
+            <EmptyState
+              text="По выбранным фильтрам никого не найдено"
+              action={{
+                label: "Сбросить фильтры",
+                onClick: () => {
+                  setSearch("");
+                  setPositionPill("");
+                  setFilters(EMPTY_FILTERS);
+                },
+              }}
+            />
           </div>
-          {hasMore && <InfiniteScrollSentinel onVisible={loadMore} />}
-        </>
-      )}
+        ) : (
+          <>
+            {resultsTotal !== null && resultsTotal > 0 && (
+              <p
+                className="text-[11px] font-semibold uppercase mb-1"
+                style={{
+                  letterSpacing: "0.06em",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                Результаты · {resultsTotal}
+              </p>
+            )}
+            <ul className="flex flex-col">
+              {players.map((p) => (
+                <li key={p.id}>
+                  <PlayerListRow
+                    id={p.id}
+                    name={p.name}
+                    avatarUrl={p.avatar_url}
+                    position={p.position}
+                    skillLevel={p.skill_level}
+                    city={p.city}
+                    district={p.district?.name ?? null}
+                    lookingForTeam={p.looking_for_team}
+                  />
+                </li>
+              ))}
+            </ul>
+            {hasMore && <InfiniteScrollSentinel onVisible={loadMore} />}
+          </>
+        )}
+      </div>
+
+      <PlayerFiltersSheet
+        open={sheetOpen}
+        initial={filters}
+        onClose={() => setSheetOpen(false)}
+        onApply={(next) => setFilters(next)}
+      />
     </div>
   );
 }

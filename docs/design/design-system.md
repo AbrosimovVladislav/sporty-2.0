@@ -105,20 +105,31 @@
 
 ## Типографика
 
-Шрифт интерфейса — `font-sans` (Geist Sans / SF). **Oswald (`font-display`) больше не используется в продуктовом UI** — оставляем только для редких маркетинговых заголовков, если они появятся. Никаких uppercase, никаких condensed-заголовков на экранах.
+Два шрифта — **Geist Sans** (`font-sans`) для всего тела интерфейса и **Oswald** (`font-display`) точечно: заголовки страниц в зелёном хедере (uppercase), крупные spоrt-числа (счёт явки, countdown, рейтинг), event type («Тренировка», «Игра»). Везде остальное — Geist.
+
+**Когда применяем `font-display` (Oswald):**
+- Заголовок first-level page в `PageHeader` (uppercase, 30px) — «ИГРОКИ», «КОМАНДЫ»
+- Большие числа метрик и счётчиков на тёмных хедерах и карточках (28-40px)
+- Countdown-плашки («через 2д», «1 день до старта»)
+- Event type на hero события («ТРЕНИРОВКА», «ИГРА») — uppercase
+
+**Везде остальное — `font-sans` (Geist):**
+- Имена, заголовки секций, кнопки, метa, описания, числа в строках списка
 
 | Назначение | Класс | Пример |
 |------------|-------|--------|
-| Экран-заголовок | `text-[28px] leading-tight font-bold` | «Состав» |
+| Page title (зелёный хедер) | `font-display text-[30px] font-bold uppercase tracking-[0.02em]` | «ИГРОКИ» |
+| Экран-заголовок (внутренний) | `text-[28px] leading-tight font-bold` | «Состав» |
 | Заголовок секции | `text-[17px] leading-snug font-semibold` | «Управление», «Финансы» |
-| Заголовок карточки | `text-[15px] font-semibold` | Имя игрока, тип события |
-| Метрика-главная | `text-[40px] leading-none font-bold tabular-nums` | «9» в «Состав в сборе» |
-| Метрика-вторичная | `text-[28px] leading-none font-semibold tabular-nums` | «3 под вопросом» |
+| Заголовок карточки | `text-[15px] font-semibold` | Имя игрока |
+| Event type (hero) | `font-display text-[22-28px] font-bold uppercase` | «ТРЕНИРОВКА» |
+| Sport-метрика главная | `font-display text-[34-40px] font-bold tabular-nums` | «36», «9 / 12» |
+| Метрика вторичная | `text-[28px] leading-none font-semibold tabular-nums` | «3 под вопросом» |
 | Тело | `text-[15px] leading-normal` | Описание события |
 | Подпись/мета | `text-[13px] text-foreground-secondary` | «ЦЗ · Основной», адрес |
-| Эйбрау-секция | `text-[11px] uppercase tracking-wide font-semibold text-primary` | «ЯДРО · 9» |
-| Бейдж/чип | `text-[12px] font-semibold` | «МАТЧ», «ЗАПЛАНИРОВАНО» |
-| Число в бейдже-справа | `text-[13px] font-semibold tabular-nums` | «75» |
+| Эйбрау-секция | `text-[11px] uppercase tracking-[0.06em] font-semibold` | «РЕЗУЛЬТАТЫ · 36» |
+| Бейдж/чип | `text-[12px] font-semibold` | «МАТЧ» |
+| Число в бейдже-справа | `text-[15px] font-bold tabular-nums` | «75» |
 
 Числа — всегда `tabular-nums`, чтобы списки не «прыгали».
 
@@ -438,6 +449,116 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 
 ---
 
+## Лэйаут листинг-страниц
+
+Универсальный шаблон для всех first-level каталогов: **Игроки, Команды, Поиск событий, Площадки**. Структура одинаковая, меняется только контент.
+
+```
+┌──────────────────────────────────────┐
+│ ЗЕЛЁНЫЙ ХЕДЕР (radius 0 0 28 28)     │
+│   Title (Oswald uppercase)    🔔     │
+│   ┌──────┐ ┌──────┐ ┌──────┐        │
+│   │  36  │ │   2  │ │  28  │        │
+│   │Всего │ │В моих│ │С опы.│        │
+│   └──────┘ └──────┘ └──────┘        │
+└──────────────────────────────────────┘
+  ┌────────────────────────┐ ┌──┐
+  │ 🔍 Поиск…              │ │⊟│  ← search + filter btn
+  └────────────────────────┘ └──┘
+  Найдено N         По уровню ▾   ← meta + sort
+  [ Все ][ВРТ][ЗАЩ][ПЗЩ][НАП]    ← position pills (grid-5)
+
+  [Алматы ✕] [Ищет команду ✕]    ← active filter chips (если есть)
+
+  РЕЗУЛЬТАТЫ · 36                ← эйбрау
+  ─────────────────────────────────
+  ●  Иван Петров          ▌▌▌▌▌  ← list rows
+     ЦЗ · Основной
+  ─────────────────────────────────
+  ...
+```
+
+### `PageHeader` — зелёный хедер первого уровня
+
+Используется на всех first-level вкладках вместо тёмного hero. Тот же зелёный, что в Hero на главной (`var(--green-600)`), скруглён снизу 28px, с диагональной текстурой.
+
+**Структура:**
+- Top-row: title (Oswald uppercase, 30px white) слева + bell-кнопка справа (40px circle, `bg-white/15`)
+- Stats-row: 1-3 stat-карточки в `flex gap-2.5` на тёмной полупрозрачной плашке (`bg-black/18`, radius 16px, padding 18/12/16, backdrop-blur 8px)
+  - Число: `font-display text-[34px] font-bold` white
+  - Лейбл: `text-[11px] text-white/50 leading-[1.4]`
+
+**Когда уместен:** только корневые вкладки (`/home`, `/teams`, `/players`, `/search`). На вложенных страницах — обычный `ScreenHeader` с back-arrow.
+
+**Stats:** 1-3 показателя, ценных лично пользователю. Не статистика всей системы. Примеры:
+- Игроки: «Всего N», «В моих командах M», «Ищут команду K»
+- Команды: «Всего N», «Мои M», «Ищут игроков K»
+- События: «Сегодня N», «На этой неделе M», «Свободные K»
+
+### `ListToolbar` — управление списком
+
+Идёт сразу под `PageHeader`. Фон страницы белый. Содержит до 4 рядов:
+
+**1. Search-row** (`flex gap-2 mb-3`):
+- Поисковый input: `flex-1 px-4 py-3 bg-bg-secondary rounded-[14px]` с иконкой лупы слева
+- Filter-btn: `46×46 rounded-[14px] bg-bg-secondary`, иконка funnel — открывает sheet с расширенными фильтрами
+
+**2. Meta-row** (`flex justify-between mb-3`):
+- Слева: «Найдено N игроков» (`text-[13px] text-text-tertiary`)
+- Справа: sort-dropdown (`text-[13px] font-semibold text-green-600` + chevron) — открывает inline popover
+
+**3. Quick-pills** (`grid grid-cols-N gap-1.5`):
+- Активная: `bg-gray-900 text-white`
+- Неактивная: `bg-bg-secondary text-text-secondary`
+- `rounded-[10px] px-1 py-2 text-[12px] font-semibold`
+- Используется для **одного главного измерения** (позиция игрока, тип события, спорт). Не пихать сюда всё подряд.
+
+**4. Active filter chips** (опционально, `flex flex-wrap gap-1.5 mt-3.5`):
+- Показываются только если применены фильтры из sheet
+- `bg-green-50 text-green-600 rounded-full px-3.5 py-1.5 text-[12px] font-semibold`
+- Внутри ✕-кружок (`16×16 rounded-full bg-black/8`) — клик удаляет фильтр
+
+### `ListRow` — строка списка
+
+Между `PageHeader/Toolbar` и списком — эйбрау (опц.) `text-[11px] uppercase tracking-[0.06em] font-semibold text-text-tertiary`: «РЕЗУЛЬТАТЫ · 36».
+
+```html
+<li class="flex items-center gap-3.5 py-3 border-b border-gray-100">
+  <Avatar size="md" />                          <!-- 44×44 -->
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center gap-1.5">
+      <span class="text-[15px] font-semibold truncate">Имя</span>
+      <CaptainBadge />                          <!-- опц.: 18×18 green-500, "C" -->
+      <SeekingBadge>Ищет команду</SeekingBadge> <!-- опц. pill -->
+    </div>
+    <p class="text-[13px] text-text-secondary truncate">Позиция · Уровень · Город</p>
+  </div>
+  <div class="flex items-center gap-2 shrink-0">
+    <MiniBar value={4} max={5} />               <!-- 5×(4×14) px -->
+  </div>
+</li>
+```
+
+**Аватарка:** `44×44 rounded-full`, `border: 2px white`, `box-shadow: 0 0 0 1px var(--gray-200)` (двойной контур — отделяет от фона). Если фото нет — цветная подложка с инициалом (white 17px font-bold).
+
+**Бейджи рядом с именем:**
+- Капитан: 18px circle `bg-green-500` + белая «C» (9px font-extrabold)
+- «Ищет команду»: pill `bg-green-50 text-green-600 px-1.5 py-0.5 text-[10px] font-semibold rounded-full`
+
+**Правый блок:** только одна метрика — обычно мини-бар (5 палочек). Цифра справа от бара только если у нас есть **числовой рейтинг** (post-MVP). Пока — только бар.
+
+**Разделитель строк:** `border-bottom: 1px var(--gray-100)`. Последняя строка — без border. Никаких карточек-боксов вокруг каждой строки.
+
+### Шаринг между листингами
+
+Реализовать как переиспользуемые компоненты в `src/components/ui/`:
+- `PageHeader` — заголовок + bell + stats
+- `ListToolbar` — search + filter button + meta + pills
+- `ActiveFilterChips` — массив активных фильтров с удалением
+- `ListRow` — generic-обёртка под строку (avatar + content + right-side); domain-специфичные обёртки (`PlayerListRow`, `TeamListRow`, `EventListRow`) на её основе.
+
+---
+
 ## Правила экранов
 
 ### Главная (`/home`)
@@ -491,6 +612,22 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 4. **Площадки** — список событий с долгом. Каждая строка — ссылка в событие.
 5. **Депозит** — bottom action bar или одна primary-кнопка «Внести депозит» снизу, не нейтральная карточка с плюсом.
 
+### Игроки (`/players`)
+
+Каталог — точное применение паттерна «Лэйаут листинг-страниц».
+
+1. **`PageHeader`**: title «ИГРОКИ», bell, 3 stat-карточки (см. секцию выше).
+2. **`ListToolbar`**: search-input «Имя, город, позиция…» + filter-btn → sheet с расширенными фильтрами (город, район, ищет команду). Meta «Найдено N игроков» + sort («По уровню» / «Недавние»). Position-pills (Все / Вратарь / Защ. / Полузащ. / Нап. — соответствуют `POSITIONS.football` из catalogs.ts).
+3. **`ActiveFilterChips`** (если применены sheet-фильтры): «Алматы ✕», «Ищет команду ✕» и т.д.
+4. **Эйбрау «РЕЗУЛЬТАТЫ · N»** + список строк-игроков по паттерну `ListRow`:
+   - Avatar 44px (фото из `users.avatar_url`, иначе цветная подложка с инициалом)
+   - Имя + опц. бейдж «Ищет команду»
+   - Мета: «Позиция · Уровень · Город» (district если есть)
+   - Справа: 5-bar мини-бар (маппинг `skill_level` → 1..5: Новичок=1, Любитель=2, Уверенный=3, Полупрофи=4, Про=5)
+5. Pull-to-load-more (infinite scroll) — без paginator.
+
+Не делать: тёмный hero, отдельные `bg-bg-card border` карточки на каждую строку, красные/оранжевые акценты без смысла, дублирование «N игроков» в эйбрау И в meta-row.
+
 ### Профиль игрока
 
 1. Heroбез тёмной плитки. Аватар 96px по центру (или слева для сторонних профилей), имя 28px, под ним «Город · Район».
@@ -504,8 +641,8 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 
 Это всё нужно искоренить в итерациях 24–29. Сводный список — в [ui-consistency-audit.md](../ui-consistency-audit.md).
 
-- **Тёмные hero-блоки** на главной, в профиле команды, в профиле игрока. Допустимы только фото-баннеры событий.
-- **Oswald uppercase** в заголовках, эйбрау-метках секций (`text-xs uppercase font-display text-foreground-secondary`), кнопках. Заменяем на sans-serif с font-semibold.
+- **Плоские чёрные/тёмно-серые hero-блоки** в профиле команды, в профиле игрока, на старых каталог-страницах (`/players`, `/search`). Заменяем на зелёный `PageHeader` (для first-level вкладок) или обычный светлый header с back-arrow (для вложенных). Тёмные подложки допустимы только на фото-баннерах событий и в hero-карточке события.
+- **Oswald uppercase в эйбрау-метках секций** (`text-xs uppercase font-display text-text-tertiary`), кнопках, обычном теле. Используем sans-serif с font-semibold. *Исключение:* page-title в green PageHeader, sport-метрики, countdown, event type — для них Oswald корректен.
 - **Олива `#4d5e23`** как primary. Заменяем на vivid green `#22C55E`.
 - **`text-green-600` / `text-red-500` / `bg-green-600`** хардкод в коде. Заменяем на `text-primary` / `text-danger` / `bg-primary`.
 - **Border вокруг каждой карточки.** По умолчанию карточка без border, отделяется тенью + фоном.
