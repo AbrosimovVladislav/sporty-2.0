@@ -7,8 +7,16 @@ export function formatCountdown(dateStr: string): string {
   if (days < 0) return "прошло";
   if (days === 0) return "сегодня";
   if (days === 1) return "завтра";
-  if (days < 5) return `${days}д`;
-  return `${days}д`;
+  return `${days} ${pluralDays(days)}`;
+}
+
+function pluralDays(n: number): string {
+  const m = n % 10;
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 14) return "дней";
+  if (m === 1) return "день";
+  if (m >= 2 && m <= 4) return "дня";
+  return "дней";
 }
 
 export function formatCountdownLabel(dateStr: string): string {
@@ -17,9 +25,8 @@ export function formatCountdownLabel(dateStr: string): string {
   const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const startOfDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const days = Math.round((startOfDate.getTime() - startOfToday.getTime()) / (1000 * 60 * 60 * 24));
-  if (days <= 0) return "";
-  if (days === 1) return "до старта";
-  return "осталось";
+  if (days <= 1) return "";
+  return "до старта";
 }
 
 export function formatPrice(price: number): string {

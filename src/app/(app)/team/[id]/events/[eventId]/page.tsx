@@ -12,7 +12,7 @@ import { EventAttendeesSheet } from "@/components/event/EventAttendeesSheet";
 import { EventVenueCard } from "@/components/event/EventVenueCard";
 import { EventFinanceForPlayer } from "@/components/event/EventFinanceForPlayer";
 import { EventFinanceForOrganizer } from "@/components/event/EventFinanceForOrganizer";
-import { EventOrganizerSheet } from "@/components/event/EventOrganizerSheet";
+import { EventManagement } from "@/components/event/EventManagement";
 
 type EventDetail = {
   id: string;
@@ -52,7 +52,6 @@ export default function EventDetailPage({
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [attendances, setAttendances] = useState<AttendanceItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [orgSheetOpen, setOrgSheetOpen] = useState(false);
   const [attSheetOpen, setAttSheetOpen] = useState(false);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
@@ -136,8 +135,6 @@ export default function EventDetailPage({
         status={event.status}
         date={event.date}
         photoUrl={event.venue?.photo_url ?? null}
-        isOrganizer={isOrganizer}
-        onMenuClick={() => setOrgSheetOpen(true)}
       />
 
       <EventTitleBlock teamName={teamName} date={event.date} />
@@ -215,6 +212,16 @@ export default function EventDetailPage({
         />
       )}
 
+      {isOrganizer && (
+        <EventManagement
+          isPublic={event.is_public}
+          status={event.status}
+          onTogglePublic={() => patchEvent({ is_public: !event.is_public })}
+          onComplete={() => patchEvent({ status: "completed" })}
+          onCancel={() => patchEvent({ status: "cancelled" })}
+        />
+      )}
+
       <EventAttendeesSheet
         open={attSheetOpen}
         attendances={attendances}
@@ -224,18 +231,6 @@ export default function EventDetailPage({
         onAttendedToggle={isOrganizer ? handleAttendedToggle : undefined}
         onClose={() => setAttSheetOpen(false)}
       />
-
-      {isOrganizer && (
-        <EventOrganizerSheet
-          open={orgSheetOpen}
-          isPublic={event.is_public}
-          status={event.status}
-          onClose={() => setOrgSheetOpen(false)}
-          onTogglePublic={() => patchEvent({ is_public: !event.is_public })}
-          onComplete={() => patchEvent({ status: "completed" })}
-          onCancel={() => patchEvent({ status: "cancelled" })}
-        />
-      )}
     </div>
   );
 }

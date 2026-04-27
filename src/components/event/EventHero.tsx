@@ -16,11 +16,9 @@ type Props = {
   status: string;
   date: string;
   photoUrl: string | null;
-  isOrganizer: boolean;
-  onMenuClick: () => void;
 };
 
-export function EventHero({ type, status, date, photoUrl, isOrganizer, onMenuClick }: Props) {
+export function EventHero({ type, status, date, photoUrl }: Props) {
   const router = useRouter();
   const isPlanned = status === "planned";
 
@@ -72,18 +70,6 @@ export function EventHero({ type, status, date, photoUrl, isOrganizer, onMenuCli
           <BackIcon />
         </button>
 
-        {isOrganizer && (
-          <button
-            type="button"
-            onClick={onMenuClick}
-            aria-label="Меню"
-            className="absolute top-3 right-3 w-10 h-10 rounded-full flex items-center justify-center backdrop-blur-sm transition-transform active:scale-95"
-            style={{ background: "rgba(0,0,0,0.4)" }}
-          >
-            <KebabIcon />
-          </button>
-        )}
-
         <div className="absolute left-4 bottom-4 flex gap-1.5">
           <span
             className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full"
@@ -129,12 +115,3 @@ function BackIcon() {
   );
 }
 
-function KebabIcon() {
-  return (
-    <svg width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="white">
-      <circle cx="12" cy="5" r="1.6" />
-      <circle cx="12" cy="12" r="1.6" />
-      <circle cx="12" cy="19" r="1.6" />
-    </svg>
-  );
-}

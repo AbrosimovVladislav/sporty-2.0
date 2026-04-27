@@ -62,26 +62,26 @@
 ### Утилиты
 
 - ✅ `src/lib/format.ts`: `formatCountdown`, `formatCountdownLabel`, `formatPrice`, `formatTime`, `formatDayShort`, `formatWeekday`, `formatFullDate`, `teamGradient` (детерминированный градиент по id команды)
+- ✅ Countdown читается естественно: «сегодня», «завтра» (без лейбла), «5 дней до старта» (число + плюрал + лейбл «до старта»). На карточке hero на главной в чипе времени теперь дата + время («3 мая · 18:00»)
 
 ---
 
-## ⬜ Итерация 32 — Страница события (Event Detail v2)
+## ✅ Итерация 32 — Страница события (Event Detail v2)
 
 **Цель:** переработать страницу события под дизайн-систему Sporty, единый паттерн с главной (фото-баннер, Oswald-таймер, dark-on-light финансы), привести UX к мобильному стандарту.
 
-### Навигация
+### Навигация ✅
 
 - Нижнее меню — всегда (5 пунктов)
-- Верхние чипы команды (Главное / Состав / События / Финансы) — **не показывать** на странице события
-- Тонкая шапка: back-arrow слева, slim caption с названием команды по центру
+- Верхние чипы команды (Главное / Состав / События / Финансы) — **скрыты** на странице события
+- Back-arrow интегрирован в hero (top-left на тёмной таблетке поверх фото)
 
-### Структура (сверху вниз)
+### Структура (сверху вниз) ✅
 
-1. **Hero** (фото площадки 180–200px, скругление снизу 24px):
+1. **Hero** (фото площадки 220px, скругление снизу 28px):
    - Back-arrow в тёмной таблетке (top-left)
    - Бейджи: тип (ИГРА/ТРЕНИРОВКА) + статус (Запланировано/Завершено/Отменено)
-   - Countdown «через 2д» (Oswald) bottom-right; для завершённых — без countdown
-   - Kebab в top-right **только организатору**: Edit / Cancel / Complete / Toggle public
+   - Countdown «5 дней до старта» (Oswald) bottom-right; для завершённых — без countdown
 
 2. **Title block:** команда (Oswald uppercase 24px) + полная дата «Пн, 3 мая · 18:00»
 
@@ -102,14 +102,17 @@
    - *Игроку:* «Стоимость 1500 ₸»; для completed — «Вы оплатили / Должны 1500 ₸»
    - *Организатору:* card «Площадка» (cost / paid / остаток); card «Сборы» (ожидаем / собрано / должно N человек) → тап раскрывает список должников
 
+9. **Управление событием** (только орг, accordion-секция в самом низу): toggle публичности (switch), кнопки «Завершить» (зелёная, planned only) и «Отменить» (красная, planned only). Свёрнут по умолчанию, разворачивается тапом на заголовок.
+
 ### Backend / API
 
-- ⬜ `GET /api/teams/[id]/events/[eventId]` — расширить ответ: `venue.photo_url`, attendees-блок (yes/no/waiting), для орга добавить расчёт долгов с игроков
-- ⬜ `POST /api/teams/[id]/events/[eventId]/attendance` — пометка присутствия (только орг, completed)
+- ✅ `GET /api/teams/[id]/events/[eventId]` — добавлен `venue.photo_url`; долги по игрокам считаются на клиенте (есть `paid` + `paid_amount` в attendances)
+- ✅ `PATCH /api/teams/[id]/events/[eventId]` — добавлена поддержка `is_public` toggle
+- ✅ `PATCH /api/teams/[id]/events/[eventId]/attendance` — пометка присутствия (existing endpoint)
 
 ### Frontend
 
-- ⬜ Полный rewrite `src/app/(app)/team/[id]/events/[eventId]/page.tsx`
-- ⬜ Компоненты в `src/components/event/`: `EventHero`, `EventTitleBlock`, `EventInfoChips`, `EventRSVP`, `EventAttendeesPreview`, `EventAttendeesSheet`, `EventVenueCard`, `EventFinanceForPlayer`, `EventFinanceForOrganizer`, `EventOrganizerMenu` (kebab sheet)
-- ⬜ Layout-логика: на странице события — слой без чипов команды (`team/[id]/layout.tsx` сейчас рендерит чипы; нужно условно скрыть на маршруте `events/[eventId]`)
+- ✅ Полный rewrite `src/app/(app)/team/[id]/events/[eventId]/page.tsx`
+- ✅ Компоненты в `src/components/event/`: `EventHero`, `EventTitleBlock`, `EventInfoChips`, `EventRSVP`, `EventAttendeesPreview`, `EventAttendeesSheet`, `EventVenueCard`, `EventFinanceForPlayer`, `EventFinanceForOrganizer`, `EventManagement` (inline аккордион для орг-действий: toggle public, завершить, отменить)
+- ✅ Layout-логика: чипы команды скрыты на маршруте `events/[eventId]` (`team/[id]/layout.tsx`)
 

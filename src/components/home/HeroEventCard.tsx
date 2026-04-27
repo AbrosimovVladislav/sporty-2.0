@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState } from "react";
 import Image from "next/image";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
-import { formatCountdown, formatCountdownLabel, formatPrice, formatTime } from "@/lib/format";
+import { formatCountdown, formatCountdownLabel, formatDayShort, formatPrice, formatTime } from "@/lib/format";
 
 type Props = {
   event: {
@@ -119,7 +119,7 @@ export function HeroEventCard({ event, userId, onVoteChange, photoUrl }: Props) 
         <div className="flex gap-3.5 my-2.5 mb-3.5 flex-wrap">
           <div className="flex items-center gap-1.5 text-[12px] font-medium text-white/45">
             <ClockIcon />
-            {formatTime(event.date)}
+            {formatDayShort(event.date)} · {formatTime(event.date)}
           </div>
           {event.venue && (
             <div className="flex items-center gap-1.5 text-[12px] font-medium text-white/45 min-w-0">
