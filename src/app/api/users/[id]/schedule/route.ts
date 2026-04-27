@@ -17,7 +17,7 @@ export async function GET(
   const { id: userId } = await params;
   const { searchParams } = new URL(req.url);
   const limit = Math.max(1, Math.min(20, Number(searchParams.get("limit")) || 3));
-  const offset = Math.max(0, Number(searchParams.get("offset")) || 0);
+  const excludeId = searchParams.get("excludeId");
 
   const supabase = getServiceClient();
   const now = new Date().toISOString();
@@ -33,21 +33,27 @@ export async function GET(
     return NextResponse.json({ events: [] });
   }
 
-  const { data: rawEvents, error } = await supabase
+  let query = supabase
     .from("events")
     .select("id, type, date, team_id, teams(id, name), venues(id, name)")
     .in("team_id", teamIds)
     .eq("status", "planned")
     .gt("date", now)
     .order("date", { ascending: true })
-    .range(offset, offset + limit - 1);
+    .limit(limit + 1);
+
+  if (excludeId) {
+    query = query.neq("id", excludeId);
+  }
+
+  const { data: rawEvents, error } = await query;
 
   if (error) {
     console.error("Schedule fetch error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  const events = (rawEvents ?? []) as unknown as EventRow[];
+  const events = (rawEvents ?? []).slice(0, limit) as unknown as EventRow[];
 
   if (events.length === 0) {
     return NextResponse.json({ events: [] });

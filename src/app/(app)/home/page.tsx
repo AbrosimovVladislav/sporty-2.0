@@ -97,14 +97,19 @@ export default function HomePage() {
       fetch(`/api/users/${userId}/next-event`).then((r) => r.json()),
       fetch(`/api/users/${userId}/pending-requests`).then((r) => r.json()),
       fetch(`/api/users/${userId}/teams-pulse`).then((r) => r.json()),
-      fetch(`/api/users/${userId}/schedule?limit=3&offset=1`).then((r) => r.json()),
     ])
-      .then(([ne, req, pulse, sched]) => {
+      .then(async ([ne, req, pulse]) => {
         if (cancelled) return;
-        setNextEvent(ne.event ?? null);
+        const heroEvent: NextEvent | null = ne.event ?? null;
+        setNextEvent(heroEvent);
         setRequests({ total: req.total ?? 0, by_team: req.by_team ?? [] });
         setPulseTeams(pulse.teams ?? []);
-        setSchedule(sched.events ?? []);
+
+        const scheduleUrl = heroEvent
+          ? `/api/users/${userId}/schedule?limit=3&excludeId=${heroEvent.id}`
+          : `/api/users/${userId}/schedule?limit=3`;
+        const sched = await fetch(scheduleUrl).then((r) => r.json());
+        if (!cancelled) setSchedule(sched.events ?? []);
       })
       .catch(() => {
         if (!cancelled) {
