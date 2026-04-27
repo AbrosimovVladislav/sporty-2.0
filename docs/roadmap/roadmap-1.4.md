@@ -63,3 +63,53 @@
 
 - ✅ `src/lib/format.ts`: `formatCountdown`, `formatCountdownLabel`, `formatPrice`, `formatTime`, `formatDayShort`, `formatWeekday`, `formatFullDate`, `teamGradient` (детерминированный градиент по id команды)
 
+---
+
+## ⬜ Итерация 32 — Страница события (Event Detail v2)
+
+**Цель:** переработать страницу события под дизайн-систему Sporty, единый паттерн с главной (фото-баннер, Oswald-таймер, dark-on-light финансы), привести UX к мобильному стандарту.
+
+### Навигация
+
+- Нижнее меню — всегда (5 пунктов)
+- Верхние чипы команды (Главное / Состав / События / Финансы) — **не показывать** на странице события
+- Тонкая шапка: back-arrow слева, slim caption с названием команды по центру
+
+### Структура (сверху вниз)
+
+1. **Hero** (фото площадки 180–200px, скругление снизу 24px):
+   - Back-arrow в тёмной таблетке (top-left)
+   - Бейджи: тип (ИГРА/ТРЕНИРОВКА) + статус (Запланировано/Завершено/Отменено)
+   - Countdown «через 2д» (Oswald) bottom-right; для завершённых — без countdown
+   - Kebab в top-right **только организатору**: Edit / Cancel / Complete / Toggle public
+
+2. **Title block:** команда (Oswald uppercase 24px) + полная дата «Пн, 3 мая · 18:00»
+
+3. **Info chips** (горизонтальный ряд): время, площадка (тап → скролл к карточке), стоимость с игрока
+
+4. **RSVP** (для запланированных): большие «Приду / Не приду» + индикатор «7/10 идут»
+   **Past mode:** для завершённых — заменяется на «вы были» / «не были»; для орг — кнопка «Отметить присутствие»
+
+5. **Attendees** (публично, видно всем):
+   - «Идут (7)» + AvatarStack (5 аватарок + N) → тап открывает sheet с тремя разделами: Идут / Не идут / Ждём ответа
+
+6. **Карточка площадки** (только если есть venue):
+   - Фото + название + адрес + кнопка «Маршрут» (открывает 2GIS / Google Maps по адресу)
+
+7. **Описание** (если задано): простой текст в `bg-secondary`-блоке
+
+8. **Финансы — два режима:**
+   - *Игроку:* «Стоимость 1500 ₸»; для completed — «Вы оплатили / Должны 1500 ₸»
+   - *Организатору:* card «Площадка» (cost / paid / остаток); card «Сборы» (ожидаем / собрано / должно N человек) → тап раскрывает список должников
+
+### Backend / API
+
+- ⬜ `GET /api/teams/[id]/events/[eventId]` — расширить ответ: `venue.photo_url`, attendees-блок (yes/no/waiting), для орга добавить расчёт долгов с игроков
+- ⬜ `POST /api/teams/[id]/events/[eventId]/attendance` — пометка присутствия (только орг, completed)
+
+### Frontend
+
+- ⬜ Полный rewrite `src/app/(app)/team/[id]/events/[eventId]/page.tsx`
+- ⬜ Компоненты в `src/components/event/`: `EventHero`, `EventTitleBlock`, `EventInfoChips`, `EventRSVP`, `EventAttendeesPreview`, `EventAttendeesSheet`, `EventVenueCard`, `EventFinanceForPlayer`, `EventFinanceForOrganizer`, `EventOrganizerMenu` (kebab sheet)
+- ⬜ Layout-логика: на странице события — слой без чипов команды (`team/[id]/layout.tsx` сейчас рендерит чипы; нужно условно скрыть на маршруте `events/[eventId]`)
+

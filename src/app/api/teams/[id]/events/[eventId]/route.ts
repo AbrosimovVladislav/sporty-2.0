@@ -15,7 +15,7 @@ type EventWithVenue = {
   is_public: boolean;
   created_by: string;
   created_at: string;
-  venues: { id: string; name: string; address: string } | null;
+  venues: { id: string; name: string; address: string; photo_url: string | null } | null;
 };
 
 type AttendanceWithUser = {
@@ -42,7 +42,7 @@ export async function GET(
 
   const { data: rawEvent, error: eventErr } = await supabase
     .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address)")
+    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address, photo_url)")
     .eq("id", eventId)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -95,7 +95,9 @@ export async function GET(
       is_public: event.is_public,
       created_by: event.created_by,
       created_at: event.created_at,
-      venue: event.venues,
+      venue: event.venues
+        ? { ...event.venues, photo_url: event.venues.photo_url ?? null }
+        : null,
     },
     attendances: attendances
       .filter((a) => a.users !== null)
@@ -121,7 +123,7 @@ export async function PATCH(
 ) {
   const { id: teamId, eventId } = await params;
   const body = await req.json();
-  const { userId, status, venue_cost, venue_paid } = body;
+  const { userId, status, venue_cost, venue_paid, is_public } = body;
 
   if (!userId) {
     return NextResponse.json({ error: "userId required" }, { status: 400 });
@@ -130,8 +132,9 @@ export async function PATCH(
   const hasStatus = status !== undefined;
   const hasVenueCost = venue_cost !== undefined;
   const hasVenuePaid = venue_paid !== undefined;
+  const hasIsPublic = is_public !== undefined;
 
-  if (!hasStatus && !hasVenueCost && !hasVenuePaid) {
+  if (!hasStatus && !hasVenueCost && !hasVenuePaid && !hasIsPublic) {
     return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
   }
 
@@ -171,6 +174,7 @@ export async function PATCH(
     status?: "completed" | "cancelled";
     venue_cost?: number;
     venue_paid?: number;
+    is_public?: boolean;
   } = {};
   if (hasStatus) update.status = status;
   if (hasVenueCost) {
@@ -186,6 +190,9 @@ export async function PATCH(
       return NextResponse.json({ error: "venue_paid must be >= 0" }, { status: 400 });
     }
     update.venue_paid = v;
+  }
+  if (hasIsPublic) {
+    update.is_public = Boolean(is_public);
   }
 
   const { error } = await supabase

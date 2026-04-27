@@ -8,6 +8,7 @@ import { ScreenHeader } from "@/components/ui/ScreenHeader";
 import { SPORT_LABEL } from "@/lib/catalogs";
 
 const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
+const EVENT_DETAIL_PATH_RE = /\/team\/[^/]+\/events\/[^/]+/;
 
 type TeamSubTab = {
   label: string;
@@ -90,9 +91,11 @@ function TeamSubNav({ id }: { id: string }) {
 
 function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNode }) {
   const pathname = usePathname();
-  const isRoster = ROSTER_PATH_RE.test(pathname ?? "");
+  const path = pathname ?? "";
+  const isRoster = ROSTER_PATH_RE.test(path);
+  const isEventDetail = EVENT_DETAIL_PATH_RE.test(path);
 
-  if (isRoster) {
+  if (isRoster || isEventDetail) {
     return <div className="flex flex-1 flex-col">{children}</div>;
   }
 
