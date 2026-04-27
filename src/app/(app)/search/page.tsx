@@ -1,14 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useSearchParams } from "next/navigation";
 import EventsTab from "./EventsTab";
 import TeamsTab from "./TeamsTab";
 import VenuesTab from "./VenuesTab";
 
 type Tab = "events" | "teams" | "venues";
 
+function isTab(v: string | null): v is Tab {
+  return v === "events" || v === "teams" || v === "venues";
+}
+
 export default function SearchPage() {
-  const [tab, setTab] = useState<Tab>("events");
+  const params = useSearchParams();
+  const initialTab = params.get("tab");
+  const [tab, setTab] = useState<Tab>(isTab(initialTab) ? initialTab : "events");
 
   return (
     <div className="flex flex-1 flex-col p-4 gap-4">

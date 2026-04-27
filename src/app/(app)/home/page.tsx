@@ -1,26 +1,17 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { SearchIcon, ShieldIcon } from "@/components/Icons";
-import { SkeletonCard } from "@/components/Skeleton";
-import { EVENT_TYPE_LABEL, SPORT_LABEL } from "@/lib/catalogs";
-import { PhotoBanner } from "@/components/ui/PhotoBanner";
-import { Pill } from "@/components/ui/Pill";
-import { Card } from "@/components/ui/Card";
-import { Button } from "@/components/ui/Button";
+import { ShieldIcon } from "@/components/Icons";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { SectionEyebrow } from "@/components/ui/SectionEyebrow";
-
-type MyTeam = {
-  id: string;
-  name: string;
-  city: string;
-  sport: string;
-  role: "organizer" | "player";
-};
+import { HomeHero } from "@/components/home/HomeHero";
+import { HeroEventCard } from "@/components/home/HeroEventCard";
+import { RequestsCard } from "@/components/home/RequestsCard";
+import { RequestsSheet } from "@/components/home/RequestsSheet";
+import { QuickActions } from "@/components/home/QuickActions";
+import { TeamPulseSection } from "@/components/home/TeamPulseSection";
+import { ScheduleSection } from "@/components/home/ScheduleSection";
 
 type NextEvent = {
   id: string;
@@ -33,286 +24,174 @@ type NextEvent = {
   team: { id: string; name: string } | null;
   venue: { id: string; name: string; address: string } | null;
   yes_count: number;
+  no_count: number;
+  waiting_count: number;
+  total_members: number;
   user_vote: "yes" | "no" | null;
 };
 
-function formatEventDate(dateStr: string): string {
-  const d = new Date(dateStr);
-  const weekday = d.toLocaleDateString("ru-RU", { weekday: "long" });
-  const day = d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
-  const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
-  return `${weekday}, ${day} в ${time}`;
-}
+type PulseTeam = {
+  id: string;
+  name: string;
+  sport: string;
+  city: string;
+  role: "organizer" | "player";
+  next_event: {
+    id: string;
+    type: string;
+    date: string;
+    yes_count: number;
+    min_players: number;
+  } | null;
+  pending_requests: number;
+  debtors: number;
+};
 
-function formatPrice(price: number): string {
-  if (price === 0) return "Бесплатно";
-  return `${price.toLocaleString("ru-RU")} ₸`;
-}
+type ScheduleEvent = {
+  id: string;
+  type: string;
+  date: string;
+  team_id: string;
+  team: { id: string; name: string } | null;
+  venue: { id: string; name: string } | null;
+  user_vote: "yes" | "no" | null;
+};
 
-function getEventTypeVariant(type: string): "status" | "statusMuted" {
-  return type === "game" ? "status" : "statusMuted";
-}
+type RequestSummary = {
+  total: number;
+  by_team: { team_id: string; team_name: string; count: number }[];
+};
 
 export default function HomePage() {
   const auth = useAuth();
   const router = useRouter();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const name = auth.status === "authenticated" ? auth.user.name : "";
-  const city = auth.status === "authenticated" ? auth.user.city : null;
 
-  const [teams, setTeams] = useState<MyTeam[] | null>(null);
   const [nextEvent, setNextEvent] = useState<NextEvent | null | undefined>(undefined);
-  const [voting, setVoting] = useState(false);
+  const [requests, setRequests] = useState<RequestSummary>({ total: 0, by_team: [] });
+  const [pulseTeams, setPulseTeams] = useState<PulseTeam[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleEvent[]>([]);
+  const [requestsOpen, setRequestsOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
 
-  // Handle deep-link from Telegram notification
+  // Telegram deep-link
   useEffect(() => {
     const startParam = window.Telegram?.WebApp?.initDataUnsafe?.start_param;
     if (!startParam) return;
     const match = startParam.match(/^event_([^_]+)_(.+)$/);
-    if (match) {
-      router.replace(`/team/${match[1]}/events/${match[2]}`);
-    }
+    if (match) router.replace(`/team/${match[1]}/events/${match[2]}`);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (!userId) {
-      setTeams([]);
       setNextEvent(null);
+      setLoading(false);
       return;
     }
 
     let cancelled = false;
+    setLoading(true);
 
-    fetch(`/api/users/${userId}/teams`)
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled) setTeams(d.teams ?? []); })
-      .catch(() => { if (!cancelled) setTeams([]); });
+    Promise.all([
+      fetch(`/api/users/${userId}/next-event`).then((r) => r.json()),
+      fetch(`/api/users/${userId}/pending-requests`).then((r) => r.json()),
+      fetch(`/api/users/${userId}/teams-pulse`).then((r) => r.json()),
+      fetch(`/api/users/${userId}/schedule?limit=3&offset=1`).then((r) => r.json()),
+    ])
+      .then(([ne, req, pulse, sched]) => {
+        if (cancelled) return;
+        setNextEvent(ne.event ?? null);
+        setRequests({ total: req.total ?? 0, by_team: req.by_team ?? [] });
+        setPulseTeams(pulse.teams ?? []);
+        setSchedule(sched.events ?? []);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setNextEvent(null);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
 
-    fetch(`/api/users/${userId}/next-event`)
-      .then((r) => r.json())
-      .then((d) => { if (!cancelled) setNextEvent(d.event ?? null); })
-      .catch(() => { if (!cancelled) setNextEvent(null); });
-
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, [userId]);
 
-  async function handleVote(vote: "yes" | "no") {
-    if (!userId || !nextEvent || voting) return;
-    setVoting(true);
-    try {
-      const res = await fetch(
-        `/api/teams/${nextEvent.team_id}/events/${nextEvent.id}/vote`,
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ userId, vote }),
-        }
-      );
-      if (res.ok) {
-        setNextEvent((prev) =>
-          prev
-            ? {
-                ...prev,
-                user_vote: vote,
-                yes_count: vote === "yes" ? prev.yes_count + 1 : prev.user_vote === "yes" ? prev.yes_count - 1 : prev.yes_count,
-              }
-            : prev
-        );
-      }
-    } finally {
-      setVoting(false);
-    }
+  function handleVoteChange(vote: "yes" | "no") {
+    setNextEvent((prev) => {
+      if (!prev) return prev;
+      const wasYes = prev.user_vote === "yes";
+      const wasNo = prev.user_vote === "no";
+      const willYes = vote === "yes";
+      const willNo = vote === "no";
+      return {
+        ...prev,
+        user_vote: vote,
+        yes_count: prev.yes_count + (willYes ? 1 : 0) - (wasYes ? 1 : 0),
+        no_count: prev.no_count + (willNo ? 1 : 0) - (wasNo ? 1 : 0),
+        waiting_count: prev.waiting_count - (prev.user_vote === null ? 1 : 0),
+      };
+    });
   }
 
-  const showEmptyState =
-    teams !== null && teams.length === 0 && nextEvent === null;
+  const isOrganizer = pulseTeams.some((t) => t.role === "organizer");
+  const showEmptyState = !loading && !nextEvent && pulseTeams.length === 0;
 
   return (
-    <div className="flex flex-1 flex-col gap-4 px-4 pt-5 pb-4">
-
-      {/* 25.1 Welcome header */}
-      <div>
-        <h1 className="text-[28px] font-bold leading-tight">
-          Привет, {name || "…"}
-        </h1>
-        {city && (
-          <p className="text-[13px] text-foreground-secondary mt-0.5">{city}</p>
-        )}
-      </div>
-
-      {/* 25.2 + 25.3 Next event */}
-      <section>
-        {nextEvent === undefined ? (
-          <SkeletonCard className="h-40" />
-        ) : nextEvent ? (
-          <div className="flex flex-col gap-3">
-            <Link href={`/team/${nextEvent.team_id}/events/${nextEvent.id}`}>
-              <PhotoBanner
-                fallback="event"
-                statusPills={[
-                  <Pill key="type" variant={getEventTypeVariant(nextEvent.type)}>
-                    {EVENT_TYPE_LABEL[nextEvent.type] ?? nextEvent.type}
-                  </Pill>,
-                  <Pill key="status" variant="statusMuted">
-                    Запланировано
-                  </Pill>,
-                ]}
-                overlayContent={
-                  <>
-                    <p className="text-[20px] font-semibold leading-tight">
-                      {formatEventDate(nextEvent.date)}
-                    </p>
-                    {nextEvent.venue && (
-                      <p className="text-[14px] opacity-90 mt-1">
-                        📍 {nextEvent.venue.name}
-                      </p>
-                    )}
-                    {nextEvent.team && (
-                      <p className="text-[13px] opacity-75 mt-0.5">
-                        {nextEvent.team.name}
-                      </p>
-                    )}
-                  </>
-                }
-              />
-            </Link>
-
-            {/* Triplet metric */}
-            <Card padding="md">
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <p className="text-[15px] font-semibold tabular-nums">
-                    {formatPrice(nextEvent.price_per_player)}
-                  </p>
-                  <p className="text-[12px] text-foreground-secondary mt-0.5">взнос</p>
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold tabular-nums">
-                    {nextEvent.min_players}
-                  </p>
-                  <p className="text-[12px] text-foreground-secondary mt-0.5">мин. игроков</p>
-                </div>
-                <div>
-                  <p className="text-[15px] font-semibold tabular-nums">
-                    {nextEvent.yes_count} / {nextEvent.min_players}
-                  </p>
-                  <div className="mt-1.5 h-1.5 bg-background-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full"
-                      style={{
-                        width: `${Math.min(100, (nextEvent.yes_count / Math.max(nextEvent.min_players, 1)) * 100)}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              </div>
-            </Card>
-
-            {/* 25.3 Vote buttons */}
-            {nextEvent.user_vote === null && (
-              <Card padding="md">
-                <p className="text-[13px] text-foreground-secondary text-center mb-3">
-                  Вы ещё не ответили
-                </p>
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant={nextEvent.user_vote === "yes" ? "primary" : "secondary"}
-                    loading={voting}
-                    onClick={() => handleVote("yes")}
-                  >
-                    Приду
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    loading={voting}
-                    onClick={() => handleVote("no")}
-                  >
-                    Не приду
-                  </Button>
-                </div>
-              </Card>
-            )}
-
-            {nextEvent.user_vote !== null && (
-              <Card padding="md">
-                <div className="grid grid-cols-2 gap-3">
-                  <Button
-                    variant={nextEvent.user_vote === "yes" ? "primary" : "secondary"}
-                    loading={voting}
-                    onClick={() => handleVote("yes")}
-                  >
-                    Приду
-                  </Button>
-                  <Button
-                    variant={nextEvent.user_vote === "no" ? "danger" : "secondary"}
-                    loading={voting}
-                    onClick={() => handleVote("no")}
-                  >
-                    Не приду
-                  </Button>
-                </div>
-                <p className="text-[13px] text-foreground-secondary text-center mt-2">
-                  {nextEvent.user_vote === "yes" ? "Вы идёте" : "Вы не идёте"}
-                </p>
-              </Card>
-            )}
-          </div>
+    <div className="flex flex-1 flex-col">
+      <HomeHero
+        name={name}
+        hasRequests={isOrganizer && requests.total > 0}
+        onBellClick={() => setRequestsOpen(true)}
+      >
+        {loading ? (
+          <div
+            className="rounded-[20px] h-[280px]"
+            style={{ background: "rgba(0,0,0,0.18)" }}
+          />
+        ) : nextEvent && userId ? (
+          <HeroEventCard
+            event={nextEvent}
+            userId={userId}
+            onVoteChange={handleVoteChange}
+          />
         ) : null}
-      </section>
+      </HomeHero>
 
-      {/* 25.4 Quick actions */}
-      <div className="grid grid-cols-2 gap-3">
-        <Link href="/search">
-          <div className="bg-primary text-primary-foreground rounded-lg p-4 flex flex-col items-center gap-2 shadow-card">
-            <SearchIcon />
-            <span className="text-[15px] font-semibold">Найти игру</span>
-          </div>
-        </Link>
-        <Link href="/teams">
-          <div className="bg-background-card text-foreground border border-border rounded-lg p-4 flex flex-col items-center gap-2 shadow-card">
-            <ShieldIcon />
-            <span className="text-[15px] font-semibold">Команды</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* 25.5 My teams */}
-      {teams !== null && teams.length > 0 && (
-        <section>
-          <SectionEyebrow tone="muted" className="mb-2">Мои команды</SectionEyebrow>
-          <Card padding="sm">
-            <ul className="divide-y divide-border">
-              {teams.map((t) => (
-                <li key={t.id}>
-                  <Link
-                    href={`/team/${t.id}`}
-                    className="flex items-center justify-between py-3 px-1 min-h-[44px]"
-                  >
-                    <div className="min-w-0">
-                      <p className="text-[15px] font-semibold truncate">{t.name}</p>
-                      <p className="text-[13px] text-foreground-secondary truncate">
-                        {t.city} · {SPORT_LABEL[t.sport] ?? t.sport}
-                      </p>
-                    </div>
-                    <Pill variant={t.role === "organizer" ? "role" : "filterActive"} className="ml-3 shrink-0">
-                      {t.role === "organizer" ? "Организатор" : "Игрок"}
-                    </Pill>
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </Card>
-        </section>
-      )}
-
-      {/* 25.6 Empty state */}
-      {showEmptyState && (
-        <EmptyState
-          icon={<ShieldIcon />}
-          text="Вступи в команду или найди матч, чтобы начать"
-          action={{ label: "Найти игру", onClick: () => router.push("/search") }}
+      {isOrganizer && requests.total > 0 && (
+        <RequestsCard
+          total={requests.total}
+          byTeam={requests.by_team}
+          onClick={() => setRequestsOpen(true)}
         />
       )}
+
+      <QuickActions />
+
+      <TeamPulseSection teams={pulseTeams} />
+
+      <ScheduleSection events={schedule} />
+
+      {showEmptyState && (
+        <div className="px-4 mt-6">
+          <EmptyState
+            icon={<ShieldIcon />}
+            text="Вступи в команду или найди событие, чтобы начать"
+            action={{ label: "Найти событие", onClick: () => router.push("/search") }}
+          />
+        </div>
+      )}
+
+      <div className="h-4" />
+
+      <RequestsSheet
+        open={requestsOpen}
+        byTeam={requests.by_team}
+        onClose={() => setRequestsOpen(false)}
+      />
     </div>
   );
 }

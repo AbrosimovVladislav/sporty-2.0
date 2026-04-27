@@ -90,7 +90,12 @@ export async function GET(
   const event = unique[0] ?? null;
   if (!event) return NextResponse.json({ event: null });
 
-  const [{ count: yesCount }, { data: attendance }] = await Promise.all([
+  const [
+    { count: yesCount },
+    { count: noCount },
+    { count: teamMembersCount },
+    { data: attendance },
+  ] = await Promise.all([
     supabase
       .from("event_attendances")
       .select("*", { count: "exact", head: true })
@@ -98,11 +103,25 @@ export async function GET(
       .eq("vote", "yes"),
     supabase
       .from("event_attendances")
+      .select("*", { count: "exact", head: true })
+      .eq("event_id", event.id)
+      .eq("vote", "no"),
+    supabase
+      .from("team_memberships")
+      .select("*", { count: "exact", head: true })
+      .eq("team_id", event.team_id),
+    supabase
+      .from("event_attendances")
       .select("vote")
       .eq("event_id", event.id)
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
+
+  const yes = yesCount ?? 0;
+  const no = noCount ?? 0;
+  const total = teamMembersCount ?? 0;
+  const waiting = Math.max(0, total - yes - no);
 
   return NextResponse.json({
     event: {
@@ -115,7 +134,10 @@ export async function GET(
       is_public: event.is_public,
       team: event.teams,
       venue: event.venues,
-      yes_count: yesCount ?? 0,
+      yes_count: yes,
+      no_count: no,
+      waiting_count: waiting,
+      total_members: total,
       user_vote: attendance?.vote ?? null,
     },
   });
