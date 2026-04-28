@@ -334,3 +334,52 @@
 
 ---
 
+## ✅ Итерация 38 — Профиль v2
+
+**Цель:** перевести `/profile` на токены v1 + underline-табы + чистые карточки. Вынести «Настройки» в отдельный роут. Добавить четвёртый таб «Достижения» как каркас под будущую систему ачивок. Сохранить все логические блоки (включая placeholder-метрики голы/передачи/жёлтые/MVP в «Результатах»).
+
+### Структура `/profile` (top-down)
+
+1. **Hero (light, без green PageHeader)** — для player-profile дизайн-система предписывает светлый блок:
+   - Avatar 96px центр + камера-IconButton поверх
+   - Имя 28px + «Город · Район» 13px
+   - Опц. бейдж «Ищет команду» (`bg-green-50 text-green-700`)
+   - **Gear-иконка top-right** → `/profile/settings`
+
+2. **Underline-табы (sticky, 4 слота)**: Обо мне / Результаты / Надёжность / Достижения. Реализованы инлайн в page (state-based), визуально идентичны `UnderlineTabs` (тот же стиль зелёного underline, `font-bold text-green-700` на активном)
+
+3. **Tab content:**
+   - *Обо мне:* bio, 2×2 stat (Уровень / Возраст), позиция-чипы, время тренировок. Empty-state с CTA на `/profile/settings`
+   - *Результаты:* bignum «Сыграно матчей» (Oswald 40px) + 2×2 placeholder-карточки (Голы / Передачи / Жёлтые / MVP — «скоро»)
+   - *Надёжность:* CircularProgress + лейбл, 2×2 stat (Неприходы / Отмены), посещаемость с прогресс-баром, список последних событий с цветными точками
+   - *Достижения:* карточка-приветствие + grid 3×N grayscale значков-плейсхолдеров (Первый матч, 5 подряд, Капитан, MVP, 100% явка, 50 матчей)
+
+4. **«Мои заявки»** — секция ниже табов, видна на любом табе, скрыта если пусто
+
+### `/profile/settings` (новый роут)
+
+Отдельный экран с back-arrow + sticky `BottomActionBar` с primary-кнопкой «Сохранить»:
+- `bio` — textarea + счётчик 0/500
+- `position` — multi-select chip-toggles (POSITIONS["football"])
+- `skill_level` — `SheetChipGroup` инлайн
+- `district_id` — `DistrictSelect` (если есть город)
+- `preferred_time` — пресет-чипы (Утром/Днём/Вечером/Выходные) + свободный input ниже
+- `birth_date` — native date input
+- `looking_for_team` — toggle-row на всю ширину, активный — green-border
+
+Сохранение: `PUT /api/users/[id]/profile` → `router.push('/profile')`.
+
+### Frontend
+
+- ✅ `src/app/(app)/profile/page.tsx` — полный rewrite. Убран старый chip-pills tab-switcher, `Pill variant="filter"`, старые токены (`bg-background-card`, `text-foreground`). Все цвета — через `var(--bg-primary)`, `var(--text-primary)`, `var(--green-600)`. Убраны `Card`, `MiniStatCard`, `SectionEyebrow` обёртки — заменены инлайн-стилями с теми же значениями
+- ✅ Новый файл `src/app/(app)/profile/settings/page.tsx` — отдельный роут с формой
+- ✅ `Eyebrow`, `StatTile`, `SkeletonBlock` — локальные атомы внутри page (не выносим в общий ui/, специфичны для профиля)
+
+### Не входит
+
+- Реальные метрики голов/передач/жёлтых/MVP — нужен event-stats трекинг (отдельный продуктовый сценарий, post-MVP)
+- Реальная логика достижений — система ачивок отложена, в этой итерации только визуальный каркас
+- Полноэкранный sheet редактирования вместо отдельного роута — `/profile/settings` дешевле (отдельная страница) и даёт нативный back-stack
+
+---
+

@@ -1,58 +1,84 @@
 # Профиль (`/profile`)
 
-Личный профиль пользователя с аватаром, 4 табами и историей заявок.
+Личный профиль пользователя: hero + 4 underline-таба + секция «Мои заявки». Настройки — отдельным роутом `/profile/settings`.
 
-## Хедер
+## Hero
 
-Светлый блок (`bg-background-card shadow-card`). Аватар 96px по центру с `IconButton kind="on-photo"` поверх (камера). Без фото — инициалы. Имя 28px жирным, под ним «Город · Район» мелко серым. Бейдж «Ищет команду» — `Pill variant="role"` (зелёный).
+Светлый блок (`bg-bg-primary`) с padding `pt-6 pb-5 px-4`:
+- Аватар 96px по центру с `IconButton kind="on-photo"` (камера) поверх. Без фото — инициалы
+- Имя 28px жирным по центру (`text-text-primary`)
+- Под именем — «Город · Район» (`text-text-secondary` 13px)
+- Опц. бейдж «Ищет команду» — pill `bg-green-50 text-green-700`
+- **Gear-иконка top-right** → `Link` на `/profile/settings`
 
-Загрузка аватара: `POST /api/users/[id]/avatar` (multipart/form-data) → Supabase Storage bucket `avatars` → обновляет `users.avatar_url`.
+Загрузка аватара: `POST /api/users/[id]/avatar` (multipart/form-data) → Supabase Storage bucket `avatars` → обновляет `users.avatar_url`. Лимит 2 МБ.
 
 ## Табы
 
+Underline-табы (state-based, sticky-top), 4 равновесных слота:
+
 ### Обо мне
 
-Read-only отображение заполненных полей профиля. Пустой профиль — подсказка перейти в Настройки.
+Read-only отображение заполненных полей. Пустой профиль → empty-state c CTA «Заполнить профиль →» (на `/profile/settings`).
 
 | Поле | Отображение |
 |------|-------------|
-| bio | StatCard «Био» |
-| skill_level + birth_date | Сетка 2×2: «Уровень» + «Возраст» (вычисленный) |
-| position | Chip-теги «На поле» |
-| preferred_time | StatCard «Время тренировок» |
+| `bio` | Карточка с эйбрау «Био» + раскрытие Ещё/Скрыть после 120 символов |
+| `skill_level` + возраст (`birth_date`) | Сетка 2×2 stat-tile (Oswald 28px) |
+| `position` (csv) | Карточка «На поле» + chips |
+| `preferred_time` | Карточка «Время тренировок» |
 
 ### Результаты
 
-StatCard «Сыгранные матчи» (реальное число из `/api/users/[id]/stats`). Голы, передачи, жёлтые, MVP — «—» с пометкой «скоро».
+- StatCard «Сыграно матчей» (Oswald 40px, реальное число из `/api/users/[id]/stats`)
+- Сетка 2×2 placeholder-карточек: Голы / Передачи / Жёлтые / MVP — с прочерком и подписью «скоро» (заглушка под будущий event-stats трекинг)
 
 ### Надёжность
 
-SVG circular progress (`CircularProgress.tsx`) + процент + подпись. Статистика посещаемости: неприходы, отмены, прогресс-бар. Список последних событий с маркерами «Был» / «Пропустил».
+- Карточка «Индекс надёжности» — крупное число + `CircularProgress` 72px. Пустое состояние «Появится после первых завершённых событий», если `votedYesCount === 0`
+- Сетка 2×2: «Неприходы» / «Отмены» (число / процент). Зелёный цвет числа если 0
+- Карточка «Посещаемость» — прогресс-бар + дробь N / M
+- Список последних событий с цветной точкой (зелёный/красный/серый) + relative-date
 
-Надёжность = `round(attendedCount / votedYesCount * 100)`. Если `votedYesCount = 0` — пустое состояние.
+Надёжность = `round(attendedCount / votedYesCount * 100)`.
 
-### Настройки
+### Достижения
 
-Форма редактирования всех полей профиля + toggle «Ищу команду» + кнопка «Сохранить» (`Button`). Единственное место редактирования профиля.
-
-| Поле | Тип |
-|------|-----|
-| О себе (bio) | textarea |
-| Позиция | Select (POSITIONS) |
-| Уровень (skill_level) | Select (SKILL_LEVELS) |
-| Район | DistrictSelect |
-| Время тренировок (preferred_time) | text |
-| Дата рождения (birth_date) | date |
-| Ищу команду (looking_for_team) | toggle |
-
-Сохранение через `PUT /api/users/[id]/profile`.
+Заглушка под будущую систему ачивок:
+- Карточка «Достижения копятся с каждым матчем»
+- Сетка 3×N значков-плейсхолдеров (Первый матч, 5 подряд, Капитан, MVP, 100% явка, 50 матчей) — все grayscale + «скоро»
 
 ## Мои заявки
 
-Раздел под табами. Скрыт если заявок нет. Список поданных заявок со статусами (`на рассмотрении` / `принята` / `отклонена`) → подробнее: [[team]-join-requests.md](../team/[team]-join-requests.md)
+Секция под табами (видна на любом табе), скрыта если заявок нет. Список с:
+- Название команды + город + спорт
+- Источник (`Тебя пригласил X` / `Ты подал заявку`)
+- Status pill (`на рассмотрении` / `принята` / `отклонена`)
+- Кнопки «Принять» / «Отклонить» — только для `direction = team_to_player`, `status = pending`
+
+Подробнее по сценарию: [[team]-join-requests.md](../team/[team]-join-requests.md)
+
+## Настройки (`/profile/settings`)
+
+Отдельный роут с back-arrow. Форма редактирования:
+
+| Поле | Контрол |
+|------|---------|
+| `bio` | textarea + счётчик 0/500 |
+| `position` | Multi-select chip-toggles (POSITIONS["football"]) |
+| `skill_level` | `SheetChipGroup` (single-select) |
+| `district_id` | `DistrictSelect` (показывается если есть город) |
+| `preferred_time` | Пресет-чипы (Утром / Днём / Вечером / Выходные) + свободный input |
+| `birth_date` | native date input |
+| `looking_for_team` | toggle-row на всю ширину, активный — green-border |
+
+Сохранение: sticky `BottomActionBar` с primary-кнопкой «Сохранить» → `PUT /api/users/[id]/profile` → редирект на `/profile`.
 
 ## API
 
-- `PUT /api/users/[id]/profile` — обновление полей: `bio`, `birth_date`, `position`, `skill_level`, `preferred_time`, `looking_for_team`. Возвращает обновлённый объект `user`.
-- `POST /api/users/[id]/avatar` — загрузка аватара (multipart/form-data, поле `file`). Загружает в Storage bucket `avatars`, обновляет `users.avatar_url`. Возвращает обновлённый объект `user`.
-- `GET /api/users/[id]/stats` — надёжность и статистика (см. [[player]-catalog.md]([player]-catalog.md))
+- `GET /api/users/[id]` — полный объект пользователя (`district`, `district_id`, профильные поля)
+- `PUT /api/users/[id]/profile` — обновление: `bio`, `birth_date`, `position`, `skill_level`, `preferred_time`, `looking_for_team`, `district_id`. Возвращает обновлённый `user`
+- `POST /api/users/[id]/avatar` — загрузка аватара (multipart/form-data, поле `file`). Возвращает обновлённый `user`
+- `GET /api/users/[id]/stats` — `playedCount`, `votedYesCount`, `attendedCount`, `reliability`, `recentEvents`
+- `GET /api/users/[id]/join-requests` — список заявок текущего пользователя
+- `POST /api/join-requests/[id]/respond` — `accept` / `reject` входящих приглашений
