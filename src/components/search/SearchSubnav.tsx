@@ -14,27 +14,34 @@ export function SearchSubnav() {
   const pathname = usePathname();
 
   return (
-    <nav className="px-4 mt-4">
-      <div
-        className="flex gap-1.5 overflow-x-auto scrollbar-none"
-        style={{ scrollbarWidth: "none" }}
-      >
+    <nav
+      className="px-4 mt-2"
+      style={{ borderBottom: "1px solid var(--gray-100)" }}
+    >
+      <div className="flex justify-between gap-1">
         {TABS.map((t) => {
-          const active = pathname === t.href || pathname?.startsWith(t.href + "/");
+          const active =
+            pathname === t.href || pathname?.startsWith(t.href + "/");
           return (
             <Link
               key={t.href}
               href={t.href}
-              className="px-3.5 py-2 rounded-full text-[13px] font-semibold whitespace-nowrap transition-colors"
+              className="relative flex-1 text-center pt-2 pb-2.5 text-[14px] transition-colors whitespace-nowrap"
               style={{
-                background: active ? "var(--gray-900)" : "var(--bg-card)",
-                color: active ? "white" : "var(--text-secondary)",
-                border: active
-                  ? "1.5px solid var(--gray-900)"
-                  : "1.5px solid var(--gray-200)",
+                color: active ? "var(--green-700)" : "var(--text-secondary)",
+                fontWeight: active ? 700 : 500,
               }}
             >
               {t.label}
+              {active && (
+                <span
+                  className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[2.5px] rounded-full"
+                  style={{
+                    background: "var(--green-500)",
+                    width: "calc(100% - 16px)",
+                  }}
+                />
+              )}
             </Link>
           );
         })}

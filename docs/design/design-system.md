@@ -489,7 +489,7 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
   - Число: `font-display text-[34px] font-bold` white
   - Лейбл: `text-[11px] text-white/50 leading-[1.4]`
 
-**Когда уместен:** только корневые вкладки (`/home`, `/teams`, `/players`, `/search`). На вложенных страницах — обычный `ScreenHeader` с back-arrow.
+**Когда уместен:** только корневые вкладки (`/home`, `/teams` лэндинг, `/search/*`). На вложенных страницах — обычный `ScreenHeader` с back-arrow.
 
 **Stats:** 1-3 показателя, ценных лично пользователю. Не статистика всей системы. Примеры:
 - Игроки: «Всего N», «В моих командах M», «Ищут команду K»
@@ -525,7 +525,7 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 
 **Контролы внутри шита** — никаких нативных `<select>` для коротких списков. Используем `<SheetChipGroup>` (`src/components/ui/SheetChipGroup.tsx`): single-select чипы во flex-wrap. Активный чип — `bg-gray-900 text-white`, неактивный — `bg-bg-card 1.5px solid var(--gray-200)`. По дефолту первая опция — пустое значение «Любой» (можно отключить через `emptyLabel={null}`). Для зависимых полей (район по городу) при пустых опциях показываем `emptyHint` («Сначала выбери город»). Boolean-фильтры остаются обычным toggle-блоком (как «Ищут игроков»).
 
-См. эталонную реализацию в [src/app/(app)/players/page.tsx](../../src/app/(app)/players/page.tsx) и [src/components/players/PlayerFiltersSheet.tsx](../../src/components/players/PlayerFiltersSheet.tsx).
+См. эталонную реализацию в [src/app/(app)/search/players/page.tsx](../../src/app/(app)/search/players/page.tsx) и [src/components/players/PlayerFiltersSheet.tsx](../../src/components/players/PlayerFiltersSheet.tsx). Все четыре саб-таба `/search/*` собраны по одному и тому же шаблону.
 
 ### `ListRow` — строка списка
 
@@ -570,10 +570,13 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 | `FilterPills` | [FilterPills.tsx](../../src/components/ui/FilterPills.tsx) | Grid быстрых toggle-pills для одного измерения |
 | `ActiveFilterChips` + тип `FilterChip` | [ActiveFilterChips.tsx](../../src/components/ui/ActiveFilterChips.tsx) | Массив `{id, label, onRemove}` с ✕ |
 | `SheetChipGroup` + тип `ChipOption` | [SheetChipGroup.tsx](../../src/components/ui/SheetChipGroup.tsx) | Single-select чипы для шит-фильтров вместо нативного `<select>` |
+| `SearchSubnav` | [SearchSubnav.tsx](../../src/components/search/SearchSubnav.tsx) | Chip-row 4-сабтабной навигации внутри `/search/*` |
+| `EventListRow` | [EventListRow.tsx](../../src/components/events/EventListRow.tsx) | Строка списка для `/search/events` (date-tile + team + meta + yes/price) |
+| `VenueListRow` | [VenueListRow.tsx](../../src/components/venues/VenueListRow.tsx) | Строка списка для `/search/venues` (pin-tile + name + address) |
 
 Domain-специфичные строки (`PlayerListRow`, будущие `TeamListRow`, `EventListRow`) живут рядом с фичей в `src/components/<domain>/`. Они напрямую рендерят `<Link>` со структурой из «`ListRow` — строка списка» выше — отдельный generic-обёрточный компонент `ListRow` не делаем, чтобы не плодить уровни абстракции (структура из 5 строк HTML — не повод для компонента).
 
-**Эталон применения для других каталогов:** при добавлении `/search` (events), `/venues` повторить эту последовательность: `PageHeader` → `ListSearchBar` → `ListMeta` → опц. `FilterPills` → `ActiveFilterChips` → эйбрау «Результаты · N» → список. `FilterPills` нужен только если есть одно главное измерение быстрого фильтра (позиция, тип); если такого измерения нет — пропускай этот ряд. Sheet-фильтров — новый компонент `<Domain>FiltersSheet` рядом со строкой, чипами через `<SheetChipGroup>`.
+**Эталон применения:** все четыре саб-таба `/search/*` собраны по этой последовательности: `PageHeader` → опц. `SearchSubnav` (только внутри `/search/*`) → `ListSearchBar` → `ListMeta` → опц. `FilterPills` → `ActiveFilterChips` → эйбрау «Результаты · N» → список. `FilterPills` нужен только если есть одно главное измерение быстрого фильтра (позиция, тип события); если такого измерения нет (как у команд и площадок) — пропускай этот ряд. Sheet-фильтров — `<Domain>FiltersSheet` рядом со строкой, чипами через `<SheetChipGroup>`.
 
 ---
 
@@ -630,44 +633,68 @@ Domain-специфичные строки (`PlayerListRow`, будущие `Tea
 4. **Площадки** — список событий с долгом. Каждая строка — ссылка в событие.
 5. **Депозит** — bottom action bar или одна primary-кнопка «Внести депозит» снизу, не нейтральная карточка с плюсом.
 
-### Игроки (`/players`)
+### Информационная архитектура: «Моё» отдельно от «Публичного»
 
-Каталог — точное применение паттерна «Лэйаут листинг-страниц».
+Четыре сущности (команды, события, игроки, площадки) — два разных контекста использования:
 
-1. **`PageHeader`**: title «ИГРОКИ», bell, 3 stat-карточки (см. секцию выше).
-2. **`ListToolbar`**: search-input «Имя, город, позиция…» + filter-btn → sheet с расширенными фильтрами (город, район, ищет команду). Meta «Найдено N игроков» + sort («По уровню» / «Недавние»). Position-pills (Все / Вратарь / Защ. / Полузащ. / Нап. — соответствуют `POSITIONS.football` из catalogs.ts).
-3. **`ActiveFilterChips`** (если применены sheet-фильтры): «Алматы ✕», «Ищет команду ✕» и т.д.
-4. **Эйбрау «РЕЗУЛЬТАТЫ · N»** + список строк-игроков по паттерну `ListRow`:
-   - Avatar 44px (фото из `users.avatar_url`, иначе цветная подложка с инициалом)
-   - Имя + опц. бейдж «Ищет команду»
-   - Мета: «Позиция · Район/Город» (district приоритетнее city)
-   - Справа: 5-bar мини-бар надёжности (`100→5, 80-99→4, 60-79→3, 40-59→2, 1-39→1, played=0→прочерк`). Сортировка списка по `skill_level` или `created_at` — независимое измерение
-5. Pull-to-load-more (infinite scroll) — без paginator.
+- **«Моё»** (daily, операционка): моя команда, мои события. Top-tab «Моя команда» (`/teams` → smart-redirect на `/team/[lastId]`); следующее событие — на `/home`.
+- **«Публичное»** (discovery, изредка): каталог чего угодно. Top-tab «Поиск» (`/search`) с 4 саб-табами: События / Команды / Игроки / Площадки.
 
-Не делать: тёмный hero, отдельные `bg-bg-card border` карточки на каждую строку, красные/оранжевые акценты без смысла, дублирование «N игроков» в эйбрау И в meta-row.
+Никаких пересечений: каталог команд не дублируется в «Моя команда», игроков нет как top-level вкладки. Это даёт один путь к каждому интенту.
 
-### Команды (`/teams`)
+**Bottom-nav (4 таба):** Главная / Моя команда / Поиск / Профиль.
 
-Применение паттерна без `FilterPills` — у каталога команд нет одного главного быстрого измерения, чтобы туда положить (позиции и спорт-чип не помещаются и захламляют). Вместо scope-переключателя «Все / Только мои» — сортировка `Сначала мои` сразу даёт сгруппированный вид с моими командами наверху.
+### Поиск (`/search`)
 
-1. **`PageHeader`**: title «КОМАНДЫ», action-pill «+ Создать» (только для авторизованного, через `HeaderActionButton`, ведёт на `/teams/create`), 3 stat-карточки: «Всего», «Мои» (только для авторизованного), «Ищут игроков».
-2. **`ListSearchBar`**: «Имя команды, город…» + filter-btn → sheet (город, район, спорт через `SheetChipGroup`, toggle «Ищут игроков»).
-3. **`ListMeta`**: «Найдено N команд» + sort-dropdown («Сначала мои» / «Сначала новые»). Дефолт — «Сначала мои» для авторизованного, «Сначала новые» для гостя (sort-dropdown скрыт).
-4. **`ActiveFilterChips`** — только применённые sheet-фильтры (город, спорт, «Ищут игроков»).
-5. **Тело**:
-   - `Сначала мои` + есть мои команды → две группы: «Мои · N» (без пагинации, локальная фильтрация) + «Все остальные · M» (пагинированный остаток через `?exclude_ids=`)
-   - `Сначала новые` (или нет моих команд) → плоский список «Результаты · N»; в строках с моими командами рендерим бейдж «Капитан»/«Я в составе»
+Единый хаб публичного каталога с саб-навигацией. Корень `/search` → редирект на `/search/events`. Каждый саб-таб — отдельный роут со своим `PageHeader`, своими stats и своей формой listing-паттерна.
 
-`TeamListRow`: 44px Avatar (инициал) + имя + опц. бейдж (приоритет: «Капитан» > «Я в составе» > «Ищут игроков») + meta «Спорт · Район/Город» + справа `members_count` с иконкой человечка.
+**Саб-нав** (`SearchSubnav`, `src/components/search/SearchSubnav.tsx`) — **underline-табы** (не чипы!) под `PageHeader`, в порядке: События / Команды / Игроки / Площадки. 4 равновесных слота через `flex justify-between` + `flex-1` на каждом. Активный — `font-bold text-green-700` + 2.5px зелёный underline снизу; неактивный — `font-medium text-text-secondary`. Под всем рядом — `1px solid var(--gray-100)`. Это сделано визуально отлично от `FilterPills` ниже, чтобы пользователь сразу читал «это навигация», а не «ещё один ряд фильтров».
 
-### Правило: scope-переключатели — через сортировку, а не через FilterPills
+Каждый саб-таб использует один и тот же шаблон: `PageHeader` (со своими stats) → `SearchSubnav` → `ListSearchBar` → `ListMeta` (count + опц. sort) → опц. `FilterPills` → опц. `ActiveFilterChips` → эйбрау «Результаты · N» → список → infinite scroll.
 
-Раньше думали закодировать «Все / Только мои» как `FilterPills` из 2 опций. Отказались. Если на странице нужно показывать одни и те же сущности в двух «срезах» (всё / только моё), правильный путь — **поведение сортировки**, а не отдельный scope-чип:
+#### Саб-таб «События» (`/search/events`)
+- Stats: Всего / Сегодня / На неделе (только публичные `is_public=true`, status=planned, future)
+- Search: ilike по `teams.name`
+- Pills: тип события (Все / Игра / Трен. / Сбор / Другое) — фильтр одного измерения
+- Sheet: город, район
+- Сортировка: дата asc (без диалога)
+- Row: `EventListRow` — 44×44 цветной date-tile (`green-50`/`green-700`, day + month) + название команды (+ опц. бейдж «Моя команда») + `тип · время · площадка · район`. Справа: `yes_count` с галочкой + опц. цена
 
-- Дефолтная сортировка должна сразу давать наиболее ценный срез (например, `Сначала мои` группирует «Мои» сверху и «Все остальные» снизу).
-- «Только мои» как отдельный режим — лишний шаг для пользователя; если очень нужен — toggle в sheet, не самостоятельный ряд.
+#### Саб-таб «Команды» (`/search/teams`)
+- Stats: Всего / Ищут игроков
+- Search: ilike по `name`
+- Sheet: город, район, спорт, toggle «Ищут игроков»
+- Без quick-pills и sort-диалога (сортировка по created_at desc)
+- Row: `TeamListRow` — 44px Avatar (инициал) + имя + опц. бейдж (приоритет: «Капитан» > «Я в составе» > «Ищут игроков») + meta «Спорт · Район/Город» + справа `members_count`
 
-`FilterPills` остаётся **только для одного быстрого фильтр-измерения** (позиция игрока, тип события). 3–5 опций, каждая — точное значение поля. Пример: `/players` (Все / ВРТ / ЗАЩ / ПЗЩ / НАП). Если такого измерения нет — пропускай ряд.
+#### Саб-таб «Игроки» (`/search/players`)
+- Stats: Всего / В моих командах (только для авторизованного) / Ищут команду
+- Search: ilike по `name`
+- Pills: позиция (Все / ВРТ / ЗАЩ / ПЗЩ / НАП)
+- Sheet: город, район, позиция, toggle «Ищет команду»
+- Sort: «По уровню» / «Недавние»
+- Row: `PlayerListRow` — Avatar + имя + опц. «Ищет команду» + меta + 5-bar надёжность (`100→5, 80-99→4, 60-79→3, 40-59→2, 1-39→1, played=0→прочерк`)
+
+#### Саб-таб «Площадки» (`/search/venues`)
+- Stats: Всего
+- Search: ilike по `name`/`city`
+- Sheet: город, район
+- Без pills и sort
+- Row: `VenueListRow` — 44px иконка-pin tile + название + адрес · район + город
+
+### Моя команда (`/teams`)
+
+`/teams` — **не каталог**, а лэндинг для своих команд:
+- 0 команд (или гость) → empty-state с двумя CTA: «Найти команду» (→ `/search/teams`, primary green) и «Создать команду» (→ `/teams/create`, secondary)
+- 1+ команд → клиентский `router.replace` на `/team/[lastActiveId]`, где id берётся из `localStorage["sporty:lastTeamId"]` или первой по `joined_at`. Last-active обновляется в `team layout` при каждом рендере `/team/[id]/*`
+
+Никаких stat-карточек, поиска, фильтров — это не discovery-поверхность.
+
+### Team-switcher (для пользователей с ≥ 2 командами)
+
+Внутри `/team/[id]/*` хедер команды получает свитчер: имя команды + chevron-вниз → `TeamSwitcherSheet`. Bottom-sheet со списком моих команд (Avatar + имя + «Капитан/Игрок · Город» + бейдж «Сейчас» на текущей) + кнопка «+ Создать команду» снизу. При выборе — `router.push('/team/[newId]')` и `setLastActiveTeamId`.
+
+Если у пользователя 1 команда — chevron не рендерится, имя — обычный `<h1>`.
 
 ### Профиль игрока
 

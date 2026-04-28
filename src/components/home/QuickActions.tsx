@@ -6,7 +6,7 @@ export function QuickActions() {
   return (
     <div className="flex gap-2.5 px-4 mt-4">
       <Link
-        href="/search?tab=events"
+        href="/search/events"
         className="flex-1 rounded-2xl p-4 transition-transform active:scale-[0.97]"
         style={{ background: "var(--green-500)" }}
       >
@@ -21,7 +21,7 @@ export function QuickActions() {
       </Link>
 
       <Link
-        href="/search?tab=teams"
+        href="/search/teams"
         className="flex-1 rounded-2xl p-4 transition-transform active:scale-[0.97]"
         style={{ background: "white", border: "1.5px solid var(--gray-200)" }}
       >

@@ -85,7 +85,7 @@ export function EventHero({
         background: "var(--gray-900)",
       }}
     >
-      <div className="relative h-[230px] w-full">
+      <div className="relative h-[160px] w-full">
         {photoUrl ? (
           <Image
             src={photoUrl}
@@ -104,18 +104,18 @@ export function EventHero({
 
         {/* top dim for back/status legibility */}
         <div
-          className="absolute inset-x-0 top-0 h-20 pointer-events-none"
+          className="absolute inset-x-0 top-0 h-14 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0.5) 0%, rgba(0,0,0,0) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 100%)",
           }}
         />
-        {/* bottom merge into the dark card — smooth, no visible seam */}
+        {/* bottom merge into the dark card — half-image coverage */}
         <div
-          className="absolute inset-x-0 bottom-0 h-32 pointer-events-none"
+          className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.4) 55%, var(--gray-900) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 55%, var(--gray-900) 100%)",
           }}
         />
 
