@@ -1,107 +1,124 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
 import { use, useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 import { TeamProvider, useTeam } from "./team-context";
-import { ScreenHeader } from "@/components/ui/ScreenHeader";
+import {
+  PageHeader,
+  HeaderStatGroup,
+  HeaderStat,
+} from "@/components/ui/PageHeader";
+import { UnderlineTabs, type UnderlineTab } from "@/components/ui/UnderlineTabs";
 import { TeamSwitcherSheet } from "@/components/teams/TeamSwitcherSheet";
+import { TeamRequestsSheet } from "@/components/team/TeamRequestsSheet";
 import { useAuth } from "@/lib/auth-context";
 import { setLastActiveTeamId } from "@/lib/lastActiveTeam";
 import { SPORT_LABEL } from "@/lib/catalogs";
+import { formatMoney } from "@/lib/format";
 
 const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
 const EVENT_DETAIL_PATH_RE = /\/team\/[^/]+\/events\/[^/]+/;
 
-type TeamSubTab = {
+type TeamSubTabDef = {
   label: string;
   href: (id: string) => string;
   exact?: boolean;
   organizerOnly?: boolean;
 };
 
-const subTabs: TeamSubTab[] = [
+const SUB_TABS: TeamSubTabDef[] = [
   { label: "Главная", href: (id) => `/team/${id}`, exact: true },
   { label: "Состав", href: (id) => `/team/${id}/roster` },
   { label: "События", href: (id) => `/team/${id}/events` },
   { label: "Финансы", href: (id) => `/team/${id}/finances`, organizerOnly: true },
 ];
 
-function TeamScreenHeader({ teamId }: { teamId: string }) {
+function TeamPageHeader({ teamId }: { teamId: string }) {
   const team = useTeam();
   const auth = useAuth();
   const [myTeamCount, setMyTeamCount] = useState(0);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [requestsOpen, setRequestsOpen] = useState(false);
 
   useEffect(() => {
-    if (auth.status !== "authenticated") {
-      setMyTeamCount(0);
-      return;
-    }
+    if (auth.status !== "authenticated") return;
     let cancelled = false;
     fetch(`/api/users/${auth.user.id}/teams`)
       .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) setMyTeamCount((d.teams ?? []).length);
-      })
+      .then((d) => { if (!cancelled) setMyTeamCount((d.teams ?? []).length); })
       .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [auth]);
 
   if (team.status === "loading") {
     return (
-      <header className="flex items-center gap-3 px-4 pt-4 pb-3">
-        <div className="w-10 h-10 rounded-full bg-background-muted animate-pulse shrink-0" />
-        <div className="flex-1">
-          <div className="h-7 w-48 bg-background-muted rounded animate-pulse" />
-          <div className="h-4 w-32 bg-background-muted rounded animate-pulse mt-1" />
-        </div>
-      </header>
+      <div
+        className="h-[172px] animate-pulse"
+        style={{ background: "var(--green-600)", borderRadius: "0 0 28px 28px" }}
+      />
     );
   }
 
-  if (team.status !== "ready") {
-    return <ScreenHeader title="Команда не найдена" fallbackHref="/teams" />;
-  }
+  if (team.status !== "ready") return null;
 
-  const sportLabel = SPORT_LABEL[team.team.sport] ?? team.team.sport;
+  const { team: t, members, role, teamStats, pendingRequestsCount } = team;
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const isOrganizer = role === "organizer";
+  const sportLabel = SPORT_LABEL[t.sport] ?? t.sport;
   const hasMultiple = myTeamCount >= 2;
-  const titleNode = hasMultiple ? (
+
+  const titleSlot = hasMultiple ? (
     <button
       type="button"
       onClick={() => setSwitcherOpen(true)}
-      className="flex items-center gap-1.5 min-w-0 text-left"
+      className="flex items-center gap-1.5 min-w-0"
     >
-      <h1 className="text-[28px] font-bold leading-tight truncate">
-        {team.team.name}
-      </h1>
+      <span
+        className="font-display font-bold uppercase text-white text-[30px] leading-none truncate"
+        style={{ letterSpacing: "0.02em" }}
+      >
+        {t.name}
+      </span>
       <ChevronDownIcon />
     </button>
-  ) : (
-    <h1 className="text-[28px] font-bold leading-tight truncate">
-      {team.team.name}
-    </h1>
-  );
+  ) : undefined;
+
+  const thirdStatValue = isOrganizer
+    ? formatMoney(teamStats.totalPlayersDebt ?? 0)
+    : String(teamStats.completedEvents);
+  const thirdStatLabel = isOrganizer ? "Долгов" : "Сыграно";
 
   return (
     <>
-      <header className="flex items-center justify-between px-4 pt-4 pb-3">
-        <div className="flex items-center gap-3 min-w-0 flex-1">
-          <div className="min-w-0 flex-1">
-            {titleNode}
-            <p className="text-[13px] text-foreground-secondary">
-              {team.team.city} · {sportLabel}
-            </p>
-          </div>
-        </div>
-      </header>
+      <PageHeader
+        title={hasMultiple ? undefined : t.name}
+        titleSlot={titleSlot}
+        subtitle={`${t.city} · ${sportLabel}`}
+        onBellClick={isOrganizer ? () => setRequestsOpen(true) : undefined}
+        hasBellDot={isOrganizer && pendingRequestsCount > 0}
+        bellAriaLabel="Заявки на вступление"
+      >
+        <HeaderStatGroup>
+          <HeaderStat value={members.length} label="В составе" />
+          <HeaderStat value={teamStats.plannedEvents} label="Впереди" />
+          <HeaderStat value={thirdStatValue} label={thirdStatLabel} />
+        </HeaderStatGroup>
+      </PageHeader>
+
       {hasMultiple && (
         <TeamSwitcherSheet
           open={switcherOpen}
           currentTeamId={teamId}
           onClose={() => setSwitcherOpen(false)}
+        />
+      )}
+      {isOrganizer && (
+        <TeamRequestsSheet
+          open={requestsOpen}
+          teamId={teamId}
+          userId={userId}
+          onClose={() => setRequestsOpen(false)}
+          onActionDone={() => team.reload()}
         />
       )}
     </>
@@ -112,34 +129,23 @@ function TeamSubNav({ id }: { id: string }) {
   const pathname = usePathname();
   const team = useTeam();
   const isOrganizer = team.status === "ready" && team.role === "organizer";
-  const visibleTabs = subTabs.filter((tab) => !tab.organizerOnly || isOrganizer);
-  const reload = team.status === "ready" ? team.reload : null;
+  const reload = team.status === "ready" ? team.reload : undefined;
+
+  const tabs: UnderlineTab[] = SUB_TABS
+    .filter((tab) => !tab.organizerOnly || isOrganizer)
+    .map((tab) => {
+      const href = tab.href(id);
+      const active = tab.exact
+        ? pathname === href
+        : pathname === href || pathname.startsWith(href + "/");
+      return { href, label: tab.label, active, onClick: reload };
+    });
 
   return (
-    <nav className="px-4 pb-2 sticky top-0 z-10 bg-background">
-      <div className="flex justify-center gap-1.5 overflow-x-auto">
-        {visibleTabs.map((tab) => {
-          const href = tab.href(id);
-          const isActive = tab.exact
-            ? pathname === href
-            : pathname === href || pathname.startsWith(href + "/");
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => reload?.()}
-              className={`rounded-full px-3 py-1 inline-flex items-center justify-center whitespace-nowrap transition-colors ${
-                isActive
-                  ? "bg-primary text-primary-foreground shadow-card text-[13px] font-semibold"
-                  : "bg-background-card text-foreground border border-border text-[13px] font-medium"
-              }`}
-            >
-              {tab.label}
-            </Link>
-          );
-        })}
-      </div>
-    </nav>
+    <UnderlineTabs
+      tabs={tabs}
+      className="sticky top-0 z-10 bg-white"
+    />
   );
 }
 
@@ -159,7 +165,7 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
 
   return (
     <div className="flex flex-1 flex-col">
-      <TeamScreenHeader teamId={id} />
+      <TeamPageHeader teamId={id} />
       <TeamSubNav id={id} />
       <div className="flex flex-1 flex-col px-4 py-4 gap-4">{children}</div>
     </div>
@@ -169,16 +175,15 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
 function ChevronDownIcon() {
   return (
     <svg
-      width="18"
-      height="18"
+      width="20"
+      height="20"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
+      stroke="rgba(255,255,255,0.7)"
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
       className="shrink-0"
-      style={{ color: "var(--text-tertiary)" }}
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>

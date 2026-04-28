@@ -4,6 +4,7 @@
 
 Референсы: [ref.png](ref.png), скриншоты в Figma — экраны «Состав» и «Карточка события».
 
+> **Итерация 35 (1.4).** Шапка «Моя команда» переведена на `PageHeader` (green hero). Добавлен `UnderlineTabs` — общий примитив для `SearchSubnav` и нового `TeamSubNav`. `PageHeader` получил `titleSlot` и `subtitle`.
 > **Итерация 30 (1.4).** Внедрены Sporty Design Tokens v1: цветовые шкалы `oklch()`, семантические поверхности `--bg-*` / текст `--text-*`, тени `--shadow-sm/md/lg`. Старые Tailwind-классы продолжают работать как алиасы.
 > **Итерация 24 (1.3).** Базовые компоненты `src/components/ui/` созданы. `UIChromeContext` + `BottomTabs` скрывают нижние табы при активном `BottomActionBar`. `BackButton` поддерживает `kind="light"|"on-photo"`. `Skeleton` использует `bg-background-muted`.
 
@@ -489,7 +490,9 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
   - Число: `font-display text-[34px] font-bold` white
   - Лейбл: `text-[11px] text-white/50 leading-[1.4]`
 
-**Когда уместен:** только корневые вкладки (`/home`, `/teams` лэндинг, `/search/*`). На вложенных страницах — обычный `ScreenHeader` с back-arrow.
+**Props:** `title?: string` (строка-заголовок) или `titleSlot?: ReactNode` (кастомный узел заголовка — например, кнопка с chevron для team-switcher). `subtitle?: string` — строка под заголовком (`rgba(255,255,255,0.7)`). Остальные: `onBellClick`, `hasBellDot`, `bellAriaLabel`, `actions`, `children`.
+
+**Когда уместен:** корневые вкладки (`/home`, `/teams` лэндинг, `/search/*`) и страницы команды (`/team/[id]/*` — шапка общая для всех 4 табов). На вложенных страницах с back-arrow — обычный `ScreenHeader`.
 
 **Stats:** 1-3 показателя, ценных лично пользователю. Не статистика всей системы. Примеры:
 - Игроки: «Всего N», «В моих командах M», «Ищут команду K»
@@ -570,7 +573,8 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 | `FilterPills` | [FilterPills.tsx](../../src/components/ui/FilterPills.tsx) | Grid быстрых toggle-pills для одного измерения |
 | `ActiveFilterChips` + тип `FilterChip` | [ActiveFilterChips.tsx](../../src/components/ui/ActiveFilterChips.tsx) | Массив `{id, label, onRemove}` с ✕ |
 | `SheetChipGroup` + тип `ChipOption` | [SheetChipGroup.tsx](../../src/components/ui/SheetChipGroup.tsx) | Single-select чипы для шит-фильтров вместо нативного `<select>` |
-| `SearchSubnav` | [SearchSubnav.tsx](../../src/components/search/SearchSubnav.tsx) | Chip-row 4-сабтабной навигации внутри `/search/*` |
+| `UnderlineTabs` + тип `UnderlineTab` | [UnderlineTabs.tsx](../../src/components/ui/UnderlineTabs.tsx) | Underline-табы (nav с flex-1 слотами): активный = `font-bold text-green-700` + 2.5px underline. Принимает `tabs: UnderlineTab[]` (href, label, active, onClick?) + опц. `className` |
+| `SearchSubnav` | [SearchSubnav.tsx](../../src/components/search/SearchSubnav.tsx) | Underline-навигация `/search/*` — обёртка над `UnderlineTabs` с автоопределением active по pathname |
 | `EventListRow` | [EventListRow.tsx](../../src/components/events/EventListRow.tsx) | Строка списка для `/search/events` (date-tile + team + meta + yes/price) |
 | `VenueListRow` | [VenueListRow.tsx](../../src/components/venues/VenueListRow.tsx) | Строка списка для `/search/venues` (pin-tile + name + address) |
 
@@ -682,19 +686,28 @@ Domain-специфичные строки (`PlayerListRow`, будущие `Tea
 - Без pills и sort
 - Row: `VenueListRow` — 44px иконка-pin tile + название + адрес · район + город
 
-### Моя команда (`/teams`)
+### Моя команда (`/teams` → `/team/[id]/*`)
 
 `/teams` — **не каталог**, а лэндинг для своих команд:
 - 0 команд (или гость) → empty-state с двумя CTA: «Найти команду» (→ `/search/teams`, primary green) и «Создать команду» (→ `/teams/create`, secondary)
 - 1+ команд → клиентский `router.replace` на `/team/[lastActiveId]`, где id берётся из `localStorage["sporty:lastTeamId"]` или первой по `joined_at`. Last-active обновляется в `team layout` при каждом рендере `/team/[id]/*`
 
-Никаких stat-карточек, поиска, фильтров — это не discovery-поверхность.
+**Шапка `/team/[id]/*`** — тот же зелёный `PageHeader` что и в `/search/*`, рендерится в `team/[id]/layout.tsx`:
+- `titleSlot` (≥ 2 команды): `<button>` с именем команды (Oswald uppercase, 30px, white) + `<ChevronDownIcon>` → `TeamSwitcherSheet`
+- `title` (1 команда): обычная строка
+- `subtitle`: «Город · Спорт» в `rgba(255,255,255,0.7)`
+- Bell справа (только организатор) → `TeamRequestsSheet` (`src/components/team/TeamRequestsSheet.tsx`); `hasBellDot` = `pendingRequestsCount > 0`
+- Stats (3 штуки в `HeaderStatGroup`): «В составе N» · «Впереди M» · {«Долгов K ₸» для организатора | «Сыграно K» для игрока/гостя}
+
+Шапка скрывается для `/team/[id]/roster` (iter 36) и `/team/[id]/events/[eventId]` (своя `EventHero`).
+
+**Саб-навигация** — `TeamSubNav` на базе `UnderlineTabs` (тот же примитив, что и `SearchSubnav`): Главная / Состав / События / Финансы (только организатор). `sticky top-0 z-10 bg-white`. Также скрывается для roster и event-detail.
 
 ### Team-switcher (для пользователей с ≥ 2 командами)
 
-Внутри `/team/[id]/*` хедер команды получает свитчер: имя команды + chevron-вниз → `TeamSwitcherSheet`. Bottom-sheet со списком моих команд (Avatar + имя + «Капитан/Игрок · Город» + бейдж «Сейчас» на текущей) + кнопка «+ Создать команду» снизу. При выборе — `router.push('/team/[newId]')` и `setLastActiveTeamId`.
+Имя команды в `PageHeader` становится `<button>` с chevron → `TeamSwitcherSheet`. Bottom-sheet со списком моих команд (Avatar + имя + «Капитан/Игрок · Город» + бейдж «Сейчас» на текущей) + кнопка «+ Создать команду» снизу. При выборе — `router.push('/team/[newId]')` и `setLastActiveTeamId`.
 
-Если у пользователя 1 команда — chevron не рендерится, имя — обычный `<h1>`.
+Если у пользователя 1 команда — chevron не рендерится, `title` — обычная строка.
 
 ### Профиль игрока
 

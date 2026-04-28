@@ -3,7 +3,9 @@
 import { ReactNode } from "react";
 
 type Props = {
-  title: string;
+  title?: string;
+  titleSlot?: ReactNode;
+  subtitle?: string;
   onBellClick?: () => void;
   hasBellDot?: boolean;
   bellAriaLabel?: string;
@@ -13,12 +15,16 @@ type Props = {
 
 export function PageHeader({
   title,
+  titleSlot,
+  subtitle,
   onBellClick,
   hasBellDot,
   bellAriaLabel = "Уведомления",
   actions,
   children,
 }: Props) {
+  const titleRowMb = subtitle ? "mb-1.5" : children ? "mb-[18px]" : "";
+
   return (
     <div
       className="relative overflow-hidden px-4 pt-5 pb-5"
@@ -35,13 +41,15 @@ export function PageHeader({
         }}
       />
       <div className="relative">
-        <div className={`flex items-center justify-between ${children ? "mb-[18px]" : ""}`}>
-          <h1
-            className="font-display font-bold uppercase text-white text-[30px] leading-none"
-            style={{ letterSpacing: "0.02em" }}
-          >
-            {title}
-          </h1>
+        <div className={`flex items-center justify-between${titleRowMb ? ` ${titleRowMb}` : ""}`}>
+          {titleSlot ?? (
+            <h1
+              className="font-display font-bold uppercase text-white text-[30px] leading-none"
+              style={{ letterSpacing: "0.02em" }}
+            >
+              {title}
+            </h1>
+          )}
           <div className="flex items-center gap-2">
             {actions}
             {onBellClick && (
@@ -63,6 +71,14 @@ export function PageHeader({
             )}
           </div>
         </div>
+        {subtitle && (
+          <p
+            className={`text-[13px]${children ? " mb-4" : ""}`}
+            style={{ color: "rgba(255,255,255,0.7)" }}
+          >
+            {subtitle}
+          </p>
+        )}
         {children}
       </div>
     </div>

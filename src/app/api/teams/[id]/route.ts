@@ -109,9 +109,53 @@ export async function GET(
     .eq("team_id", id)
     .eq("status", "planned");
 
+  // Organizer-only: total debt across all players
+  let totalPlayersDebt: number | null = null;
+  if (currentRole === "organizer") {
+    const { data: completedEvents } = await supabase
+      .from("events")
+      .select("id, price_per_player")
+      .eq("team_id", id)
+      .eq("status", "completed");
+
+    const completedIds = (completedEvents ?? []).map((e) => e.id);
+    const priceByEvent = new Map((completedEvents ?? []).map((e) => [e.id, e.price_per_player as number]));
+
+    const playerExpected = new Map<string, number>();
+    if (completedIds.length > 0) {
+      const { data: attendances } = await supabase
+        .from("event_attendances")
+        .select("user_id, event_id")
+        .in("event_id", completedIds)
+        .eq("attended", true);
+      for (const a of (attendances ?? []) as { user_id: string; event_id: string }[]) {
+        const price = priceByEvent.get(a.event_id) ?? 0;
+        playerExpected.set(a.user_id, (playerExpected.get(a.user_id) ?? 0) + price);
+      }
+    }
+
+    const { data: transactions } = await supabase
+      .from("financial_transactions")
+      .select("player_id, amount")
+      .eq("team_id", id);
+    const playerPaid = new Map<string, number>();
+    for (const tx of (transactions ?? []) as { player_id: string; amount: number }[]) {
+      playerPaid.set(tx.player_id, (playerPaid.get(tx.player_id) ?? 0) + tx.amount);
+    }
+
+    let debt = 0;
+    const allIds = new Set([...playerExpected.keys(), ...playerPaid.keys()]);
+    for (const uid of allIds) {
+      const delta = (playerExpected.get(uid) ?? 0) - (playerPaid.get(uid) ?? 0);
+      if (delta > 0) debt += delta;
+    }
+    totalPlayersDebt = debt;
+  }
+
   const teamStats = {
     completedEvents: completedEventsCount ?? 0,
     plannedEvents: plannedEventsCount ?? 0,
+    totalPlayersDebt,
   };
 
   return NextResponse.json({ team, members, currentRole, joinRequestStatus, pendingRequestsCount, teamStats });

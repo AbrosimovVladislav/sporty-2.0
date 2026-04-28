@@ -24,6 +24,7 @@ export type TeamMember = {
 export type TeamStats = {
   completedEvents: number;
   plannedEvents: number;
+  totalPlayersDebt: number | null;
 };
 
 export type TeamState =
@@ -79,7 +80,7 @@ export function TeamProvider({ teamId, children }: { teamId: string; children: R
           role: data.currentRole,
           joinRequestStatus: data.joinRequestStatus ?? "none",
           pendingRequestsCount: data.pendingRequestsCount ?? 0,
-          teamStats: data.teamStats ?? { completedEvents: 0, plannedEvents: 0 },
+          teamStats: data.teamStats ?? { completedEvents: 0, plannedEvents: 0, totalPlayersDebt: null },
           reload,
         });
       } catch {
