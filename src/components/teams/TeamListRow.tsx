@@ -13,6 +13,7 @@ type Props = {
   membersCount: number;
   lookingForPlayers?: boolean;
   myRole?: "organizer" | "player" | null;
+  logoUrl?: string | null;
 };
 
 export function TeamListRow({
@@ -24,6 +25,7 @@ export function TeamListRow({
   membersCount,
   lookingForPlayers,
   myRole,
+  logoUrl,
 }: Props) {
   const subtitle = [SPORT_LABEL[sport] ?? sport, district || city]
     .filter(Boolean)
@@ -35,7 +37,7 @@ export function TeamListRow({
       className="flex items-center gap-3.5 py-3 last:border-b-0 transition-colors active:bg-bg-secondary"
       style={{ borderBottom: "1px solid var(--gray-100)" }}
     >
-      <Avatar name={name} size="md" />
+      <Avatar name={name} src={logoUrl} size="md" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5">
           <span

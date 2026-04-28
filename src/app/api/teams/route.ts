@@ -10,6 +10,7 @@ type TeamRow = {
   created_at: string;
   looking_for_players: boolean;
   district_id: string | null;
+  logo_url: string | null;
   districts: { id: string; name: string } | null;
   team_memberships: { count: number }[];
 };
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from("teams")
     .select(
-      "id, name, sport, city, description, created_at, looking_for_players, district_id, districts(id, name), team_memberships(count)",
+      "id, name, sport, city, description, created_at, looking_for_players, district_id, logo_url, districts(id, name), team_memberships(count)",
       { count: "exact" },
     )
     .order("created_at", { ascending: false })
@@ -60,6 +61,7 @@ export async function GET(req: NextRequest) {
     created_at: t.created_at,
     looking_for_players: t.looking_for_players,
     district_id: t.district_id,
+    logo_url: t.logo_url ?? null,
     district: t.districts ?? null,
     members_count: Array.isArray(t.team_memberships)
       ? (t.team_memberships[0] as { count: number } | undefined)?.count ?? 0

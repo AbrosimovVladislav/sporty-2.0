@@ -32,6 +32,7 @@ type Team = {
   created_at: string;
   looking_for_players: boolean;
   district_id: string | null;
+  logo_url: string | null;
   district: { id: string; name: string } | null;
   members_count: number;
 };
@@ -295,6 +296,7 @@ export default function SearchTeamsPage() {
                     membersCount={t.members_count}
                     lookingForPlayers={t.looking_for_players}
                     myRole={myTeamIds.has(t.id) ? myRoles[t.id] ?? null : null}
+                    logoUrl={t.logo_url}
                   />
                 </li>
               ))}

@@ -48,7 +48,16 @@ function TeamPageHeader({
   const [myTeamCount, setMyTeamCount] = useState(0);
   const [switcherOpen, setSwitcherOpen] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const logoInputRef = useRef<HTMLInputElement>(null);
+
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
+
+  useEffect(() => {
+    if (!logoError) return;
+    const t = setTimeout(() => setLogoError(null), 3000);
+    return () => clearTimeout(t);
+  }, [logoError]);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -64,12 +73,20 @@ function TeamPageHeader({
     const file = e.target.files?.[0];
     if (!file || !userId || team.status !== "ready") return;
     setLogoUploading(true);
+    setLogoError(null);
     try {
       const fd = new FormData();
       fd.append("file", file);
       fd.append("userId", userId);
       const res = await fetch(`/api/teams/${teamId}/logo`, { method: "POST", body: fd });
-      if (res.ok) team.reload();
+      if (res.ok) {
+        team.reload();
+      } else {
+        const data = await res.json().catch(() => ({}));
+        setLogoError(data.error ?? "Не удалось загрузить");
+      }
+    } catch {
+      setLogoError("Сеть недоступна");
     } finally {
       setLogoUploading(false);
       if (logoInputRef.current) logoInputRef.current.value = "";
@@ -88,7 +105,6 @@ function TeamPageHeader({
   if (team.status !== "ready") return null;
 
   const { team: t, members, role, teamStats, pendingRequestsCount } = team;
-  const userId = auth.status === "authenticated" ? auth.user.id : null;
   const isOrganizer = role === "organizer";
   const sportLabel = SPORT_LABEL[t.sport] ?? t.sport;
   const hasMultiple = myTeamCount >= 2;
@@ -139,23 +155,29 @@ function TeamPageHeader({
           <label
             htmlFor="team-logo-upload"
             className="absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer"
-            style={{ background: "var(--green-500)", border: "2px solid white" }}
+            style={{ background: logoUploading ? "var(--gray-400)" : "var(--green-500)", border: "2px solid white" }}
             aria-label="Загрузить лого"
           >
-            <CameraIcon />
+            {logoUploading ? (
+              <span className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin block" />
+            ) : (
+              <CameraIcon />
+            )}
           </label>
           <input
             id="team-logo-upload"
             ref={logoInputRef}
             type="file"
-            accept="image/*"
+            accept="image/jpeg,image/png,image/webp,image/gif"
             className="sr-only"
+            disabled={logoUploading}
             onChange={handleLogoFile}
           />
         </>
       )}
     </div>
   );
+
 
   return (
     <>
@@ -181,6 +203,14 @@ function TeamPageHeader({
           currentTeamId={teamId}
           onClose={() => setSwitcherOpen(false)}
         />
+      )}
+      {logoError && (
+        <div
+          className="mx-4 mt-2 px-3 py-2 rounded-xl text-[13px] text-center"
+          style={{ background: "#FFF1F1", color: "#E53935" }}
+        >
+          {logoError}
+        </div>
       )}
       {isOrganizer && (
         <TeamRequestsSheet

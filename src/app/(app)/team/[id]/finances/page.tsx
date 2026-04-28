@@ -163,12 +163,21 @@ export default function TeamFinancesPage() {
           </div>
         </div>
 
-        {/* 2. Bar chart — поток за 6 месяцев */}
+        {/* 2. Breakdown метрик */}
+        <MetricsBreakdown
+          collected={m.collected}
+          expected={m.expected}
+          venueCost={m.venueCostTotal}
+          venuePaid={m.venuePaidTotal}
+          overpaid={m.playersOverpaid}
+        />
+
+        {/* 3. Bar chart — поток за 6 месяцев */}
         {insights?.financeFlowByMonth && insights.financeFlowByMonth.length > 0 && (
           <FlowChart data={insights.financeFlowByMonth} />
         )}
 
-        {/* 3. Donut — эффективность сборов */}
+        {/* 4. Donut — эффективность сборов */}
         {m.expected > 0 && (
           <CollectionDonut
             collected={m.collected}
@@ -177,7 +186,7 @@ export default function TeamFinancesPage() {
           />
         )}
 
-        {/* 4. Должники */}
+        {/* 5. Должники */}
         {data.debtors.length > 0 && (
           <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
             <div className="px-4 pt-4 pb-1">
@@ -200,7 +209,7 @@ export default function TeamFinancesPage() {
           </div>
         )}
 
-        {/* 5. Переплатили */}
+        {/* 6. Переплатили */}
         {data.creditors.length > 0 && (
           <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
             <div className="px-4 pt-4 pb-1">
@@ -223,7 +232,7 @@ export default function TeamFinancesPage() {
           </div>
         )}
 
-        {/* 6. Расходы по площадкам */}
+        {/* 7. Расходы по площадкам */}
         {data.venueEvents.length > 0 && (
           <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
             <div className="px-4 pt-4 pb-1">
@@ -313,6 +322,53 @@ function HeroSegment({
       <span className={`text-[13px] font-semibold tabular-nums truncate ${danger ? "text-red-400" : "text-white/80"}`}>
         {value}
       </span>
+    </div>
+  );
+}
+
+/* ─── Metrics breakdown ─── */
+
+function MetricCell({ label, value, accent }: { label: string; value: string; accent?: boolean }) {
+  return (
+    <div className="flex flex-col gap-0.5">
+      <span className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{label}</span>
+      <span
+        className="text-[15px] font-semibold tabular-nums"
+        style={{ color: accent ? "var(--color-primary)" : "var(--text-primary)" }}
+      >
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function MetricsBreakdown({
+  collected,
+  expected,
+  venueCost,
+  venuePaid,
+  overpaid,
+}: {
+  collected: number;
+  expected: number;
+  venueCost: number;
+  venuePaid: number;
+  overpaid: number;
+}) {
+  return (
+    <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
+      <p className="text-[11px] uppercase tracking-[0.06em] font-semibold mb-3" style={{ color: "var(--text-tertiary)" }}>
+        Сводка
+      </p>
+      <div className="grid grid-cols-2 gap-x-4 gap-y-3">
+        <MetricCell label="Собрано от игроков" value={formatMoney(collected)} accent={collected > 0} />
+        <MetricCell label="Ожидаемый сбор" value={formatMoney(expected)} />
+        <MetricCell label="Расходы площадкам" value={formatMoney(venueCost)} />
+        <MetricCell label="Оплачено площадкам" value={formatMoney(venuePaid)} accent={venuePaid > 0} />
+        {overpaid > 0 && (
+          <MetricCell label="Переплаты игроков" value={formatMoney(overpaid)} accent />
+        )}
+      </div>
     </div>
   );
 }
