@@ -15,10 +15,11 @@ type ScheduleEvent = {
 
 type Props = {
   events: ScheduleEvent[];
+  loading?: boolean;
 };
 
-export function ScheduleSection({ events }: Props) {
-  if (events.length === 0) return null;
+export function ScheduleSection({ events, loading = false }: Props) {
+  if (!loading && events.length === 0) return null;
 
   return (
     <section>
@@ -29,17 +30,27 @@ export function ScheduleSection({ events }: Props) {
         >
           Расписание
         </span>
-        <Link
-          href="/search?tab=events&my=1"
-          className="text-[12px] font-medium"
-          style={{ color: "var(--green-500)" }}
-        >
-          Все события →
-        </Link>
+        {!loading && (
+          <Link
+            href="/search?tab=events&my=1"
+            className="text-[12px] font-medium"
+            style={{ color: "var(--green-500)" }}
+          >
+            Все события →
+          </Link>
+        )}
       </div>
-      {events.map((event) => (
-        <SchedulePreviewCard key={event.id} event={event} />
-      ))}
+      {loading
+        ? [0, 1, 2].map((i) => (
+            <div
+              key={i}
+              className="mx-4 mb-2 rounded-[16px] h-[76px] animate-pulse"
+              style={{ background: "var(--bg-card)" }}
+            />
+          ))
+        : events.map((event) => (
+            <SchedulePreviewCard key={event.id} event={event} />
+          ))}
     </section>
   );
 }

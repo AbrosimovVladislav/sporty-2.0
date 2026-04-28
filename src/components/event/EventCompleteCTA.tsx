@@ -61,16 +61,16 @@ export function EventCompleteCTA({ isPastDue, onComplete }: Props) {
   }
 
   return (
-    <section className="px-4 mt-5">
+    <section className="px-4 mt-4">
       <button
         type="button"
         onClick={handle}
         disabled={busy}
-        className="w-full rounded-2xl px-4 py-3.5 flex items-center justify-center gap-2 transition-transform active:scale-[0.99] disabled:opacity-50"
+        className="w-full rounded-[14px] px-4 py-2.5 flex items-center justify-center gap-2 transition-transform active:scale-[0.99] disabled:opacity-50"
         style={{ background: "var(--green-500)", color: "white" }}
       >
         <CheckIcon />
-        <span className="text-[15px] font-bold">
+        <span className="text-[14px] font-bold">
           {busy ? "Завершаем..." : "Завершить событие"}
         </span>
       </button>
@@ -88,7 +88,7 @@ function ClockIcon() {
 }
 function CheckIcon() {
   return (
-    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
       <polyline points="20 6 9 17 4 12" />
     </svg>
   );

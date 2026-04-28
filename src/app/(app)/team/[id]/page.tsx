@@ -97,12 +97,20 @@ function FinanceMiniCard({ teamId }: { teamId: string }) {
     return () => { cancelled = true; };
   }, [teamId, userId]);
 
-  const color =
-    balance === null ? "default" : balance >= 0 ? "primary" : "danger";
+  if (balance === null) {
+    return (
+      <div className="bg-background-card rounded-lg p-4 shadow-card flex flex-col gap-1 w-full">
+        <Skeleton className="h-7 w-16" />
+        <Skeleton className="h-3 w-12 mt-1" />
+      </div>
+    );
+  }
+
+  const color = balance >= 0 ? "primary" : "danger";
 
   return (
     <MiniStatCard
-      value={balance === null ? "…" : `${balance >= 0 ? "+" : ""}${balance} ₸`}
+      value={`${balance >= 0 ? "+" : ""}${balance} ₸`}
       label="баланс"
       color={color}
       className="w-full"

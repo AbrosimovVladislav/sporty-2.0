@@ -317,19 +317,21 @@ gap-0.5
 
 ```
 bg-primary text-primary-foreground
-rounded-full px-6 py-3
-text-[15px] font-semibold
+rounded-full px-5 py-2.5
+text-[14px] font-semibold
 shadow-card
 hover:bg-primary-hover
 disabled:opacity-50 disabled:shadow-none
 ```
 
+Размер `lg` (sticky CTA, основное действие на форме): `px-6 py-3 text-[15px]`. Не больше — крупнее буквально не нужно, мобильный экран и так узкий, на 14-15px Geist читается отлично, тапается с запасом 44px (паддинг + текст).
+
 ### Кнопка secondary (отмена/нейтральное)
 
 ```
 bg-background-card text-foreground border border-border
-rounded-full px-6 py-3
-text-[15px] font-semibold
+rounded-full px-5 py-2.5
+text-[14px] font-semibold
 hover:bg-background-muted
 ```
 
@@ -411,6 +413,8 @@ placeholder:text-foreground-muted
 ### Skeleton
 
 Уже есть [Skeleton.tsx](../../src/components/Skeleton.tsx). Цвет блока — `bg-background-muted`, не `bg-border`. Скелетон должен повторять форму конечной карточки, а не быть «серым прямоугольником».
+
+**Правило:** секция, которая рендерит `null` при пустых данных (например, `events.length === 0 → return null`), должна принимать `loading?: boolean` и при `loading=true` рендерить N скелетон-блоков той же формы. Иначе при загрузке секция отсутствует и появляется внезапно — пользователь видит «прыжок» вёрстки. Без скелетона допустимо только если данные точно есть (server-side render с известным non-empty контентом).
 
 ### Bottom-sheet (модалка снизу)
 

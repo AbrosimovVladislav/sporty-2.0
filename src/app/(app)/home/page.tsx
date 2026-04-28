@@ -177,9 +177,9 @@ export default function HomePage() {
 
       <QuickActions />
 
-      <TeamPulseSection teams={pulseTeams} />
+      <TeamPulseSection teams={pulseTeams} loading={loading} />
 
-      <ScheduleSection events={schedule} />
+      <ScheduleSection events={schedule} loading={loading} />
 
       {showEmptyState && (
         <div className="px-4 mt-6">

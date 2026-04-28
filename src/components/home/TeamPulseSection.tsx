@@ -21,10 +21,11 @@ type Team = {
 
 type Props = {
   teams: Team[];
+  loading?: boolean;
 };
 
-export function TeamPulseSection({ teams }: Props) {
-  if (teams.length === 0) return null;
+export function TeamPulseSection({ teams, loading = false }: Props) {
+  if (!loading && teams.length === 0) return null;
 
   return (
     <section>
@@ -40,9 +41,15 @@ export function TeamPulseSection({ teams }: Props) {
         className="flex gap-2.5 overflow-x-auto px-4 pb-1"
         style={{ scrollbarWidth: "none" }}
       >
-        {teams.map((team) => (
-          <TeamPulseCard key={team.id} team={team} />
-        ))}
+        {loading
+          ? [0, 1, 2].map((i) => (
+              <div
+                key={i}
+                className="rounded-[16px] shrink-0 w-[210px] h-[150px] animate-pulse"
+                style={{ background: "var(--bg-card)" }}
+              />
+            ))
+          : teams.map((team) => <TeamPulseCard key={team.id} team={team} />)}
       </div>
     </section>
   );

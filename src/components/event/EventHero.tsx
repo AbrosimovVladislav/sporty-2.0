@@ -85,7 +85,7 @@ export function EventHero({
         background: "var(--gray-900)",
       }}
     >
-      <div className="relative h-[160px] w-full">
+      <div className="relative h-[132px] w-full">
         {photoUrl ? (
           <Image
             src={photoUrl}
@@ -104,18 +104,18 @@ export function EventHero({
 
         {/* top dim for back/status legibility */}
         <div
-          className="absolute inset-x-0 top-0 h-14 pointer-events-none"
+          className="absolute inset-x-0 top-0 h-12 pointer-events-none"
           style={{
             background:
               "linear-gradient(180deg, rgba(0,0,0,0.45) 0%, rgba(0,0,0,0) 100%)",
           }}
         />
-        {/* bottom merge into the dark card — half-image coverage */}
+        {/* bottom merge into the dark card — pulled higher for shorter hero */}
         <div
-          className="absolute inset-x-0 bottom-0 h-20 pointer-events-none"
+          className="absolute inset-x-0 bottom-0 h-24 pointer-events-none"
           style={{
             background:
-              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 55%, var(--gray-900) 100%)",
+              "linear-gradient(180deg, rgba(0,0,0,0) 0%, rgba(0,0,0,0.55) 35%, var(--gray-900) 100%)",
           }}
         />
 
@@ -150,29 +150,29 @@ export function EventHero({
         )}
       </div>
 
-      <div className="px-[18px] pt-2 pb-5">
+      <div className="px-[18px] pt-1.5 pb-4">
         <button
           type="button"
           onClick={() => router.push(`/team/${teamId}`)}
-          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider mb-2 transition-transform active:scale-[0.97]"
+          className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold uppercase tracking-wider mb-1.5 transition-transform active:scale-[0.97]"
           style={{ background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.85)" }}
         >
           <ShieldIcon />
           {teamName}
         </button>
 
-        <h1 className="font-display text-[28px] font-bold uppercase leading-none text-white">
+        <h1 className="font-display text-[24px] font-bold uppercase leading-none text-white">
           {EVENT_TYPE_LABEL[type] ?? type}
         </h1>
 
         <p
-          className="text-[13px] mt-1.5 capitalize"
+          className="text-[13px] mt-1 capitalize"
           style={{ color: "rgba(255,255,255,0.5)" }}
         >
           {formatFullDate(date)}
         </p>
 
-        <div className="flex gap-2 mt-3 flex-wrap">
+        <div className="flex gap-2 mt-2.5 flex-wrap">
           {venueName && (
             <Chip onClick={onVenueClick}>
               <PinIcon />
@@ -186,12 +186,12 @@ export function EventHero({
         </div>
 
         {canVote && isPlanned && userId && (
-          <div className="flex gap-2 mt-4">
+          <div className="flex gap-2 mt-3">
             <button
               type="button"
               disabled={voting}
               onClick={() => handleVote("yes")}
-              className="flex-1 py-3.5 rounded-xl text-[15px] font-bold transition-transform active:scale-[0.97] flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="flex-1 py-2.5 rounded-[14px] text-[14px] font-bold transition-transform active:scale-[0.97] flex items-center justify-center gap-1.5 disabled:opacity-60"
               style={
                 userVote === "yes"
                   ? { background: "var(--green-500)", color: "white" }
@@ -216,7 +216,7 @@ export function EventHero({
               type="button"
               disabled={voting}
               onClick={() => handleVote("no")}
-              className="flex-1 py-3.5 rounded-xl text-[15px] font-bold transition-transform active:scale-[0.97] flex items-center justify-center gap-1.5 disabled:opacity-60"
+              className="flex-1 py-2.5 rounded-[14px] text-[14px] font-bold transition-transform active:scale-[0.97] flex items-center justify-center gap-1.5 disabled:opacity-60"
               style={
                 userVote === "no"
                   ? { background: "var(--danger)", color: "white" }

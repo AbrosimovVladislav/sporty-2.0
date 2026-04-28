@@ -383,3 +383,58 @@
 
 ---
 
+## ✅ Итерация 39 — Density pass + skeletons everywhere
+
+**Цель:** уменьшить вертикальный размер крупных управляющих элементов (event-hero, RSVP, primary CTA) и закрыть прыжки вёрстки на странице загрузки скелетонами по всей цепочке секций. Триггер: hero события занимал ~360px из 540px видимой области, RSVP-кнопки 56px, primary CTA «Завершить событие» — 56px. На главной во время ~1с-загрузки секции «Мои команды» и «Расписание» отсутствовали (`return null` при пустом массиве) и появлялись скачком.
+
+### Изменения размеров
+
+**EventHero (`src/components/event/EventHero.tsx`):**
+- Фото: `h-[160px]` → `h-[132px]` (-28px)
+- Bottom-градиент: `h-20` → `h-24`, точка склейки `55% → 35%` (тёмная зона начинается выше, эффект «фото врастает в карточку» сильнее)
+- Top-градиент: `h-14` → `h-12`
+- Тип события: `text-[28px]` → `text-[24px]`
+- Внутренние отступы карточки: `pt-2 pb-5` → `pt-1.5 pb-4`, гэп между метой и чипами `mt-3 → mt-2.5`
+- RSVP-кнопки: `py-3.5 rounded-xl text-[15px]` → `py-2.5 rounded-[14px] text-[14px]` (-12px по высоте)
+- Скелетон event-detail подогнан под новый низший hero (`h-[220px] → h-[280px]` — это вместе с card-секцией, не только фото)
+
+**EventCompleteCTA (`src/components/event/EventCompleteCTA.tsx`):**
+- `py-3.5 rounded-2xl text-[15px]` → `py-2.5 rounded-[14px] text-[14px]`
+- Иконка чекмарка `18 → 16`
+- Внешний отступ `mt-5 → mt-4`
+
+**Button (`src/components/ui/Button.tsx`):**
+- `md`: `px-6 py-3 text-[15px]` → `px-5 py-2.5 text-[14px]`
+- `lg`: `px-8 py-4 text-[16px]` → `px-6 py-3 text-[15px]`
+- Стандарт: 14-15px Geist на 44px-таргете. Шрифт меньше 14px не используем — нечитабельно. Crucial: `lg` теперь равен прежнему `md`, прежний `lg` убран как избыточный
+
+**Дизайн-система (`docs/design/design-system.md`):**
+- Раздел «Кнопка primary/secondary» обновлён под новые размеры
+- Добавлено правило про размер `lg`: «крупнее буквально не нужно»
+
+### Skeletons everywhere
+
+**Принцип** (зафиксирован в design-system, секция `Skeleton`): секция, которая рендерит `null` при `events.length === 0`, должна принимать `loading?: boolean` и рендерить N скелетон-блоков той же формы. Иначе при загрузке (~1с) секция отсутствует — UI прыгает.
+
+**Правленные секции:**
+- `TeamPulseSection` (`src/components/home/TeamPulseSection.tsx`) — добавлен prop `loading`. При `loading=true` рендерим 3 grayscale карточки 210×150px с `animate-pulse`
+- `ScheduleSection` (`src/components/home/ScheduleSection.tsx`) — добавлен prop `loading`. При `loading=true` рендерим 3 row-блока 76px. Линк «Все события →» скрываем во время загрузки
+- `home/page.tsx` — пробрасывает `loading={loading}` в обе секции
+- Team home (`src/app/(app)/team/[id]/page.tsx`) — `FinanceMiniCard` теперь рендерит skeleton вместо «…» во время загрузки баланса (двух-строчный скелетон в форме `MiniStatCard`)
+
+**Что было OK и не трогаем:**
+- `HomeHero`/`HeroEventCard` — уже скелетонизированы (dim-card 280px на время загрузки)
+- `RequestsCard` — рендерится только при `requests.total > 0` после загрузки, скелетон не нужен
+- `QuickActions` — статика, не зависит от запросов
+- Event-detail (`team/[id]/events/[eventId]`) — собственный скелетон с h-[280px] hero + два line-блока заголовка
+- Search-каталоги (`/search/*`) — на месте, infinite-scroll сентинель показывает спиннер
+- Roster, Events, Finances табов команды — наследуют loading из `TeamContext` (общий skeleton-блок)
+
+### Не входит
+
+- Замена клиентского fetch на server-side `await` (это снизит мерцание глобально, но требует переноса страниц на server components — отдельная задача)
+- SWR/React Query кэш для повторных переходов (тоже отдельная задача)
+- Анимация transition opacity при появлении контента после скелетона — не критично, основная боль (прыжки вёрстки) закрыта
+
+---
+

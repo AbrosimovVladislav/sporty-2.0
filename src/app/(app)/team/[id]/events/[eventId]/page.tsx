@@ -115,7 +115,7 @@ export default function EventDetailPage({
     return (
       <div className="flex flex-1 flex-col">
         <div
-          className="h-[220px] animate-pulse"
+          className="h-[280px] animate-pulse"
           style={{
             background: "var(--gray-100)",
             borderBottomLeftRadius: 28,
