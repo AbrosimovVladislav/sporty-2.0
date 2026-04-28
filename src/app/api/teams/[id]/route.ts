@@ -70,10 +70,12 @@ export async function GET(
 
   // If guest, check if they have a pending/rejected player_to_team request
   let joinRequestStatus: "none" | "pending" | "rejected" = "none";
+  let joinRequestId: string | null = null;
+  let joinRequestCooldownUntil: string | null = null;
   if (currentRole === "guest" && userId) {
     const { data: jr } = await supabase
       .from("join_requests")
-      .select("status")
+      .select("id, status, resolved_at")
       .eq("user_id", userId)
       .eq("team_id", id)
       .eq("direction", "player_to_team")
@@ -81,7 +83,19 @@ export async function GET(
       .order("created_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    if (jr) joinRequestStatus = jr.status as "pending" | "rejected";
+    if (jr) {
+      joinRequestStatus = jr.status as "pending" | "rejected";
+      joinRequestId = jr.status === "pending" ? jr.id : null;
+      if (jr.status === "rejected" && jr.resolved_at) {
+        const resolvedAt = new Date(jr.resolved_at);
+        const until = new Date(
+          resolvedAt.getTime() + 7 * 24 * 60 * 60 * 1000,
+        );
+        if (until.getTime() > Date.now()) {
+          joinRequestCooldownUntil = until.toISOString();
+        }
+      }
+    }
   }
 
   // If organizer, count pending player_to_team requests (not outgoing invites)
@@ -158,7 +172,16 @@ export async function GET(
     totalPlayersDebt,
   };
 
-  return NextResponse.json({ team, members, currentRole, joinRequestStatus, pendingRequestsCount, teamStats });
+  return NextResponse.json({
+    team,
+    members,
+    currentRole,
+    joinRequestStatus,
+    joinRequestId,
+    joinRequestCooldownUntil,
+    pendingRequestsCount,
+    teamStats,
+  });
 }
 
 export async function PATCH(

@@ -37,6 +37,8 @@ export type TeamState =
       members: TeamMember[];
       role: TeamRole;
       joinRequestStatus: JoinRequestStatus;
+      joinRequestId: string | null;
+      joinRequestCooldownUntil: string | null;
       pendingRequestsCount: number;
       teamStats: TeamStats;
       reload: () => void;
@@ -79,6 +81,8 @@ export function TeamProvider({ teamId, children }: { teamId: string; children: R
           members: data.members ?? [],
           role: data.currentRole,
           joinRequestStatus: data.joinRequestStatus ?? "none",
+          joinRequestId: data.joinRequestId ?? null,
+          joinRequestCooldownUntil: data.joinRequestCooldownUntil ?? null,
           pendingRequestsCount: data.pendingRequestsCount ?? 0,
           teamStats: data.teamStats ?? { completedEvents: 0, plannedEvents: 0, totalPlayersDebt: null },
           reload,

@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
 
-type JoinRequestWithUser = {
+type JoinRequestRow = {
   id: string;
   user_id: string;
   status: string;
+  direction: "player_to_team" | "team_to_player";
+  invited_by: string | null;
   created_at: string;
   users: {
     id: string;
     name: string;
     city: string | null;
+    avatar_url: string | null;
   } | null;
 };
 
@@ -27,7 +30,6 @@ export async function GET(
 
   const supabase = getServiceClient();
 
-  // Verify caller is an organizer of this team
   const { data: membership } = await supabase
     .from("team_memberships")
     .select("role")
@@ -41,20 +43,23 @@ export async function GET(
 
   const { data: rawRequests, error } = await supabase
     .from("join_requests")
-    .select("id, user_id, status, created_at, users(id, name, city)")
+    .select(
+      "id, user_id, status, direction, invited_by, created_at, users(id, name, city, avatar_url)",
+    )
     .eq("team_id", teamId)
-    .eq("direction", "player_to_team")
     .eq("status", "pending")
-    .order("created_at", { ascending: true });
+    .order("created_at", { ascending: false });
 
   if (error) {
     console.error("Join requests fetch error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  const requests = (rawRequests ?? []) as unknown as JoinRequestWithUser[];
-  const result = requests
-    .filter((r) => r.users !== null)
+  const rows = (rawRequests ?? []) as unknown as JoinRequestRow[];
+  const valid = rows.filter((r) => r.users !== null);
+
+  const incoming = valid
+    .filter((r) => r.direction === "player_to_team")
     .map((r) => ({
       id: r.id,
       user_id: r.user_id,
@@ -62,5 +67,15 @@ export async function GET(
       user: r.users!,
     }));
 
-  return NextResponse.json({ requests: result });
+  const outgoing = valid
+    .filter((r) => r.direction === "team_to_player")
+    .map((r) => ({
+      id: r.id,
+      user_id: r.user_id,
+      created_at: r.created_at,
+      invited_by: r.invited_by,
+      user: r.users!,
+    }));
+
+  return NextResponse.json({ incoming, outgoing });
 }

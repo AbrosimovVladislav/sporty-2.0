@@ -333,16 +333,21 @@ function LookingForPlayersRow({ teamId, initial }: { teamId: string; initial: bo
 function GuestJoinBar({ teamId }: { teamId: string }) {
   const team = useTeam();
   const auth = useAuth();
-  const [sending, setSending] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   if (team.status !== "ready") return null;
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
-  const { joinRequestStatus, reload } = team;
+  const {
+    joinRequestStatus,
+    joinRequestId,
+    joinRequestCooldownUntil,
+    reload,
+  } = team;
 
   async function handleJoin() {
-    if (!userId || sending) return;
-    setSending(true);
+    if (!userId || busy) return;
+    setBusy(true);
     try {
       const res = await fetch(`/api/teams/${teamId}/join`, {
         method: "POST",
@@ -351,25 +356,75 @@ function GuestJoinBar({ teamId }: { teamId: string }) {
       });
       if (res.ok) reload();
     } finally {
-      setSending(false);
+      setBusy(false);
+    }
+  }
+
+  async function handleWithdraw() {
+    if (!userId || !joinRequestId || busy) return;
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `/api/join-requests/${joinRequestId}?userId=${userId}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) reload();
+    } finally {
+      setBusy(false);
     }
   }
 
   if (joinRequestStatus === "pending") {
     return (
       <BottomActionBar>
-        <Button variant="secondary" className="w-full" onClick={() => {}}>
-          Заявка отправлена
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="secondary" className="flex-1" disabled>
+            Заявка отправлена
+          </Button>
+          <Button
+            variant="secondary"
+            loading={busy}
+            disabled={busy}
+            onClick={handleWithdraw}
+          >
+            Отозвать
+          </Button>
+        </div>
       </BottomActionBar>
     );
   }
 
   if (joinRequestStatus === "rejected") {
+    const cooldown = joinRequestCooldownUntil
+      ? Math.max(
+          0,
+          Math.ceil(
+            (new Date(joinRequestCooldownUntil).getTime() - Date.now()) /
+              86400000,
+          ),
+        )
+      : 0;
+
+    if (cooldown > 0) {
+      return (
+        <BottomActionBar>
+          <Button variant="secondary" className="w-full" disabled>
+            Можно подать снова через {cooldown}{" "}
+            {cooldown === 1 ? "день" : cooldown < 5 ? "дня" : "дней"}
+          </Button>
+        </BottomActionBar>
+      );
+    }
+    // cooldown expired — allow re-submit
     return (
       <BottomActionBar>
-        <Button variant="secondary" className="w-full" onClick={() => {}}>
-          Заявка отклонена
+        <Button
+          variant="primary"
+          className="w-full"
+          loading={busy}
+          onClick={handleJoin}
+        >
+          Подать заявку снова
         </Button>
       </BottomActionBar>
     );
@@ -380,7 +435,7 @@ function GuestJoinBar({ teamId }: { teamId: string }) {
       <Button
         variant="primary"
         className="w-full"
-        loading={sending}
+        loading={busy}
         onClick={handleJoin}
       >
         Подать заявку

@@ -438,3 +438,62 @@
 
 ---
 
+## ✅ Итерация 40 — Заявки и приглашения v2 (петля доведена до конца)
+
+**Цель:** закрыть слепые зоны в потоке заявок/приглашений. Орг должен видеть свои отправленные приглашения и иметь возможность отозвать. Игрок — два чётко разделённых раздела вместо общей кучи + cooldown на повторную подачу после отклонения. Telegram-уведомление орг при заявке игрока (симметрично уже работающему уведомлению игрока при invite).
+
+### Контекст и нынешние проблемы
+
+| # | Проблема | До итерации 40 |
+|---|----------|----------------|
+| 🔴 A | Орг не видит свои отправленные приглашения | `TeamRequestsSheet` фильтрует только `direction=player_to_team`. Орг отправил invite — узнаёт только когда игрок появится в составе |
+| 🟡 B | У игрока в `/profile` подача и приглашение в одной куче | Pending team_to_player с активными кнопками теряется среди завершённых записей |
+| 🟡 C | Telegram уведомляет только игрока при invite, орг при заявке — не уведомляется | `/api/teams/[id]/join` без notify-логики, в отличие от `/api/teams/[id]/invites` |
+| 🟡 D | После rejection повторная заявка невозможна без вмешательства БД | `GuestJoinBar` показывает disabled-кнопку «Заявка отклонена» вечно |
+| 🟢 E-H | Бейдж «уже приглашён» в каталоге, FAB-приглашение из roster, обрезка истории, унификация ручек | Откладываем — не блокеры, отдельная микро-итерация |
+
+### Backend
+
+**Расширения:**
+- `GET /api/teams/[id]/join-requests?userId=&direction=` — добавить опциональный `direction` (`incoming` = player_to_team / `outgoing` = team_to_player). Без параметра — оба. Возвращаем массивы `incoming` и `outgoing` с `created_at`. По-прежнему только organizer
+- `POST /api/teams/[id]/join` — после успешного INSERT шлёт Telegram всем `organizer`-ам команды: «🆕 Иван Петров хочет вступить в «Команду»» с deep-link на профиль. Fire-and-forget (`.catch(console.error)`), как уже сделано в `/invites`
+- `POST /api/teams/[id]/join` — добавить **cooldown 7 дней** после rejection: если у `(userId, teamId, direction=player_to_team, status=rejected)` `resolved_at` свежее 7 дней — возвращаем `409 { error: "cooldown", until: <iso> }`. Если старше — разрешаем INSERT нового pending row (старый rejected остаётся в истории)
+- `GET /api/teams/[id]` (team-context) расширяем: `joinRequestStatus` остаётся, добавляем `joinRequestCooldownUntil: string | null` для guest. Считается на сервере: для последнего rejected request — `resolved_at + 7d`, либо null
+- **Новый endpoint** `DELETE /api/join-requests/[id]?userId=` — отзыв. Проверка: либо `userId === user_id` (игрок отзывает свою заявку), либо у `userId` есть `organizer` membership в `team_id` (орг отзывает приглашение). Только `status=pending`. Удаляет row. RLS: server-side с service client
+
+### Frontend
+
+**`TeamRequestsSheet` (`src/components/team/TeamRequestsSheet.tsx`):**
+- Загружает оба массива (`incoming` + `outgoing`)
+- Tab-стрип сверху: «Входящие · N» / «Отправлены · M». Если одна сторона пустая — рендерим только другую без табов
+- Карточка incoming-заявки — как сейчас (Аватар + имя + город + Принять/Отклонить)
+- Карточка outgoing-приглашения — Аватар + имя + город + «Приглашён 3 дня назад» + кнопка «Отозвать» (DELETE → reload)
+- Bell-dot в `PageHeader` остаётся завязан на `pendingRequestsCount` (только incoming)
+
+**Профиль (`src/app/(app)/profile/page.tsx`):**
+- Старая секция «Мои заявки» делится на:
+  - **«Меня пригласили · N»** — `direction=team_to_player`, `status=pending` — активные кнопки Принять/Отклонить (как сейчас, но в своём блоке)
+  - **«Мои заявки в команды · N»** — `direction=player_to_team`, `status=pending` — карточка с командой + кнопка «Отозвать» (DELETE)
+- **«История · K»** — collapsed accordion (default свёрнут), показывает resolved (accepted/rejected) ≤ 30 дней. Старше — полностью скрываем. Toggle: «Показать историю · K» / «Скрыть»
+- Каждая секция скрыта если N=0
+
+**`GuestJoinBar` (`src/app/(app)/team/[id]/page.tsx`):**
+- `joinRequestStatus="rejected"`:
+  - Если `cooldownUntil` в будущем → disabled-кнопка «Можно подать снова через X дней» (X = days until cooldown expires)
+  - Если cooldown истёк → активная primary-кнопка «Подать заявку» (перезаявка идёт через тот же `/join`)
+- `joinRequestStatus="pending"` — disabled «Заявка отправлена» + secondary-кнопка «Отозвать» (DELETE → reload)
+
+### Документация
+
+- `docs/features/team/[team]-join-requests.md` — переписать под двунаправленный flow с cooldown и withdraw
+- `docs/features/player/[player]-profile.md` — секция «Мои заявки» → описать два подраздела + историю
+- `docs/features/player/player.md` — обновить ссылку, если структура изменится
+
+### Не входит
+
+- 🟢 пункты E (бейдж «уже приглашён» в `/players/[id]` и `/search/players`), F (FAB приглашения из `/team/[id]/roster`), H (рефакторинг ручек `/join` + `/invites` в один endpoint) — отдельной микро-итерацией позже
+- 🟢 G частично закрываем (история ≤30 дней + collapse), но без админки удаления старых записей
+- Отзыв с notification (Telegram оповещение что приглашение/заявка отозвана) — в этой итерации не делаем
+
+---
+
