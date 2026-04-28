@@ -217,15 +217,17 @@ export async function GET(
       .slice(0, 3);
   }
 
-  // ─── Finance 30d (organizer only) ───
+  // ─── Finance 30d + flow by month (organizer only) ───
   let finance30d: {
     collected: number;
     venuePaid: number;
     netDelta: number;
     prevNetDelta: number;
   } | null = null;
+  let financeFlowByMonth: { month: string; collected: number; venuePaid: number }[] | null = null;
+
   if (role === "organizer") {
-    // Collected: financial_transactions in window
+    // 30-day window transactions
     const { data: tx } = await supabase
       .from("financial_transactions")
       .select("amount, created_at")
@@ -257,6 +259,45 @@ export async function GET(
       netDelta: collectedCur - venuePaidCur,
       prevNetDelta: collectedPrev - venuePaidPrev,
     };
+
+    // 6-month flow
+    const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 5, 1);
+
+    const { data: txSix } = await supabase
+      .from("financial_transactions")
+      .select("amount, created_at")
+      .eq("team_id", teamId)
+      .gte("created_at", sixMonthsAgo.toISOString());
+
+    const { data: completedSix } = await supabase
+      .from("events")
+      .select("date, venue_paid")
+      .eq("team_id", teamId)
+      .eq("status", "completed")
+      .gte("date", sixMonthsAgo.toISOString());
+
+    financeFlowByMonth = [];
+    for (let i = 5; i >= 0; i--) {
+      const mStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const mEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 1);
+      const monthKey = mStart.toISOString().slice(0, 7);
+
+      const mCollected = (txSix ?? [])
+        .filter((t) => {
+          const ts = new Date(t.created_at).getTime();
+          return ts >= mStart.getTime() && ts < mEnd.getTime();
+        })
+        .reduce((s, t) => s + (t.amount ?? 0), 0);
+
+      const mVenuePaid = (completedSix ?? [])
+        .filter((e) => {
+          const ts = new Date(e.date).getTime();
+          return ts >= mStart.getTime() && ts < mEnd.getTime();
+        })
+        .reduce((s, e) => s + ((e as { venue_paid: number }).venue_paid ?? 0), 0);
+
+      financeFlowByMonth.push({ month: monthKey, collected: mCollected, venuePaid: mVenuePaid });
+    }
   }
 
   return NextResponse.json({
@@ -270,5 +311,6 @@ export async function GET(
     },
     topPlayers,
     finance30d,
+    financeFlowByMonth,
   });
 }

@@ -6,16 +6,10 @@ import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { PlayerCard } from "@/components/PlayerCard";
 import { SkeletonCard } from "@/components/Skeleton";
+import { CircularProgress } from "@/components/CircularProgress";
+import { Avatar, Button, BottomActionBar, SectionEyebrow } from "@/components/ui";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
-import {
-  StatCard,
-  MiniStatCard,
-  Card,
-  Button,
-  BottomActionBar,
-  SectionEyebrow,
-  Avatar,
-} from "@/components/ui";
+import { formatMoney } from "@/lib/format";
 
 type FinancesData = {
   metrics: {
@@ -41,29 +35,49 @@ type FinancesData = {
   }[];
 };
 
+type FlowMonth = { month: string; collected: number; venuePaid: number };
+
+type InsightsFinance = {
+  finance30d: { netDelta: number; prevNetDelta: number } | null;
+  financeFlowByMonth: FlowMonth[] | null;
+};
+
 type Member = { user_id: string; name: string };
+
+function monthShort(monthStr: string): string {
+  const [year, month] = monthStr.split("-").map(Number);
+  return new Date(year, month - 1, 1)
+    .toLocaleDateString("ru-RU", { month: "short" })
+    .replace(".", "");
+}
 
 export default function TeamFinancesPage() {
   const team = useTeam();
   const auth = useAuth();
   const [data, setData] = useState<FinancesData | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [insights, setInsights] = useState<InsightsFinance | null>(null);
   const [openPlayerId, setOpenPlayerId] = useState<string | null>(null);
   const [showDeposit, setShowDeposit] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const teamId = team.status === "ready" ? team.team.id : null;
 
   const load = () => {
     if (!teamId || !userId) return;
-    fetch(`/api/teams/${teamId}/finances?userId=${userId}`)
-      .then(async (r) => {
+    Promise.all([
+      fetch(`/api/teams/${teamId}/finances?userId=${userId}`).then(async (r) => {
         if (!r.ok) { setError("Доступ запрещён"); return null; }
-        return r.json();
-      })
-      .then((d) => { if (d) setData(d); })
-      .catch(() => setError("Не удалось загрузить"));
+        return r.json() as Promise<FinancesData>;
+      }),
+      fetch(`/api/teams/${teamId}/insights?userId=${userId}`).then((r) =>
+        r.ok ? (r.json() as Promise<InsightsFinance>) : null,
+      ),
+    ]).then(([fin, ins]) => {
+      if (fin) setData(fin);
+      if (ins) setInsights(ins);
+    }).catch(() => setError("Не удалось загрузить"));
   };
 
   useEffect(() => { load(); }, [teamId, userId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -80,136 +94,180 @@ export default function TeamFinancesPage() {
 
   if (team.status === "loading" || data === null) {
     return error ? (
-      <Card>
-        <p className="text-[15px] text-foreground-secondary text-center">{error}</p>
-      </Card>
+      <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
+        <p className="text-[15px] text-text-secondary text-center">{error}</p>
+      </div>
     ) : (
-      <SkeletonCard className="h-28" />
+      <div className="flex flex-col gap-3">
+        <SkeletonCard className="h-32" />
+        <SkeletonCard className="h-20" />
+        <SkeletonCard className="h-28" />
+      </div>
     );
   }
 
   if (team.status !== "ready" || team.role !== "organizer") return null;
 
   const m = data.metrics;
-  const hasDebtors = data.debtors.length > 0 || data.creditors.length > 0;
+  const trendUp =
+    insights?.finance30d != null
+      ? insights.finance30d.netDelta >= insights.finance30d.prevNetDelta
+      : null;
+  const collectionPct =
+    m.expected > 0 ? Math.round((m.collected / m.expected) * 100) : 0;
 
   return (
     <>
       <div className="flex flex-col gap-3 pb-24">
-        {/* Реальный баланс */}
-        <StatCard
-          label="Реальный баланс"
-          value={`${m.realBalance >= 0 ? "+" : ""}${m.realBalance} ₸`}
-          color={m.realBalance >= 0 ? "primary" : "danger"}
-        />
-
-        {/* Мини-метрики */}
-        <div className="grid grid-cols-2 gap-3">
-          <MiniStatCard
-            label="Долги игроков"
-            value={`${m.playersDebt} ₸`}
-            color={m.playersDebt > 0 ? "danger" : "default"}
-          />
-          <MiniStatCard
-            label="К оплате площадкам"
-            value={`${m.venueOutstanding} ₸`}
-            color={m.venueOutstanding > 0 ? "warning" : "default"}
-          />
+        {/* 1. Hero KPI */}
+        <div className="bg-gray-900 rounded-[16px] p-5">
+          <p className="text-[11px] uppercase tracking-[0.06em] font-semibold text-white/50 mb-1.5">
+            Реальный баланс
+          </p>
+          <div className="flex items-end gap-2">
+            <span
+              className={`font-display text-[40px] font-bold tabular-nums leading-none ${
+                m.realBalance >= 0 ? "text-green-400" : "text-red-400"
+              }`}
+            >
+              {m.realBalance >= 0 ? "+" : ""}
+              {formatMoney(m.realBalance)}
+            </span>
+            {trendUp !== null && (
+              <span
+                className={`mb-1 text-[18px] leading-none ${
+                  trendUp ? "text-green-400" : "text-red-400"
+                }`}
+              >
+                {trendUp ? "↑" : "↓"}
+              </span>
+            )}
+          </div>
+          {trendUp !== null && (
+            <p className="text-[12px] text-white/40 mt-1">
+              {trendUp ? "Лучше прошлого месяца" : "Хуже прошлого месяца"}
+            </p>
+          )}
+          <div className="border-t border-white/10 mt-4 pt-4 grid grid-cols-3 gap-2">
+            <HeroSegment label="Касса" value={formatMoney(m.cash)} />
+            <HeroSegment
+              label="Долги игр."
+              value={formatMoney(m.playersDebt)}
+              danger={m.playersDebt > 0}
+            />
+            <HeroSegment
+              label="К оплате"
+              value={formatMoney(m.venueOutstanding)}
+              danger={m.venueOutstanding > 0}
+            />
+          </div>
         </div>
 
-        {/* Касса */}
-        <Card>
-          <SectionEyebrow tone="muted">Касса</SectionEyebrow>
-          <MetricRow label="На руках" value={`${m.cash} ₸`} />
-        </Card>
-
-        {/* Сборы */}
-        <Card>
-          <SectionEyebrow tone="muted">Сборы</SectionEyebrow>
-          <div className="divide-y divide-border">
-            <MetricRow label="Ожидаемый сбор" value={`${m.expected} ₸`} muted />
-            <MetricRow label="Собрано от игроков" value={`${m.collected} ₸`} />
-          </div>
-        </Card>
-
-        {/* Расходы площадкам */}
-        <Card>
-          <SectionEyebrow tone="muted">Расходы площадкам</SectionEyebrow>
-          <div className="divide-y divide-border">
-            <MetricRow label="Всего расходов" value={`${m.venueCostTotal} ₸`} muted />
-            <MetricRow label="Оплачено" value={`${m.venuePaidTotal} ₸`} muted />
-            <MetricRow label="Остаток к оплате" value={`${m.venueOutstanding} ₸`} />
-          </div>
-        </Card>
-
-        {/* Задолженности */}
-        {hasDebtors && (
-          <Card padding="sm">
-            <SectionEyebrow tone="muted" className="px-1 pt-1">Задолженности игроков</SectionEyebrow>
-            <ul className="divide-y divide-border">
-              {data.debtors.map((d) => (
-                <li key={`debt-${d.userId}`}>
-                  <button
-                    onClick={() => setOpenPlayerId(d.userId)}
-                    className="w-full flex items-center gap-3 py-3 px-1 text-left"
-                  >
-                    <Avatar size="sm" name={d.name} />
-                    <span className="flex-1 text-[15px] font-medium truncate">{d.name}</span>
-                    <span className="text-[15px] font-semibold tabular-nums text-danger">−{d.amount} ₸</span>
-                  </button>
-                </li>
-              ))}
-              {data.creditors.map((c) => (
-                <li key={`cred-${c.userId}`}>
-                  <button
-                    onClick={() => setOpenPlayerId(c.userId)}
-                    className="w-full flex items-center gap-3 py-3 px-1 text-left"
-                  >
-                    <Avatar size="sm" name={c.name} />
-                    <span className="flex-1 text-[15px] font-medium truncate">{c.name}</span>
-                    <span className="text-[15px] font-semibold tabular-nums text-primary">+{c.amount} ₸</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-          </Card>
+        {/* 2. Bar chart — поток за 6 месяцев */}
+        {insights?.financeFlowByMonth && insights.financeFlowByMonth.length > 0 && (
+          <FlowChart data={insights.financeFlowByMonth} />
         )}
 
-        {/* Площадки */}
+        {/* 3. Donut — эффективность сборов */}
+        {m.expected > 0 && (
+          <CollectionDonut
+            collected={m.collected}
+            expected={m.expected}
+            percent={collectionPct}
+          />
+        )}
+
+        {/* 4. Должники */}
+        {data.debtors.length > 0 && (
+          <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
+            <div className="px-4 pt-4 pb-1">
+              <SectionEyebrow>Должны · {data.debtors.length}</SectionEyebrow>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {data.debtors.map((d) => (
+                <DebtorRow
+                  key={`debt-${d.userId}`}
+                  userId={d.userId}
+                  name={d.name}
+                  amount={d.amount}
+                  maxAmount={data.debtors[0].amount}
+                  color="danger"
+                  sign="−"
+                  onOpen={setOpenPlayerId}
+                />
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 5. Переплатили */}
+        {data.creditors.length > 0 && (
+          <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
+            <div className="px-4 pt-4 pb-1">
+              <SectionEyebrow>Переплатили · {data.creditors.length}</SectionEyebrow>
+            </div>
+            <ul className="divide-y divide-gray-100">
+              {data.creditors.map((c) => (
+                <DebtorRow
+                  key={`cred-${c.userId}`}
+                  userId={c.userId}
+                  name={c.name}
+                  amount={c.amount}
+                  maxAmount={data.creditors[0].amount}
+                  color="success"
+                  sign="+"
+                  onOpen={setOpenPlayerId}
+                />
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* 6. Расходы по площадкам */}
         {data.venueEvents.length > 0 && (
-          <Card padding="sm">
-            <SectionEyebrow tone="muted" className="px-1 pt-1">Площадки</SectionEyebrow>
-            <ul className="divide-y divide-border">
+          <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
+            <div className="px-4 pt-4 pb-1">
+              <SectionEyebrow>Площадки</SectionEyebrow>
+            </div>
+            <ul className="divide-y divide-gray-100">
               {data.venueEvents.map((v) => {
-                const date = new Date(v.date).toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+                const date = new Date(v.date).toLocaleDateString("ru-RU", {
+                  day: "numeric",
+                  month: "short",
+                });
                 const remain = v.cost - v.paid;
                 return (
                   <li key={v.eventId}>
                     <Link
                       href={`/team/${teamId}/events/${v.eventId}`}
-                      className="flex items-center justify-between py-3 px-1 gap-3"
+                      className="flex items-center justify-between py-3 px-4 gap-3"
                     >
                       <div className="flex-1 min-w-0">
-                        <p className="text-[15px] font-medium truncate">
+                        <p className="text-[14px] font-medium truncate">
                           {EVENT_TYPE_LABEL[v.type] ?? v.type} · {date}
                         </p>
                         {v.venueName && (
-                          <p className="text-[13px] text-foreground-secondary mt-0.5 truncate">{v.venueName}</p>
+                          <p className="text-[12px] text-text-secondary mt-0.5 truncate">
+                            {v.venueName}
+                          </p>
                         )}
                       </div>
-                      <span className={`text-[15px] font-semibold tabular-nums shrink-0 ${remain > 0 ? "text-danger" : "text-primary"}`}>
-                        {remain > 0 ? `−${remain} ₸` : "оплачено"}
+                      <span
+                        className={`text-[14px] font-semibold tabular-nums shrink-0 ${
+                          remain > 0 ? "text-danger" : "text-text-secondary"
+                        }`}
+                      >
+                        {remain > 0 ? `−${formatMoney(remain)}` : "оплачено"}
                       </span>
                     </Link>
                   </li>
                 );
               })}
             </ul>
-          </Card>
+          </div>
         )}
       </div>
 
-      {/* Deposit bottom bar */}
       <BottomActionBar>
         <Button variant="primary" className="w-full" onClick={() => setShowDeposit(true)}>
           Внести депозит
@@ -238,6 +296,177 @@ export default function TeamFinancesPage() {
   );
 }
 
+/* ─── Hero segment ─── */
+
+function HeroSegment({
+  label,
+  value,
+  danger,
+}: {
+  label: string;
+  value: string;
+  danger?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-0.5 min-w-0">
+      <span className="text-[10px] text-white/40 uppercase tracking-[0.05em] truncate">{label}</span>
+      <span className={`text-[13px] font-semibold tabular-nums truncate ${danger ? "text-red-400" : "text-white/80"}`}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+/* ─── Flow bar chart ─── */
+
+function FlowChart({ data }: { data: FlowMonth[] }) {
+  const maxVal = Math.max(...data.flatMap((d) => [d.collected, d.venuePaid]), 1);
+  const CHART_H = 56;
+  const BAR_W = 10;
+  const PAIR_GAP = 2;
+  const COLS = data.length;
+  const COL_W = 44;
+  const TOTAL_W = COLS * COL_W;
+
+  return (
+    <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
+      <p className="text-[13px] font-semibold text-text-primary mb-3">Поток за 6 месяцев</p>
+      <svg
+        viewBox={`0 0 ${TOTAL_W} ${CHART_H + 18}`}
+        className="w-full"
+        style={{ height: `${CHART_H + 18}px` }}
+      >
+        {data.map((d, i) => {
+          const cx = i * COL_W + COL_W / 2;
+          const ch = Math.max((d.collected / maxVal) * CHART_H, 2);
+          const vh = Math.max((d.venuePaid / maxVal) * CHART_H, 2);
+          return (
+            <g key={d.month}>
+              <rect
+                x={cx - BAR_W - PAIR_GAP / 2}
+                y={CHART_H - ch}
+                width={BAR_W}
+                height={ch}
+                rx={2}
+                fill="var(--color-primary)"
+                opacity={0.85}
+              />
+              <rect
+                x={cx + PAIR_GAP / 2}
+                y={CHART_H - vh}
+                width={BAR_W}
+                height={vh}
+                rx={2}
+                fill="var(--color-border)"
+              />
+              <text
+                x={cx}
+                y={CHART_H + 13}
+                textAnchor="middle"
+                fontSize={9}
+                fill="var(--color-text-secondary)"
+              >
+                {monthShort(d.month)}
+              </text>
+            </g>
+          );
+        })}
+      </svg>
+      <div className="flex gap-4 mt-1">
+        <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
+          <span className="w-2 h-2 rounded-sm bg-primary inline-block" />
+          Сборы
+        </span>
+        <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
+          <span className="w-2 h-2 rounded-sm bg-border inline-block" />
+          Площадки
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Collection donut ─── */
+
+function CollectionDonut({
+  collected,
+  expected,
+  percent,
+}: {
+  collected: number;
+  expected: number;
+  percent: number;
+}) {
+  return (
+    <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm flex items-center gap-4">
+      <div className="relative shrink-0">
+        <CircularProgress value={percent} size={80} strokeWidth={7} />
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="font-display text-[18px] font-bold text-text-primary tabular-nums">
+            {percent}%
+          </span>
+        </div>
+      </div>
+      <div className="min-w-0">
+        <p className="text-[14px] font-semibold text-text-primary">Эффективность сборов</p>
+        <p className="text-[13px] text-text-secondary mt-1">
+          Собрано {formatMoney(collected)}
+          <br />
+          из {formatMoney(expected)}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Debtor / creditor row ─── */
+
+function DebtorRow({
+  userId,
+  name,
+  amount,
+  maxAmount,
+  color,
+  sign,
+  onOpen,
+}: {
+  userId: string;
+  name: string;
+  amount: number;
+  maxAmount: number;
+  color: "danger" | "success";
+  sign: string;
+  onOpen: (id: string) => void;
+}) {
+  const pct = maxAmount > 0 ? Math.round((amount / maxAmount) * 100) : 0;
+  return (
+    <li>
+      <button
+        onClick={() => onOpen(userId)}
+        className="w-full flex items-center gap-3 py-3 px-4 text-left"
+      >
+        <Avatar size="sm" name={name} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[14px] font-medium truncate">{name}</p>
+          <div className="h-1.5 bg-gray-100 rounded-full mt-1.5 overflow-hidden">
+            <div
+              className={`h-full rounded-full ${color === "danger" ? "bg-danger" : "bg-primary"}`}
+              style={{ width: `${pct}%` }}
+            />
+          </div>
+        </div>
+        <span
+          className={`text-[14px] font-semibold tabular-nums shrink-0 ml-2 ${
+            color === "danger" ? "text-danger" : "text-primary"
+          }`}
+        >
+          {sign}{formatMoney(amount)}
+        </span>
+      </button>
+    </li>
+  );
+}
+
 /* ─── Deposit Modal ─── */
 
 function DepositModal({
@@ -259,8 +488,9 @@ function DepositModal({
   const [saving, setSaving] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
-  const inputClass = "w-full bg-background-card border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none focus:border-primary transition-colors";
-  const labelClass = "text-[13px] text-foreground-secondary mb-1 block";
+  const inputClass =
+    "w-full bg-bg-card border border-border rounded-[10px] px-4 py-3 text-[15px] focus:outline-none focus:border-primary transition-colors";
+  const labelClass = "text-[13px] text-text-secondary mb-1 block";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -275,25 +505,44 @@ function DepositModal({
       const res = await fetch(`/api/teams/${teamId}/transactions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ player_id: playerId, amount: a, type: "deposit", note: note.trim() || null, confirmed_by: organizerId }),
+        body: JSON.stringify({
+          player_id: playerId,
+          amount: a,
+          type: "deposit",
+          note: note.trim() || null,
+          confirmed_by: organizerId,
+        }),
       });
-      if (res.ok) { onSuccess(); }
-      else { const d = await res.json(); setErr(d.error ?? "Ошибка"); }
+      if (res.ok) {
+        onSuccess();
+      } else {
+        const d = await res.json();
+        setErr(d.error ?? "Ошибка");
+      }
     } finally {
       setSaving(false);
     }
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center bg-background-overlay" onClick={onClose}>
+    <div
+      className="fixed inset-0 z-50 flex items-end justify-center bg-black/40"
+      onClick={onClose}
+    >
       <form
         onSubmit={handleSubmit}
-        className="w-full max-w-md bg-background-card rounded-t-xl p-6 flex flex-col gap-4 shadow-pop"
+        className="w-full max-w-md bg-bg-primary rounded-t-[20px] p-6 flex flex-col gap-4 shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex justify-between items-center">
           <h2 className="text-[17px] font-semibold">Внести депозит</h2>
-          <button type="button" onClick={onClose} className="text-foreground-secondary text-2xl leading-none px-2">×</button>
+          <button
+            type="button"
+            onClick={onClose}
+            className="text-text-secondary text-2xl leading-none px-2"
+          >
+            ×
+          </button>
         </div>
 
         <div>
@@ -301,10 +550,12 @@ function DepositModal({
           <select
             value={playerId}
             onChange={(e) => setPlayerId(e.target.value)}
-            className="w-full bg-background-card border border-border rounded-lg px-4 py-3 text-[15px] focus:outline-none focus:border-primary transition-colors text-foreground"
+            className="w-full bg-bg-card border border-border rounded-[10px] px-4 py-3 text-[15px] focus:outline-none focus:border-primary transition-colors text-text-primary"
           >
             {members.map((m) => (
-              <option key={m.user_id} value={m.user_id}>{m.name}</option>
+              <option key={m.user_id} value={m.user_id}>
+                {m.name}
+              </option>
             ))}
           </select>
         </div>
@@ -339,17 +590,6 @@ function DepositModal({
           Внести
         </Button>
       </form>
-    </div>
-  );
-}
-
-/* ─── MetricRow ─── */
-
-function MetricRow({ label, value, muted = false }: { label: string; value: string; muted?: boolean }) {
-  return (
-    <div className={`flex justify-between py-2.5 text-[15px] ${muted ? "text-foreground-secondary" : ""}`}>
-      <span className="text-foreground-secondary">{label}</span>
-      <span className={muted ? "" : "font-medium tabular-nums"}>{value}</span>
     </div>
   );
 }
