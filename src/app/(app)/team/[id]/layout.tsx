@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useEffect, useState } from "react";
+import { use, useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import { TeamProvider, useTeam } from "./team-context";
 import { TeamUIProvider } from "./team-ui-context";
@@ -47,6 +47,8 @@ function TeamPageHeader({
   const auth = useAuth();
   const [myTeamCount, setMyTeamCount] = useState(0);
   const [switcherOpen, setSwitcherOpen] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -57,6 +59,22 @@ function TeamPageHeader({
       .catch(() => {});
     return () => { cancelled = true; };
   }, [auth]);
+
+  async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !userId || team.status !== "ready") return;
+    setLogoUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      fd.append("userId", userId);
+      const res = await fetch(`/api/teams/${teamId}/logo`, { method: "POST", body: fd });
+      if (res.ok) team.reload();
+    } finally {
+      setLogoUploading(false);
+      if (logoInputRef.current) logoInputRef.current.value = "";
+    }
+  }
 
   if (team.status === "loading") {
     return (
@@ -98,24 +116,43 @@ function TeamPageHeader({
 
   const initial = t.name.trim().charAt(0).toUpperCase() || "?";
   const leadingSlot = (
-    <div
-      className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
-      style={{
-        background: t.logo_url ? "white" : teamGradient(t.id),
-        border: "2px solid rgba(255,255,255,0.25)",
-      }}
-    >
-      {t.logo_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={t.logo_url}
-          alt=""
-          className="w-full h-full object-cover"
-        />
-      ) : (
-        <span className="font-display text-[24px] font-bold text-white leading-none">
-          {initial}
-        </span>
+    <div className="relative shrink-0">
+      <div
+        className="w-14 h-14 rounded-full flex items-center justify-center overflow-hidden"
+        style={{
+          background: t.logo_url ? "white" : teamGradient(t.id),
+          border: "2px solid rgba(255,255,255,0.25)",
+          opacity: logoUploading ? 0.6 : 1,
+        }}
+      >
+        {t.logo_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={t.logo_url} alt="" className="w-full h-full object-cover" />
+        ) : (
+          <span className="font-display text-[24px] font-bold text-white leading-none">
+            {initial}
+          </span>
+        )}
+      </div>
+      {isOrganizer && (
+        <>
+          <label
+            htmlFor="team-logo-upload"
+            className="absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer"
+            style={{ background: "var(--green-500)", border: "2px solid white" }}
+            aria-label="Загрузить лого"
+          >
+            <CameraIcon />
+          </label>
+          <input
+            id="team-logo-upload"
+            ref={logoInputRef}
+            type="file"
+            accept="image/*"
+            className="sr-only"
+            onChange={handleLogoFile}
+          />
+        </>
       )}
     </div>
   );
@@ -219,6 +256,15 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
         <div className={contentClass}>{children}</div>
       </div>
     </TeamUIProvider>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+      <circle cx="12" cy="13" r="4" />
+    </svg>
   );
 }
 

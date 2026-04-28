@@ -195,6 +195,7 @@ function PlayerSheet({
   const isTargetOrganizer = member.role === "organizer";
   const skillNum = skillToNum(member.user.skill_level);
   const roleLabel = member.role === "organizer" ? "Организатор" : "Игрок";
+  const [confirmLeave, setConfirmLeave] = useState(false);
 
   async function handlePromote() {
     if (!currentUserId || busy) return;
@@ -231,6 +232,28 @@ function PlayerSheet({
       } else {
         const data = await res.json();
         setError(data.error ?? "Ошибка");
+      }
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleLeave() {
+    if (!currentUserId || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/teams/${teamId}/leave`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId: currentUserId }),
+      });
+      if (res.ok) {
+        router.replace("/home");
+      } else {
+        const data = await res.json();
+        setError(data.error ?? "Ошибка");
+        setConfirmLeave(false);
       }
     } finally {
       setBusy(false);
@@ -331,6 +354,40 @@ function PlayerSheet({
                   {busy ? "Удаляю…" : "Удалить из команды"}
                 </button>
               </>
+            )}
+            {isSelf && (
+              confirmLeave ? (
+                <div className="rounded-xl p-3" style={{ background: "#FFF1F1" }}>
+                  <p className="text-[13px] text-center mb-3" style={{ color: "#E53935" }}>
+                    Вы уверены? Вы покинете команду.
+                  </p>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setConfirmLeave(false)}
+                      className="flex-1 h-10 rounded-xl text-[14px] font-semibold"
+                      style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}
+                    >
+                      Отмена
+                    </button>
+                    <button
+                      onClick={handleLeave}
+                      disabled={busy}
+                      className="flex-1 h-10 rounded-xl text-[14px] font-semibold disabled:opacity-50"
+                      style={{ background: "#E53935", color: "white" }}
+                    >
+                      {busy ? "Выхожу…" : "Выйти"}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmLeave(true)}
+                  className="w-full h-11 rounded-xl text-[14px] font-semibold"
+                  style={{ background: "#FFF1F1", color: "#E53935" }}
+                >
+                  Покинуть команду
+                </button>
+              )
             )}
           </div>
         </div>
