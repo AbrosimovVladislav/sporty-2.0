@@ -497,3 +497,136 @@
 
 ---
 
+## ⬜ Итерация 41 — Главная команды v2 + лого + insights
+
+**Цель:** убрать дубликаты на `/team/[id]`, сделать тело страницы инфо-плотным и эмоциональным. Добавить логотип команды в шапку. Починить регрессию iter 40 в блоке заявок.
+
+### Контекст и проблемы
+
+| # | Проблема | До итерации |
+|---|----------|-------------|
+| 🔴 | Stat-grid в теле дублирует шапку (те же 4 числа) | `/team/[id]/page.tsx` lines 32-47 |
+| 🔴 | Регрессия iter 40: `IncomingRequestsBlock` читает `data.requests`, API теперь возвращает `{incoming, outgoing}` → счётчик висит «ничего не происходит» | `team/[id]/page.tsx:208-211` |
+| 🔴 | Логотипа команды нет ни в одном экране — поле `logo_url` отсутствует в `teams` | Миграция нужна |
+| 🟡 | «Ближайшее событие» — крошечная карточка с одной строкой текста. Это главный блок главной команды (не тот же что на `/home` — там событие пользователя из всех команд, тут только этой команды) | `NextEventBlock` в page.tsx |
+| 🟡 | Никакой динамики: нет графика активности, нет лидеров, нет тренда финансов (для оргов) | Нет insights endpoint |
+| 🟡 | «Управление» — большой блок с одной toggle-строкой | page.tsx:65-73 |
+
+### Backend
+
+- **Миграция** `alter table teams add column logo_url text`. Storage bucket `team-logos` с public read access (как `avatars`)
+- **`POST /api/teams/[id]/logo`** — multipart/form-data upload, проверка `organizer` membership, лимит 2 МБ. Кладёт в bucket `team-logos/{teamId}-{ts}.{ext}`, обновляет `teams.logo_url`
+- **`GET /api/teams/[id]/insights?userId=`** — агрегаты для дашборда:
+  - `eventsByWeek`: 4 недели × `{ weekStart, count }` (события со status `completed` или `planned` в окне 30 дней)
+  - `attendanceAvg`: среднее `yes_count / total_members` по completed-событиям 30 дней
+  - `topPlayers`: 3 игрока с наибольшим числом `attended=true` в completed-событиях 30 дней (`{ id, name, avatar_url, played, attendancePct }`)
+  - `financeFlow30d`: `{ collected: N, venuePaid: M, netDelta: K }` за 30 дней (только для organizer; иначе `null`)
+- **Bug fix:** `team/[id]/page.tsx` — `IncomingRequestsBlock` удаляется. Управление заявками целиком через bell в шапке (iter 35 + iter 40). На главной только узкая one-line карточка-счётчик «🔔 3 новые заявки →» (если `pendingRequestsCount > 0`), open bell-sheet через ref
+
+### Frontend
+
+**Шапка (`team/[id]/layout.tsx` → `PageHeader`):**
+- Добавить prop `logoUrl?: string | null` в `PageHeader`
+- Если есть — рендерим круглый аватар 56px **слева** перед title-блоком (Oswald имя + subtitle). Если нет — градиент с первой буквой (как у `TeamListRow`)
+- Layout шапки: avatar (56) + flex-col {title-row, subtitle, stats-row}. Bell справа сверху как сейчас
+
+**Тело `team/[id]/page.tsx`:**
+
+1. ❌ **Убрать stat-grid** (дубликат шапки)
+2. ✅ **«Ближайшее событие»** — это главный блок страницы. Сделать крупным с фото-баннером (как мини-event-hero), но без RSVP (тап → детали события, там уже есть). Структура: фото 120px + countdown-чип + тип-события (Oswald) + дата + площадка
+3. ✅ **«Активность за 30 дней»** — карточка:
+   - Bignum «N событий, X% явка»
+   - Inline SVG: 4 столбика по неделям (числа событий)
+   - Trend-стрелка ↑/↓ (4 недели vs предыдущие 4)
+4. ✅ **«Лидеры месяца»** — горизонтальная карточка:
+   - Эйбрау «Лидеры · 30 дней»
+   - 3 аватара горизонтально (с photo если есть) + bignum явка %
+   - Тап на каждого → `/players/[id]`
+5. ✅ **«Финансы за 30 дней»** (только organizer):
+   - Bignum `+12 500 ₸` (или `−`) с trend-стрелкой
+   - Подзаголовок: «Собрано N · Расходы M»
+   - Тап → `/team/[id]/finances`
+6. ✅ **One-line requests counter** (orgs, если pendingRequestsCount > 0): «🔔 N новых заявок» — клик открывает существующий `TeamRequestsSheet` (поднять стейт `requestsOpen` в layout, или использовать URL-стейт `?requests=open`)
+7. ✅ **Looking for players toggle** — компактная одиночная строка `flex justify-between` с label + switch, без обрамляющей карточки «Управление»
+8. ✅ **Empty state** — если `teamStats.completedEvents + plannedEvents === 0`: большой CTA «Создать первое событие» (для orgs) или «Событий пока нет» (для player/guest), на месте блоков 2-5
+9. **Гость**: блоки 1-3 + GuestJoinBar снизу (как сейчас)
+
+### Не входит в итер 41
+
+- Загрузка лого через UI — backend и рендер делаем, но «загрузить лого» button прячем под organizer-only `/teams/[id]/edit` (микроэкран в составе будущей итерации edit-team). На текущем create-team-form тоже не добавляем
+- Финансы-дашборд (его рерайт — iter 42)
+- Аватары игроков в составе (iter 43)
+
+---
+
+## ⬜ Итерация 42 — Финансы команды v2 (бизнес-дашборд)
+
+**Цель:** превратить `/team/[id]/finances` из перечня сухих чисел в визуальный дашборд. Сохранить все текущие метрики, добавить графики и осмысленные KPI с трендом. Убрать дубликаты («ожидаемый сбор» / «собрано» / «долги» — сейчас три раза одно и то же).
+
+### Что не так сейчас
+
+- 🔴 Дубликат: `expected - collected ≡ playersDebt`. Три карточки об одном
+- 🔴 «Касса (на руках)» = производное от того же. Четвёртая карточка
+- 🟡 Никаких графиков — нельзя понять «команда зарабатывает или сливает», динамики нет
+- 🟡 Должники/переплаты — простыня имён без визуального веса (не видно «у кого больше всех»)
+
+### Backend
+
+- Расширить `GET /api/teams/[id]/insights?userId=` (или отдельный `/finances/insights`):
+  - `flowByMonth`: 6 месяцев × `{ month, collected, venuePaid }` — в gradient-карточке поток
+  - `realBalanceTrend`: `{ now, prevMonth, deltaPct }` — для стрелки
+  - `collectedRatio`: `{ collected, expected, percent }` — для donut «Эффективность сборов» (alias для существующих collected/expected)
+- Никаких изменений в `/api/teams/[id]/finances` — оставляем как есть (используется внутри `realBalance` и debtor-list)
+
+### Frontend
+
+Полный rewrite `team/[id]/finances/page.tsx`:
+
+1. **Hero KPI** — одна gradient-карточка вместо первых трёх. Bignum «Реальный баланс» (40px Oswald) + trend-стрелка vs прошлый месяц. Под ним 3 узких сегмента: «Касса · N ₸», «Долг игроков · K ₸», «К оплате · M ₸» (равная ширина, тонкие разделители)
+2. **Bar chart «Поток за 6 месяцев»** — двойной столбик в каждом месяце: зелёный (collected) + серый (venuePaid). Подпись «Чистый: +N ₸»
+3. **Donut «Эффективность сборов»** — кольцо + текст «87%» по центру (`CircularProgress` переиспользовать). Подзаголовок: «Собрано N из K ₸». Это и заменяет нынешние «Ожидаемый сбор» + «Собрано»
+4. **Должники** (эйбрау «Должны · N»):
+   - Каждая строка — Avatar + имя + horizontal bar (длина = `amount / maxDebt`) + сумма
+   - Цвет bar: красный (`bg-danger`)
+5. **Переплатили** (эйбрау «Переплатили · M», скрыть если 0): аналогично, но зелёный bar
+6. **Расходы по площадкам** — список событий с долгом (как сейчас, добавить avatar/иконку площадки)
+7. **«Внести депозит»** — `BottomActionBar` остаётся как сейчас
+
+### Не входит
+
+- Экспорт CSV — отдельная задача
+- Кастомные периоды дашборда (фиксируем 30 дней / 6 месяцев)
+- Бюджет/планы расходов — нет такой сущности в БД
+
+---
+
+## ⬜ Итерация 43 — Аватары игроков + stat-полоса событий
+
+**Цель:** легковесные UX-добавки в табах «Состав» и «События» — фотографии в составе и контекст в событиях.
+
+### Состав (`/team/[id]/roster`)
+
+- `PlayerListRow` уже принимает `avatar_url` в `PlayerListRow` для `/search/players`. На roster прокинуть из `team.members[].user.avatar_url`. Нужно добавить поле в `TeamMember` тип в `team-context.tsx` и в response `/api/teams/[id]`
+- `PlayerSheet` (sheet карточки игрока, открывается тапом на строку): добавить `Avatar size="lg"` с реальным `avatar_url`
+
+### События (`/team/[id]/events`)
+
+- Над `FilterPills` добавить узкую stat-полосу 3-х колонок:
+  - «Сыграно за 30 дней · N»
+  - «Средняя явка · X%»
+  - «Доход за 30 дней · K ₸» (только для organizer; player видит только первые два)
+- Данные — из того же `/api/teams/[id]/insights` (созданного в iter 41)
+- Стиль: горизонтальный flex `gap-3 mb-3 px-1`, каждый сегмент `flex-1` с `text-[11px] uppercase` для лейбла и `text-[18px] font-bold` для значения
+
+### Backend
+
+- `GET /api/teams/[id]` — добавить `users.avatar_url` к селекту members
+- `TeamMember.user` тип в `team-context.tsx` — добавить `avatar_url: string | null`
+
+### Не входит
+
+- Тактика / расстановка / расширения состава — отдельная фича post-MVP
+- Cover image для команды — пока только logo (iter 41)
+
+---
+

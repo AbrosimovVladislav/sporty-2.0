@@ -50,13 +50,13 @@ Read-only отображение заполненных полей. Пустой
 
 ## Мои заявки
 
-Секция под табами (видна на любом табе), скрыта если заявок нет. Список с:
-- Название команды + город + спорт
-- Источник (`Тебя пригласил X` / `Ты подал заявку`)
-- Status pill (`на рассмотрении` / `принята` / `отклонена`)
-- Кнопки «Принять» / «Отклонить» — только для `direction = team_to_player`, `status = pending`
+Секция под табами, видна на любом табе. Делится на три подраздела (каждый скрыт если пуст):
 
-Подробнее по сценарию: [[team]-join-requests.md](../team/[team]-join-requests.md)
+- **«Меня пригласили · N»** — pending team_to_player. Карточка команды + «Пригласил X · вчера» + кнопки «Принять» / «Отклонить» (`POST /api/join-requests/[id]/respond`)
+- **«Мои заявки в команды · N»** — pending player_to_team. Карточка команды + бейдж «На рассмотрении» + кнопка «Отозвать» (`DELETE /api/join-requests/[id]?userId=`)
+- **«Показать историю · K»** — accordion (default свёрнут), показывает accepted/rejected ≤ 30 дней. Старше — скрыты полностью
+
+Подробнее: [[team]-join-requests.md](../team/[team]-join-requests.md)
 
 ## Настройки (`/profile/settings`)
 
@@ -80,5 +80,6 @@ Read-only отображение заполненных полей. Пустой
 - `PUT /api/users/[id]/profile` — обновление: `bio`, `birth_date`, `position`, `skill_level`, `preferred_time`, `looking_for_team`, `district_id`. Возвращает обновлённый `user`
 - `POST /api/users/[id]/avatar` — загрузка аватара (multipart/form-data, поле `file`). Возвращает обновлённый `user`
 - `GET /api/users/[id]/stats` — `playedCount`, `votedYesCount`, `attendedCount`, `reliability`, `recentEvents`
-- `GET /api/users/[id]/join-requests` — список заявок текущего пользователя
+- `GET /api/users/[id]/join-requests` — список заявок текущего пользователя обоих направлений с `created_at` и `resolved_at`
 - `POST /api/join-requests/[id]/respond` — `accept` / `reject` входящих приглашений
+- `DELETE /api/join-requests/[id]?userId=` — отзыв своей pending заявки

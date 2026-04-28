@@ -6,6 +6,8 @@ type Props = {
   title?: string;
   titleSlot?: ReactNode;
   subtitle?: string;
+  /** Optional 56px slot rendered before the title (e.g. team logo) */
+  leadingSlot?: ReactNode;
   onBellClick?: () => void;
   hasBellDot?: boolean;
   bellAriaLabel?: string;
@@ -17,13 +19,14 @@ export function PageHeader({
   title,
   titleSlot,
   subtitle,
+  leadingSlot,
   onBellClick,
   hasBellDot,
   bellAriaLabel = "Уведомления",
   actions,
   children,
 }: Props) {
-  const titleRowMb = subtitle ? "mb-1.5" : children ? "mb-[18px]" : "";
+  const titleBlockMb = children ? "mb-[18px]" : "";
 
   return (
     <div
@@ -41,44 +44,49 @@ export function PageHeader({
         }}
       />
       <div className="relative">
-        <div className={`flex items-center justify-between${titleRowMb ? ` ${titleRowMb}` : ""}`}>
-          {titleSlot ?? (
-            <h1
-              className="font-display font-bold uppercase text-white text-[30px] leading-none"
-              style={{ letterSpacing: "0.02em" }}
-            >
-              {title}
-            </h1>
-          )}
-          <div className="flex items-center gap-2">
-            {actions}
-            {onBellClick && (
-              <button
-                type="button"
-                onClick={onBellClick}
-                aria-label={bellAriaLabel}
-                className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95"
-                style={{ background: "rgba(255,255,255,0.15)" }}
-              >
-                <BellIcon />
-                {hasBellDot && (
-                  <span
-                    className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                    style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
-                  />
+        <div className={`flex items-start gap-3${titleBlockMb ? ` ${titleBlockMb}` : ""}`}>
+          {leadingSlot}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-2">
+              {titleSlot ?? (
+                <h1
+                  className="font-display font-bold uppercase text-white text-[30px] leading-none truncate"
+                  style={{ letterSpacing: "0.02em" }}
+                >
+                  {title}
+                </h1>
+              )}
+              <div className="flex items-center gap-2 shrink-0">
+                {actions}
+                {onBellClick && (
+                  <button
+                    type="button"
+                    onClick={onBellClick}
+                    aria-label={bellAriaLabel}
+                    className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95"
+                    style={{ background: "rgba(255,255,255,0.15)" }}
+                  >
+                    <BellIcon />
+                    {hasBellDot && (
+                      <span
+                        className="absolute top-2 right-2 w-2 h-2 rounded-full"
+                        style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
+                      />
+                    )}
+                  </button>
                 )}
-              </button>
+              </div>
+            </div>
+            {subtitle && (
+              <p
+                className="text-[13px] mt-1.5"
+                style={{ color: "rgba(255,255,255,0.7)" }}
+              >
+                {subtitle}
+              </p>
             )}
           </div>
         </div>
-        {subtitle && (
-          <p
-            className={`text-[13px]${children ? " mb-4" : ""}`}
-            style={{ color: "rgba(255,255,255,0.7)" }}
-          >
-            {subtitle}
-          </p>
-        )}
         {children}
       </div>
     </div>

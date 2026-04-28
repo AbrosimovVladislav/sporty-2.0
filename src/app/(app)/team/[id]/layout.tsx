@@ -3,6 +3,7 @@
 import { use, useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { TeamProvider, useTeam } from "./team-context";
+import { TeamUIProvider } from "./team-ui-context";
 import {
   PageHeader,
   HeaderStatGroup,
@@ -14,7 +15,7 @@ import { TeamRequestsSheet } from "@/components/team/TeamRequestsSheet";
 import { useAuth } from "@/lib/auth-context";
 import { setLastActiveTeamId } from "@/lib/lastActiveTeam";
 import { SPORT_LABEL } from "@/lib/catalogs";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, teamGradient } from "@/lib/format";
 
 const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
 const EVENT_DETAIL_PATH_RE = /\/team\/[^/]+\/events\/[^/]+/;
@@ -33,12 +34,19 @@ const SUB_TABS: TeamSubTabDef[] = [
   { label: "Финансы", href: (id) => `/team/${id}/finances`, organizerOnly: true },
 ];
 
-function TeamPageHeader({ teamId }: { teamId: string }) {
+function TeamPageHeader({
+  teamId,
+  requestsOpen,
+  setRequestsOpen,
+}: {
+  teamId: string;
+  requestsOpen: boolean;
+  setRequestsOpen: (v: boolean) => void;
+}) {
   const team = useTeam();
   const auth = useAuth();
   const [myTeamCount, setMyTeamCount] = useState(0);
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const [requestsOpen, setRequestsOpen] = useState(false);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -88,12 +96,37 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
     : String(teamStats.completedEvents);
   const thirdStatLabel = isOrganizer ? "Долгов" : "Сыграно";
 
+  const initial = t.name.trim().charAt(0).toUpperCase() || "?";
+  const leadingSlot = (
+    <div
+      className="w-14 h-14 rounded-full flex items-center justify-center shrink-0 overflow-hidden"
+      style={{
+        background: t.logo_url ? "white" : teamGradient(t.id),
+        border: "2px solid rgba(255,255,255,0.25)",
+      }}
+    >
+      {t.logo_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={t.logo_url}
+          alt=""
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span className="font-display text-[24px] font-bold text-white leading-none">
+          {initial}
+        </span>
+      )}
+    </div>
+  );
+
   return (
     <>
       <PageHeader
         title={hasMultiple ? undefined : t.name}
         titleSlot={titleSlot}
         subtitle={`${t.city} · ${sportLabel}`}
+        leadingSlot={leadingSlot}
         onBellClick={isOrganizer ? () => setRequestsOpen(true) : undefined}
         hasBellDot={isOrganizer && pendingRequestsCount > 0}
         bellAriaLabel="Заявки на вступление"
@@ -154,13 +187,20 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
   const path = pathname ?? "";
   const isRoster = ROSTER_PATH_RE.test(path);
   const isEventDetail = EVENT_DETAIL_PATH_RE.test(path);
+  const [requestsOpen, setRequestsOpen] = useState(false);
 
   useEffect(() => {
     setLastActiveTeamId(id);
   }, [id]);
 
+  const ui = { openRequests: () => setRequestsOpen(true) };
+
   if (isEventDetail) {
-    return <div className="flex flex-1 flex-col">{children}</div>;
+    return (
+      <TeamUIProvider value={ui}>
+        <div className="flex flex-1 flex-col">{children}</div>
+      </TeamUIProvider>
+    );
   }
 
   const contentClass = isRoster
@@ -168,11 +208,17 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
     : "flex flex-1 flex-col px-4 py-4 gap-4";
 
   return (
-    <div className="flex flex-1 flex-col">
-      <TeamPageHeader teamId={id} />
-      <TeamSubNav id={id} />
-      <div className={contentClass}>{children}</div>
-    </div>
+    <TeamUIProvider value={ui}>
+      <div className="flex flex-1 flex-col">
+        <TeamPageHeader
+          teamId={id}
+          requestsOpen={requestsOpen}
+          setRequestsOpen={setRequestsOpen}
+        />
+        <TeamSubNav id={id} />
+        <div className={contentClass}>{children}</div>
+      </div>
+    </TeamUIProvider>
   );
 }
 

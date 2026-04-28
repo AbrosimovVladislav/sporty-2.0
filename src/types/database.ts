@@ -85,6 +85,7 @@ export type Database = {
           created_by: string;
           created_at: string;
           district_id: string | null;
+          logo_url: string | null;
         };
         Insert: {
           id?: string;
@@ -96,6 +97,7 @@ export type Database = {
           created_by: string;
           created_at?: string;
           district_id?: string | null;
+          logo_url?: string | null;
         };
         Update: {
           name?: string;
@@ -104,6 +106,7 @@ export type Database = {
           description?: string | null;
           looking_for_players?: boolean;
           district_id?: string | null;
+          logo_url?: string | null;
         };
         Relationships: [];
       };
