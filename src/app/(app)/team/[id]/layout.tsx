@@ -159,15 +159,19 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
     setLastActiveTeamId(id);
   }, [id]);
 
-  if (isRoster || isEventDetail) {
+  if (isEventDetail) {
     return <div className="flex flex-1 flex-col">{children}</div>;
   }
+
+  const contentClass = isRoster
+    ? "flex flex-1 flex-col"
+    : "flex flex-1 flex-col px-4 py-4 gap-4";
 
   return (
     <div className="flex flex-1 flex-col">
       <TeamPageHeader teamId={id} />
       <TeamSubNav id={id} />
-      <div className="flex flex-1 flex-col px-4 py-4 gap-4">{children}</div>
+      <div className={contentClass}>{children}</div>
     </div>
   );
 }

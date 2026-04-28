@@ -7,6 +7,8 @@ type Props = {
   id: string;
   teamId: string;
   teamName: string | null;
+  /** Overrides teamName as the primary title. Useful in team-scoped lists. */
+  title?: string;
   type: string;
   date: string;
   venueName: string | null;
@@ -36,6 +38,7 @@ export function EventListRow({
   id,
   teamId,
   teamName,
+  title,
   type,
   date,
   venueName,
@@ -78,7 +81,7 @@ export function EventListRow({
             className="text-[15px] font-semibold truncate"
             style={{ color: "var(--text-primary)" }}
           >
-            {teamName ?? "Без команды"}
+            {title ?? teamName ?? "Без команды"}
           </span>
           {myTeam && <RoleBadge>Моя команда</RoleBadge>}
         </div>

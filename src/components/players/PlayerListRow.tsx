@@ -14,6 +14,8 @@ type Props = {
   lookingForTeam?: boolean;
   reliability?: number | null;
   played?: number;
+  onClick?: () => void;
+  roleBadge?: string;
 };
 
 export function PlayerListRow({
@@ -26,19 +28,21 @@ export function PlayerListRow({
   lookingForTeam,
   reliability,
   played = 0,
+  onClick,
+  roleBadge,
 }: Props) {
   const subtitle = [position, district || city].filter(Boolean).join(" · ");
   const bars = reliabilityToBars(reliability ?? null, played);
 
-  return (
-    <Link
-      href={`/players/${id}`}
-      className="flex items-center gap-3.5 py-3 last:border-b-0 transition-colors active:bg-bg-secondary"
-      style={{ borderBottom: "1px solid var(--gray-100)" }}
-    >
+  const sharedClass =
+    "flex items-center gap-3.5 py-3 last:border-b-0 transition-colors active:bg-bg-secondary";
+  const sharedStyle = { borderBottom: "1px solid var(--gray-100)" };
+
+  const inner = (
+    <>
       <Avatar src={avatarUrl} name={name} size="md" />
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <span
             className="text-[15px] font-semibold truncate"
             style={{ color: "var(--text-primary)" }}
@@ -46,6 +50,7 @@ export function PlayerListRow({
             {name}
           </span>
           {lookingForTeam && <SeekingBadge />}
+          {roleBadge && <RoleBadge label={roleBadge} />}
         </div>
         {subtitle && (
           <p
@@ -75,6 +80,20 @@ export function PlayerListRow({
           <MiniBar value={bars} max={5} />
         )}
       </div>
+    </>
+  );
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} className={`w-full text-left ${sharedClass}`} style={sharedStyle}>
+        {inner}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={`/players/${id}`} className={sharedClass} style={sharedStyle}>
+      {inner}
     </Link>
   );
 }
@@ -86,6 +105,17 @@ function SeekingBadge() {
       style={{ background: "var(--green-50)", color: "var(--green-700)" }}
     >
       Ищет команду
+    </span>
+  );
+}
+
+function RoleBadge({ label }: { label: string }) {
+  return (
+    <span
+      className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 shrink-0 uppercase"
+      style={{ background: "var(--gray-100)", color: "var(--text-secondary)", letterSpacing: "0.4px" }}
+    >
+      {label}
     </span>
   );
 }
