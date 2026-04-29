@@ -16,10 +16,14 @@ type Props = {
 export function ListMeta({ countLabel, sort }: Props) {
   if (!countLabel && !sort) return null;
   return (
-    <div className="flex items-center justify-between mb-3 min-h-[20px]">
-      <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>
-        {countLabel}
-      </span>
+    <div
+      className={`flex items-center mb-3 min-h-[20px] ${countLabel ? "justify-between" : "justify-end"}`}
+    >
+      {countLabel && (
+        <span className="text-[13px]" style={{ color: "var(--text-tertiary)" }}>
+          {countLabel}
+        </span>
+      )}
       {sort && (
         <SortDropdown value={sort.value} options={sort.options} onChange={sort.onChange} />
       )}

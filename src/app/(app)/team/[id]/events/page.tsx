@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { FilterPills } from "@/components/ui/FilterPills";
@@ -663,57 +663,39 @@ function formatDateLabel(iso: string) {
 }
 
 function NativeDateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const open = () => {
-    const el = ref.current;
-    if (!el) return;
-    if (typeof el.showPicker === "function") el.showPicker();
-    else el.click();
-  };
   const display = value ? formatDateLabel(value) : "Выбери дату";
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={open}
+      <div
         className={FIELD_CLASS}
         style={FIELD_STYLE}
+        aria-hidden
       >
         <span style={{ color: value ? "var(--text-primary)" : "var(--text-tertiary)" }}>
           {display}
         </span>
         <CalendarIcon />
-      </button>
+      </div>
       <input
-        ref={ref}
         type="date"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
-        aria-hidden
-        tabIndex={-1}
-        className="absolute inset-0 opacity-0 pointer-events-none"
+        aria-label="Дата"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
       />
     </div>
   );
 }
 
 function NativeTimeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  const ref = useRef<HTMLInputElement>(null);
-  const open = () => {
-    const el = ref.current;
-    if (!el) return;
-    if (typeof el.showPicker === "function") el.showPicker();
-    else el.click();
-  };
   const display = value || "Выбери время";
   return (
     <div className="relative">
-      <button
-        type="button"
-        onClick={open}
+      <div
         className={FIELD_CLASS}
         style={FIELD_STYLE}
+        aria-hidden
       >
         <span
           className="tabular-nums"
@@ -722,16 +704,14 @@ function NativeTimeField({ value, onChange }: { value: string; onChange: (v: str
           {display}
         </span>
         <ClockIcon />
-      </button>
+      </div>
       <input
-        ref={ref}
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
-        aria-hidden
-        tabIndex={-1}
-        className="absolute inset-0 opacity-0 pointer-events-none"
+        aria-label="Время"
+        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
       />
     </div>
   );

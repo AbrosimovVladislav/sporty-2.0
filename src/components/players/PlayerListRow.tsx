@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Avatar, MiniBar } from "@/components/ui";
 import { PositionChipList } from "@/components/PositionChip";
+import { SKILL_LEVELS } from "@/lib/catalogs";
 import { reliabilityToBars } from "./reliabilityToBars";
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
   position?: string[] | null;
   city?: string | null;
   district?: string | null;
+  skillLevel?: string | null;
   lookingForTeam?: boolean;
   reliability?: number | null;
   played?: number;
@@ -26,13 +28,14 @@ export function PlayerListRow({
   position,
   city,
   district,
+  skillLevel,
   lookingForTeam,
   reliability,
   played = 0,
   onClick,
   roleBadge,
 }: Props) {
-  const subtitle = district || city || null;
+  const subtitle = !skillLevel ? district || city || null : null;
   const bars = reliabilityToBars(reliability ?? null, played);
 
   const sharedClass =
@@ -55,6 +58,7 @@ export function PlayerListRow({
         </div>
         <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
           <PositionChipList positions={position} tone="light" />
+          {skillLevel && <SkillChip level={skillLevel} />}
           {subtitle && (
             <span
               className="text-[13px] truncate"
@@ -120,6 +124,28 @@ function RoleBadge({ label }: { label: string }) {
       style={{ background: "var(--gray-100)", color: "var(--text-secondary)", letterSpacing: "0.4px" }}
     >
       {label}
+    </span>
+  );
+}
+
+const SKILL_PALETTE: Record<number, { bg: string; fg: string }> = {
+  1: { bg: "#F1F4F8", fg: "#6B7280" },
+  2: { bg: "#E8F0FE", fg: "#1F66D9" },
+  3: { bg: "#E6F7EC", fg: "#1F8A4C" },
+  4: { bg: "#FFF4E0", fg: "#B86E00" },
+  5: { bg: "#FFE3E3", fg: "#C12A2A" },
+};
+
+function SkillChip({ level }: { level: string }) {
+  const idx = SKILL_LEVELS.indexOf(level as (typeof SKILL_LEVELS)[number]);
+  const num = idx >= 0 ? idx + 1 : 1;
+  const c = SKILL_PALETTE[num] ?? SKILL_PALETTE[1];
+  return (
+    <span
+      className="inline-flex items-center text-[11px] font-semibold rounded-full px-2 py-0.5 shrink-0 leading-none"
+      style={{ background: c.bg, color: c.fg }}
+    >
+      {level} · {num}/5
     </span>
   );
 }

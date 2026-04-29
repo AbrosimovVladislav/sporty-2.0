@@ -283,6 +283,7 @@ export default function SearchPlayersPage() {
                     position={p.position}
                     city={p.city}
                     district={p.district?.name ?? null}
+                    skillLevel={p.skill_level}
                     lookingForTeam={p.looking_for_team}
                     reliability={p.reliability}
                     played={p.played}
