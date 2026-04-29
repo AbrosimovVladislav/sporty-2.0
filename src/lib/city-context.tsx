@@ -3,7 +3,6 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 
-const STORAGE_KEY = "sporty_active_city";
 const DEFAULT_CITY = "Алматы";
 
 export const KZ_CITIES = [
@@ -34,19 +33,21 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
   const [activeCity, _setActiveCity] = useState<string>(DEFAULT_CITY);
 
   useEffect(() => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      _setActiveCity(stored);
-    } else if (auth.status === "authenticated" && auth.user.city) {
+    if (auth.status === "authenticated" && auth.user.city) {
       _setActiveCity(auth.user.city);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auth.status]);
+  }, [auth.status]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const setActiveCity = useCallback((city: string) => {
     _setActiveCity(city);
-    localStorage.setItem(STORAGE_KEY, city);
-  }, []);
+    if (auth.status === "authenticated") {
+      fetch(`/api/users/${auth.user.id}/profile`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ city }),
+      }).catch(() => {});
+    }
+  }, [auth]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
     <CityContext.Provider value={{ activeCity, setActiveCity }}>

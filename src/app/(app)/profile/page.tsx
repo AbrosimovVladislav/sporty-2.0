@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
 import { EVENT_TYPE_LABEL, SPORT_LABEL } from "@/lib/catalogs";
 import { Avatar, IconButton, Pill, Button } from "@/components/ui";
+import { useCity } from "@/lib/city-context";
 import type { User } from "@/types/database";
 
 type Tab = "about" | "results" | "reliability" | "achievements";
@@ -75,6 +76,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { activeCity } = useCity();
 
   useEffect(() => {
     fetch(`/api/users/${initialUser.id}`)
@@ -141,7 +143,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
     { id: "achievements", label: "Достижения" },
   ];
 
-  const locationLabel = [user.city, districtName].filter(Boolean).join(" · ");
+  const locationLabel = [activeCity, activeCity === user.city ? districtName : null].filter(Boolean).join(" · ");
 
   return (
     <div

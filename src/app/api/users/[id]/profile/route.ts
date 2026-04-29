@@ -18,6 +18,7 @@ export async function PUT(
   if ("skill_level" in body) update.skill_level = body.skill_level ?? null;
   if ("preferred_time" in body) update.preferred_time = body.preferred_time ?? null;
   if ("looking_for_team" in body) update.looking_for_team = Boolean(body.looking_for_team);
+  if ("city" in body) update.city = body.city ?? null;
   if ("district_id" in body) update.district_id = body.district_id ?? null;
 
   if (Object.keys(update).length === 0) {
