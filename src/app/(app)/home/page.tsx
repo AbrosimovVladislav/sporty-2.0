@@ -12,7 +12,6 @@ import { RequestsSheet } from "@/components/home/RequestsSheet";
 import { QuickActions } from "@/components/home/QuickActions";
 import { TeamPulseSection } from "@/components/home/TeamPulseSection";
 import { ScheduleSection } from "@/components/home/ScheduleSection";
-import { CitySheet } from "@/components/CitySheet";
 import { useCity } from "@/lib/city-context";
 
 type NextEvent = {
@@ -75,7 +74,6 @@ export default function HomePage() {
   const [pulseTeams, setPulseTeams] = useState<PulseTeam[]>([]);
   const [schedule, setSchedule] = useState<ScheduleEvent[]>([]);
   const [requestsOpen, setRequestsOpen] = useState(false);
-  const [citySheetOpen, setCitySheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { activeCity } = useCity();
 
@@ -156,7 +154,7 @@ export default function HomePage() {
         city={activeCity}
         hasRequests={isOrganizer && requests.total > 0}
         onBellClick={() => setRequestsOpen(true)}
-        onCityClick={() => setCitySheetOpen(true)}
+        onProfileClick={() => router.push("/profile")}
       >
         {loading ? (
           <div
@@ -204,8 +202,6 @@ export default function HomePage() {
         byTeam={requests.by_team}
         onClose={() => setRequestsOpen(false)}
       />
-
-      {citySheetOpen && <CitySheet onClose={() => setCitySheetOpen(false)} />}
     </div>
   );
 }

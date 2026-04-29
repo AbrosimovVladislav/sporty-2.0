@@ -44,7 +44,7 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
       fetch(`/api/users/${auth.user.id}/profile`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city }),
+        body: JSON.stringify({ city, district_id: null }),
       }).catch(() => {});
     }
   }, [auth]); // eslint-disable-line react-hooks/exhaustive-deps

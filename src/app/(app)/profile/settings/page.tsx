@@ -7,6 +7,7 @@ import BackButton from "@/components/BackButton";
 import DistrictSelect from "@/components/DistrictSelect";
 import { Button, BottomActionBar, SheetChipGroup } from "@/components/ui";
 import { POSITIONS, SKILL_LEVELS } from "@/lib/catalogs";
+import { useCity, KZ_CITIES } from "@/lib/city-context";
 import type { User } from "@/types/database";
 
 const PREFERRED_TIME_PRESETS = [
@@ -45,6 +46,7 @@ function SettingsContent({
   initialUser: User;
   onSaved: () => void;
 }) {
+  const { activeCity, setActiveCity } = useCity();
   const [user, setUser] = useState(initialUser);
   const [bio, setBio] = useState(initialUser.bio ?? "");
   const [positions, setPositions] = useState<string[]>(
@@ -56,6 +58,7 @@ function SettingsContent({
   const [skillLevel, setSkillLevel] = useState(initialUser.skill_level ?? "");
   const [preferredTime, setPreferredTime] = useState(initialUser.preferred_time ?? "");
   const [birthDate, setBirthDate] = useState(initialUser.birth_date ?? "");
+  const [city, setCity] = useState(activeCity || initialUser.city || "");
   const [districtId, setDistrictId] = useState(initialUser.district_id ?? "");
   const [lookingForTeam, setLookingForTeam] = useState(initialUser.looking_for_team);
   const [saving, setSaving] = useState(false);
@@ -90,11 +93,13 @@ function SettingsContent({
           skill_level: skillLevel || null,
           preferred_time: preferredTime.trim() || null,
           birth_date: birthDate || null,
+          city: city || null,
           district_id: districtId || null,
           looking_for_team: lookingForTeam,
         }),
       });
       if (res.ok) {
+        if (city && city !== activeCity) setActiveCity(city);
         onSaved();
       }
     } finally {
@@ -124,6 +129,45 @@ function SettingsContent({
       </header>
 
       <div className="flex flex-col gap-4 px-4 py-4 pb-28">
+        <Section>
+          <FieldLabel>Город</FieldLabel>
+          <div className="flex flex-wrap gap-1.5 mt-1">
+            {KZ_CITIES.map((c) => {
+              const active = city === c;
+              return (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => {
+                    setCity(c);
+                    setDistrictId("");
+                  }}
+                  className="px-3.5 py-2 rounded-full text-[13px] font-semibold transition-colors"
+                  style={{
+                    background: active ? "var(--gray-900)" : "var(--bg-card)",
+                    color: active ? "white" : "var(--text-secondary)",
+                    border: active ? "1.5px solid var(--gray-900)" : "1.5px solid var(--gray-200)",
+                  }}
+                >
+                  {c}
+                </button>
+              );
+            })}
+          </div>
+        </Section>
+
+        {city && (
+          <Section>
+            <FieldLabel>Район</FieldLabel>
+            <DistrictSelect
+              city={city}
+              value={districtId}
+              onChange={setDistrictId}
+              className="w-full rounded-[12px] px-3.5 py-3 text-[15px] outline-none appearance-none"
+            />
+          </Section>
+        )}
+
         <Section>
           <FieldLabel>О себе</FieldLabel>
           <textarea
@@ -178,18 +222,6 @@ function SettingsContent({
             emptyLabel="Не выбран"
           />
         </Section>
-
-        {user.city && (
-          <Section>
-            <FieldLabel>Район</FieldLabel>
-            <DistrictSelect
-              city={user.city}
-              value={districtId}
-              onChange={setDistrictId}
-              className="w-full rounded-[12px] px-3.5 py-3 text-[15px] outline-none appearance-none"
-            />
-          </Section>
-        )}
 
         <Section>
           <FieldLabel>Время тренировок</FieldLabel>

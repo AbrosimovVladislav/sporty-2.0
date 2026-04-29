@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
 import { EVENT_TYPE_LABEL, SPORT_LABEL } from "@/lib/catalogs";
 import { Avatar, IconButton, Pill, Button } from "@/components/ui";
+import { CitySheet } from "@/components/CitySheet";
 import { useCity } from "@/lib/city-context";
 import type { User } from "@/types/database";
 
@@ -75,6 +76,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null | undefined>(undefined);
+  const [citySheetOpen, setCitySheetOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { activeCity } = useCity();
 
@@ -196,14 +198,17 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
           {user.name}
         </h1>
 
-        {locationLabel && (
-          <p
-            className="text-[13px] text-center mt-1"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {locationLabel}
-          </p>
-        )}
+        <button
+          type="button"
+          onClick={() => setCitySheetOpen(true)}
+          className="flex items-center justify-center gap-1.5 mt-2 mx-auto active:opacity-60 transition-opacity"
+        >
+          <MapPinIcon />
+          <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
+            {locationLabel || "Город не выбран"}
+          </span>
+          <PencilIcon />
+        </button>
 
         {user.looking_for_team && (
           <div className="flex justify-center mt-3">
@@ -275,6 +280,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
         <MyJoinRequests userId={user.id} />
       </div>
 
+      {citySheetOpen && <CitySheet onClose={() => setCitySheetOpen(false)} />}
     </div>
   );
 }
@@ -1096,6 +1102,24 @@ function SettingsIcon() {
     >
       <circle cx="12" cy="12" r="3" />
       <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
+    </svg>
+  );
+}
+
+function MapPinIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)", flexShrink: 0 }}>
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function PencilIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)", flexShrink: 0 }}>
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
   );
 }
