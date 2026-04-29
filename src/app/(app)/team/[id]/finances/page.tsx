@@ -131,16 +131,14 @@ export default function TeamFinancesPage() {
             {formatMoney(m.realBalance)}
           </span>
           <div className="border-t border-white/10 mt-4 pt-4 grid grid-cols-3 gap-2">
-            <HeroSegment label="На счету" sublabel="касса" value={formatMoney(m.cash)} />
+            <HeroSegment label="В кассе" value={formatMoney(m.cash)} />
             <HeroSegment
-              label="Должны нам"
-              sublabel="игроки"
+              label="Долг игроков"
               value={formatMoney(m.playersDebt)}
               danger={m.playersDebt > 0}
             />
             <HeroSegment
-              label="Должны мы"
-              sublabel="площадкам"
+              label="Долг площадкам"
               value={formatMoney(m.venueOutstanding)}
               danger={m.venueOutstanding > 0}
             />
@@ -244,19 +242,17 @@ export default function TeamFinancesPage() {
 
 function HeroSegment({
   label,
-  sublabel,
   value,
   danger,
 }: {
   label: string;
-  sublabel: string;
   value: string;
   danger?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
       <span className="text-[10px] text-white/40 uppercase tracking-[0.05em] truncate">
-        {label} · {sublabel}
+        {label}
       </span>
       <span className={`text-[13px] font-semibold tabular-nums truncate ${danger ? "text-red-400" : "text-white/80"}`}>
         {value}
@@ -325,17 +321,17 @@ function FlowChart({ data }: { data: FlowMonth[] }) {
         className="w-full"
         style={{ height: `${CHART_H + LABEL_PAD + 14}px` }}
       >
-        {data.map((d, i) => {
-          const cx = i * COL_W + COL_W / 2;
+        {data.map((d, idx) => {
+          const colCx = idx * COL_W + COL_W / 2;
           const ch = d.collected > 0 ? Math.max((d.collected / maxVal) * CHART_H, 2) : 0;
           const vh = d.venuePaid > 0 ? Math.max((d.venuePaid / maxVal) * CHART_H, 2) : 0;
-          const topVal = Math.max(d.collected, d.venuePaid);
-          const showLabel = topVal > 0;
+          const collectedX = colCx - BAR_W - PAIR_GAP / 2 + BAR_W / 2;
+          const venueX = colCx + PAIR_GAP / 2 + BAR_W / 2;
           return (
             <g key={d.month}>
               {ch > 0 && (
                 <rect
-                  x={cx - BAR_W - PAIR_GAP / 2}
+                  x={colCx - BAR_W - PAIR_GAP / 2}
                   y={LABEL_PAD + CHART_H - ch}
                   width={BAR_W}
                   height={ch}
@@ -346,28 +342,40 @@ function FlowChart({ data }: { data: FlowMonth[] }) {
               )}
               {vh > 0 && (
                 <rect
-                  x={cx + PAIR_GAP / 2}
+                  x={colCx + PAIR_GAP / 2}
                   y={LABEL_PAD + CHART_H - vh}
                   width={BAR_W}
                   height={vh}
                   rx={2}
-                  fill="var(--color-border)"
+                  fill="var(--gray-400)"
                 />
               )}
-              {showLabel && (
+              {d.collected > 0 && (
                 <text
-                  x={cx}
-                  y={LABEL_PAD + CHART_H - Math.max(ch, vh) - 3}
+                  x={collectedX}
+                  y={LABEL_PAD + CHART_H - ch - 3}
                   textAnchor="middle"
-                  fontSize={9}
+                  fontSize={8}
+                  fontWeight={600}
+                  fill="var(--color-primary)"
+                >
+                  {compactNum(d.collected)}
+                </text>
+              )}
+              {d.venuePaid > 0 && (
+                <text
+                  x={venueX}
+                  y={LABEL_PAD + CHART_H - vh - 3}
+                  textAnchor="middle"
+                  fontSize={8}
                   fontWeight={600}
                   fill="var(--text-secondary)"
                 >
-                  {compactNum(topVal)}
+                  {compactNum(d.venuePaid)}
                 </text>
               )}
               <text
-                x={cx}
+                x={colCx}
                 y={LABEL_PAD + CHART_H + 11}
                 textAnchor="middle"
                 fontSize={9}
@@ -414,6 +422,8 @@ function MarginBar({ collected, venuePaid }: { collected: number; venuePaid: num
   const total = Math.max(collected + venuePaid, 1);
   const collectedPct = (collected / total) * 100;
   const venuePct = (venuePaid / total) * 100;
+  const collectedPctRound = Math.round(collectedPct);
+  const venuePctRound = Math.round(venuePct);
 
   return (
     <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
@@ -443,14 +453,22 @@ function MarginBar({ collected, venuePaid }: { collected: number; venuePaid: num
       </div>
 
       <div className="flex justify-between mt-2 text-[12px]">
-        <span className="text-text-secondary">
-          <span className="font-semibold text-text-primary tabular-nums">{formatMoney(collected)}</span>
-          <span className="ml-1">сборы</span>
-        </span>
-        <span className="text-text-secondary text-right">
-          <span className="ml-1">расходы</span>
-          <span className="font-semibold text-text-primary tabular-nums ml-1">{formatMoney(venuePaid)}</span>
-        </span>
+        <div className="flex flex-col">
+          <span className="font-semibold text-text-primary tabular-nums">
+            {formatMoney(collected)}
+          </span>
+          <span className="text-text-secondary">
+            сборы · <span className="tabular-nums">{collectedPctRound}%</span>
+          </span>
+        </div>
+        <div className="flex flex-col text-right">
+          <span className="font-semibold text-text-primary tabular-nums">
+            {formatMoney(venuePaid)}
+          </span>
+          <span className="text-text-secondary">
+            расходы · <span className="tabular-nums">{venuePctRound}%</span>
+          </span>
+        </div>
       </div>
     </div>
   );
