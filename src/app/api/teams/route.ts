@@ -26,6 +26,9 @@ export async function GET(req: NextRequest) {
   const excludeIds = excludeRaw
     ? excludeRaw.split(",").map((s) => s.trim()).filter(Boolean)
     : [];
+  const sortRaw = searchParams.get("sort");
+  const sort: "name_asc" | "created_desc" =
+    sortRaw === "name_asc" ? "name_asc" : "created_desc";
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
@@ -35,9 +38,15 @@ export async function GET(req: NextRequest) {
     .select(
       "id, name, sport, city, description, created_at, looking_for_players, district_id, logo_url, districts(id, name), team_memberships(count)",
       { count: "exact" },
-    )
-    .order("created_at", { ascending: false })
-    .range(offset, offset + limit - 1);
+    );
+
+  if (sort === "name_asc") {
+    query = query.order("name", { ascending: true });
+  } else {
+    query = query.order("created_at", { ascending: false });
+  }
+
+  query = query.range(offset, offset + limit - 1);
 
   if (q) query = query.ilike("name", `%${q}%`);
   if (city) query = query.ilike("city", `%${city}%`);

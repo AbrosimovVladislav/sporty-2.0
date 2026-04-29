@@ -2,13 +2,11 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SheetChipGroup, type ChipOption } from "@/components/ui";
-import { POSITIONS } from "@/lib/catalogs";
 
 export type PlayerFilters = {
   city: string;
   districtId: string;
   lookingForTeam: boolean;
-  position: string;
 };
 
 type Props = {
@@ -57,11 +55,6 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
     [districts],
   );
 
-  const positionOptions = useMemo<ChipOption[]>(
-    () => (POSITIONS.football ?? []).map((p) => ({ value: p, label: p })),
-    [],
-  );
-
   if (!open) return null;
 
   function reset() {
@@ -69,7 +62,6 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
       city: "",
       districtId: "",
       lookingForTeam: false,
-      position: "",
     });
   }
 
@@ -118,13 +110,6 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
             value={filters.districtId}
             onChange={(d) => setFilters((f) => ({ ...f, districtId: d }))}
             emptyHint="Сначала выбери город"
-          />
-
-          <SheetChipGroup
-            label="Позиция"
-            options={positionOptions}
-            value={filters.position}
-            onChange={(p) => setFilters((f) => ({ ...f, position: p }))}
           />
 
           <button

@@ -26,6 +26,13 @@ export async function GET(req: NextRequest) {
   const type = searchParams.get("type")?.trim() ?? null;
   const city = searchParams.get("city")?.trim() ?? null;
   const district_id = searchParams.get("district_id")?.trim() ?? null;
+  const sortRaw = searchParams.get("sort");
+  const sort: "date_asc" | "date_desc" | "price_asc" =
+    sortRaw === "date_desc"
+      ? "date_desc"
+      : sortRaw === "price_asc"
+      ? "price_asc"
+      : "date_asc";
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
@@ -40,8 +47,17 @@ export async function GET(req: NextRequest) {
     )
     .eq("is_public", true)
     .eq("status", "planned")
-    .gt("date", now)
-    .order("date", { ascending: true });
+    .gt("date", now);
+
+  if (sort === "date_desc") {
+    query = query.order("date", { ascending: false });
+  } else if (sort === "price_asc") {
+    query = query
+      .order("price_per_player", { ascending: true })
+      .order("date", { ascending: true });
+  } else {
+    query = query.order("date", { ascending: true });
+  }
 
   if (city) query = query.eq("venues.city", city);
   if (district_id) query = query.eq("venues.district_id", district_id);

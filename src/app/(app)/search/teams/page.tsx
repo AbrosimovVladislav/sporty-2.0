@@ -44,6 +44,8 @@ type Stats = {
   lookingForPlayers: number;
 };
 
+type TeamSort = "created_desc" | "name_asc";
+
 const EMPTY_FILTERS: TeamFilters = {
   city: "",
   districtId: "",
@@ -51,14 +53,10 @@ const EMPTY_FILTERS: TeamFilters = {
   lookingForPlayers: false,
 };
 
-function pluralTeams(n: number): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return "команд";
-  if (m === 1) return "команда";
-  if (m >= 2 && m <= 4) return "команды";
-  return "команд";
-}
+const SORT_OPTIONS = [
+  { value: "created_desc", label: "Сначала новые" },
+  { value: "name_asc", label: "По названию (А-Я)" },
+];
 
 export default function SearchTeamsPage() {
   const auth = useAuth();
@@ -68,6 +66,7 @@ export default function SearchTeamsPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState<TeamFilters>(EMPTY_FILTERS);
+  const [sort, setSort] = useState<TeamSort>("created_desc");
 
   useEffect(() => {
     setFilters((f) => ({ ...f, city: activeCity }));
@@ -136,6 +135,7 @@ export default function SearchTeamsPage() {
       if (filters.districtId) params.set("district_id", filters.districtId);
       if (filters.sport) params.set("sport", filters.sport);
       if (filters.lookingForPlayers) params.set("looking_for_players", "true");
+      params.set("sort", sort);
       params.set("offset", String(offset));
       return fetch(`/api/teams?${params}`)
         .then((r) => r.json())
@@ -151,6 +151,7 @@ export default function SearchTeamsPage() {
       filters.districtId,
       filters.sport,
       filters.lookingForPlayers,
+      sort,
     ],
   );
 
@@ -166,6 +167,7 @@ export default function SearchTeamsPage() {
     if (filters.districtId) params.set("district_id", filters.districtId);
     if (filters.sport) params.set("sport", filters.sport);
     if (filters.lookingForPlayers) params.set("looking_for_players", "true");
+    params.set("sort", sort);
     params.set("limit", "1");
     fetch(`/api/teams?${params}`)
       .then((r) => r.json())
@@ -187,6 +189,7 @@ export default function SearchTeamsPage() {
     filters.districtId,
     filters.sport,
     filters.lookingForPlayers,
+    sort,
   ]);
 
   const activeChips = useMemo<FilterChip[]>(() => {
@@ -226,11 +229,6 @@ export default function SearchTeamsPage() {
   const showSkeleton = teams.length === 0 && loading;
   const showEmpty = !loading && teams.length === 0;
 
-  const countLabel =
-    resultsTotal === null
-      ? "Загружаем…"
-      : `Найдено ${resultsTotal} ${pluralTeams(resultsTotal)}`;
-
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader title="Команды">
@@ -254,7 +252,13 @@ export default function SearchTeamsPage() {
           placeholder="Имя команды, город…"
         />
 
-        <ListMeta countLabel={countLabel} />
+        <ListMeta
+          sort={{
+            value: sort,
+            options: SORT_OPTIONS,
+            onChange: (v) => setSort(v as TeamSort),
+          }}
+        />
 
         {activeChips.length > 0 && (
           <ActiveFilterChips chips={activeChips} className="mt-1.5" />

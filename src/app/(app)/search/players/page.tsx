@@ -43,7 +43,7 @@ type Stats = {
   lookingForTeam: number;
 };
 
-type SortMode = "skill" | "recent";
+type SortMode = "skill" | "recent" | "name_asc";
 
 const POSITION_PILLS = [
   { value: "", label: "Все" },
@@ -55,24 +55,16 @@ const POSITION_PILLS = [
 
 const SORT_OPTIONS = [
   { value: "skill", label: "По уровню" },
-  { value: "recent", label: "Недавние" },
+  { value: "name_asc", label: "По имени (А-Я)" },
+  { value: "recent", label: "Недавно зарегистрированные" },
 ];
 
 const EMPTY_FILTERS: PlayerFilters = {
   city: "",
   districtId: "",
   lookingForTeam: false,
-  position: "",
 };
 
-function pluralPlayers(n: number): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return "игроков";
-  if (m === 1) return "игрок";
-  if (m >= 2 && m <= 4) return "игрока";
-  return "игроков";
-}
 
 export default function SearchPlayersPage() {
   const auth = useAuth();
@@ -96,7 +88,7 @@ export default function SearchPlayersPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const effectivePosition = positionPill || filters.position;
+  const effectivePosition = positionPill;
 
   const fetcher = useCallback(
     (offset: number) => {
@@ -198,41 +190,22 @@ export default function SearchPlayersPage() {
         onRemove: () => setFilters((f) => ({ ...f, lookingForTeam: false })),
       });
     }
-    if (filters.position && !positionPill) {
-      chips.push({
-        id: "position",
-        label: filters.position,
-        onRemove: () => setFilters((f) => ({ ...f, position: "" })),
-      });
-    }
     return chips;
-  }, [filters, positionPill]);
+  }, [filters]);
 
   const sheetActiveCount =
     (filters.city ? 1 : 0) +
     (filters.districtId ? 1 : 0) +
-    (filters.lookingForTeam ? 1 : 0) +
-    (filters.position && !positionPill ? 1 : 0);
+    (filters.lookingForTeam ? 1 : 0);
 
   const showSkeleton = players.length === 0 && loading;
   const showEmpty = !loading && players.length === 0;
-
-  const countLabel =
-    resultsTotal === null
-      ? "Загружаем…"
-      : `Найдено ${resultsTotal} ${pluralPlayers(resultsTotal)}`;
 
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader title="Игроки">
         <HeaderStatGroup>
           <HeaderStat value={stats?.total ?? "—"} label="Всего" />
-          {userId && (
-            <HeaderStat
-              value={stats?.inMyTeams ?? "—"}
-              label="В моих командах"
-            />
-          )}
           <HeaderStat
             value={stats?.lookingForTeam ?? "—"}
             label="Ищут команду"
@@ -252,7 +225,6 @@ export default function SearchPlayersPage() {
         />
 
         <ListMeta
-          countLabel={countLabel}
           sort={{
             value: sort,
             options: SORT_OPTIONS,

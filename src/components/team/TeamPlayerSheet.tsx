@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui";
+import { PositionChipList } from "@/components/PositionChip";
 import { SKILL_LEVELS, EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { formatMoney } from "@/lib/format";
 
@@ -244,22 +245,10 @@ export function TeamPlayerSheet({
                 )}
               </div>
 
-              {/* Position pills + city — with icons */}
+              {/* Position chips + city */}
               {(positions.length > 0 || member.user.city) && (
-                <div className="flex flex-wrap gap-1.5 mt-2">
-                  {positions.map((p) => (
-                    <span
-                      key={p}
-                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium"
-                      style={{
-                        background: "var(--green-50)",
-                        color: "var(--green-700)",
-                      }}
-                    >
-                      <PositionIcon />
-                      {p}
-                    </span>
-                  ))}
+                <div className="flex flex-wrap items-center gap-1.5 mt-2">
+                  <PositionChipList positions={positions} tone="light" />
                   {member.user.city && (
                     <span
                       className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium"
@@ -918,24 +907,6 @@ function PinIcon() {
     >
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-function PositionIcon() {
-  return (
-    <svg
-      width="11"
-      height="11"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2.2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="3" />
     </svg>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Avatar, MiniBar } from "@/components/ui";
+import { PositionChipList } from "@/components/PositionChip";
 import { reliabilityToBars } from "./reliabilityToBars";
 
 type Props = {
@@ -31,8 +32,7 @@ export function PlayerListRow({
   onClick,
   roleBadge,
 }: Props) {
-  const positionLabel = position && position.length > 0 ? position.join(", ") : null;
-  const subtitle = [positionLabel, district || city].filter(Boolean).join(" · ");
+  const subtitle = district || city || null;
   const bars = reliabilityToBars(reliability ?? null, played);
 
   const sharedClass =
@@ -53,14 +53,17 @@ export function PlayerListRow({
           {lookingForTeam && <SeekingBadge />}
           {roleBadge && <RoleBadge label={roleBadge} />}
         </div>
-        {subtitle && (
-          <p
-            className="text-[13px] truncate mt-0.5"
-            style={{ color: "var(--text-secondary)" }}
-          >
-            {subtitle}
-          </p>
-        )}
+        <div className="flex items-center gap-1.5 mt-0.5 min-w-0">
+          <PositionChipList positions={position} tone="light" />
+          {subtitle && (
+            <span
+              className="text-[13px] truncate"
+              style={{ color: "var(--text-secondary)" }}
+            >
+              {subtitle}
+            </span>
+          )}
+        </div>
       </div>
       <div
         className="shrink-0"

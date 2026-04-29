@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { FilterPills } from "@/components/ui/FilterPills";
@@ -381,25 +381,11 @@ function EventCreateSheet({
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass} style={labelStyle}>Дата</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                  className={inputClass}
-                  style={inputStyle}
-                />
+                <NativeDateField value={date} onChange={setDate} />
               </div>
               <div>
                 <label className={labelClass} style={labelStyle}>Время</label>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  required
-                  className={inputClass}
-                  style={inputStyle}
-                />
+                <NativeTimeField value={time} onChange={setTime} />
               </div>
             </div>
 
@@ -641,6 +627,132 @@ function CloseIcon() {
     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
       <line x1="18" y1="6" x2="6" y2="18" />
       <line x1="6" y1="6" x2="18" y2="18" />
+    </svg>
+  );
+}
+
+// ─── Date / Time fields (native picker, custom display) ──────────────────────
+//
+// Why: native `<input type="date|time">` looks broken on iOS — it leaks the
+// system placeholder ("yyyy-mm-dd"), centers/aligns text inconsistently and
+// can't be height-locked. We render a styled button that visually matches
+// the rest of the form and use the hidden input's `showPicker()` API to open
+// the real iOS/Android system picker on tap.
+
+const FIELD_CLASS =
+  "block w-full h-[46px] px-4 rounded-[12px] text-[14px] text-left flex items-center justify-between transition-colors";
+const FIELD_STYLE: React.CSSProperties = {
+  background: "var(--bg-secondary)",
+  color: "var(--text-primary)",
+  border: "1.5px solid var(--gray-200)",
+  minWidth: 0,
+};
+
+const RU_WEEKDAYS = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+const RU_MONTHS = [
+  "янв", "фев", "мар", "апр", "мая", "июн",
+  "июл", "авг", "сен", "окт", "ноя", "дек",
+];
+
+function formatDateLabel(iso: string) {
+  if (!iso) return "";
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return "";
+  const dt = new Date(y, m - 1, d);
+  return `${RU_WEEKDAYS[dt.getDay()]}, ${dt.getDate()} ${RU_MONTHS[dt.getMonth()]}`;
+}
+
+function NativeDateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const open = () => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") el.showPicker();
+    else el.click();
+  };
+  const display = value ? formatDateLabel(value) : "Выбери дату";
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={open}
+        className={FIELD_CLASS}
+        style={FIELD_STYLE}
+      >
+        <span style={{ color: value ? "var(--text-primary)" : "var(--text-tertiary)" }}>
+          {display}
+        </span>
+        <CalendarIcon />
+      </button>
+      <input
+        ref={ref}
+        type="date"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+        aria-hidden
+        tabIndex={-1}
+        className="absolute inset-0 opacity-0 pointer-events-none"
+      />
+    </div>
+  );
+}
+
+function NativeTimeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const open = () => {
+    const el = ref.current;
+    if (!el) return;
+    if (typeof el.showPicker === "function") el.showPicker();
+    else el.click();
+  };
+  const display = value || "Выбери время";
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        onClick={open}
+        className={FIELD_CLASS}
+        style={FIELD_STYLE}
+      >
+        <span
+          className="tabular-nums"
+          style={{ color: value ? "var(--text-primary)" : "var(--text-tertiary)" }}
+        >
+          {display}
+        </span>
+        <ClockIcon />
+      </button>
+      <input
+        ref={ref}
+        type="time"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        required
+        aria-hidden
+        tabIndex={-1}
+        className="absolute inset-0 opacity-0 pointer-events-none"
+      />
+    </div>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)" }}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)" }}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
     </svg>
   );
 }

@@ -47,6 +47,8 @@ type Stats = { total: number; today: number; week: number };
 
 type MyTeam = { id: string };
 
+type EventSort = "date_asc" | "date_desc" | "price_asc";
+
 const TYPE_PILLS = [
   { value: "", label: "Все" },
   { value: "game", label: "Игра" },
@@ -55,20 +57,17 @@ const TYPE_PILLS = [
   { value: "other", label: "Другое" },
 ];
 
+const SORT_OPTIONS = [
+  { value: "date_asc", label: "Сначала ближайшие" },
+  { value: "date_desc", label: "Сначала далёкие" },
+  { value: "price_asc", label: "По цене (дешевле)" },
+];
+
 const EMPTY_FILTERS: EventFilters = {
   city: "",
   districtId: "",
   type: "",
 };
-
-function pluralEvents(n: number): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return "событий";
-  if (m === 1) return "событие";
-  if (m >= 2 && m <= 4) return "события";
-  return "событий";
-}
 
 export default function SearchEventsPage() {
   const auth = useAuth();
@@ -79,6 +78,7 @@ export default function SearchEventsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [typePill, setTypePill] = useState("");
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
+  const [sort, setSort] = useState<EventSort>("date_asc");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [myTeamIds, setMyTeamIds] = useState<Set<string>>(new Set());
@@ -138,6 +138,7 @@ export default function SearchEventsPage() {
       if (filters.city) params.set("city", filters.city);
       if (filters.districtId) params.set("district_id", filters.districtId);
       if (effectiveType) params.set("type", effectiveType);
+      params.set("sort", sort);
       params.set("offset", String(offset));
       return fetch(`/api/events/public?${params}`)
         .then((r) => r.json())
@@ -147,7 +148,7 @@ export default function SearchEventsPage() {
           total: d.total as number | null,
         }));
     },
-    [debouncedSearch, filters.city, filters.districtId, effectiveType],
+    [debouncedSearch, filters.city, filters.districtId, effectiveType, sort],
   );
 
   const { items: events, loading, loadMore, hasMore, reset } =
@@ -161,6 +162,7 @@ export default function SearchEventsPage() {
     if (filters.city) params.set("city", filters.city);
     if (filters.districtId) params.set("district_id", filters.districtId);
     if (effectiveType) params.set("type", effectiveType);
+    params.set("sort", sort);
     params.set("limit", "1");
     fetch(`/api/events/public?${params}`)
       .then((r) => r.json())
@@ -176,7 +178,7 @@ export default function SearchEventsPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filters.city, filters.districtId, effectiveType]);
+  }, [debouncedSearch, filters.city, filters.districtId, effectiveType, sort]);
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
@@ -206,17 +208,11 @@ export default function SearchEventsPage() {
   const showSkeleton = events.length === 0 && loading;
   const showEmpty = !loading && events.length === 0;
 
-  const countLabel =
-    resultsTotal === null
-      ? "Загружаем…"
-      : `Найдено ${resultsTotal} ${pluralEvents(resultsTotal)}`;
-
   return (
     <div className="flex flex-1 flex-col">
       <PageHeader title="События">
         <HeaderStatGroup>
           <HeaderStat value={stats?.total ?? "—"} label="Всего" />
-          <HeaderStat value={stats?.today ?? "—"} label="Сегодня" />
           <HeaderStat value={stats?.week ?? "—"} label="На неделе" />
         </HeaderStatGroup>
       </PageHeader>
@@ -232,7 +228,13 @@ export default function SearchEventsPage() {
           placeholder="Команда, площадка…"
         />
 
-        <ListMeta countLabel={countLabel} />
+        <ListMeta
+          sort={{
+            value: sort,
+            options: SORT_OPTIONS,
+            onChange: (v) => setSort(v as EventSort),
+          }}
+        />
 
         <FilterPills
           options={TYPE_PILLS}

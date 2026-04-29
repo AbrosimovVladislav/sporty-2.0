@@ -19,7 +19,7 @@ type AttendanceRow = {
   attended: boolean | null;
 };
 
-type SortMode = "skill" | "recent";
+type SortMode = "skill" | "recent" | "name_asc";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -28,7 +28,9 @@ export async function GET(req: NextRequest) {
   const lookingForTeam = searchParams.get("looking_for_team");
   const position = searchParams.get("position")?.trim();
   const district_id = searchParams.get("district_id")?.trim();
-  const sort: SortMode = searchParams.get("sort") === "recent" ? "recent" : "skill";
+  const sortRaw = searchParams.get("sort");
+  const sort: SortMode =
+    sortRaw === "recent" ? "recent" : sortRaw === "name_asc" ? "name_asc" : "skill";
   const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
   const offset = parseInt(searchParams.get("offset") ?? "0", 10);
 
@@ -52,6 +54,8 @@ export async function GET(req: NextRequest) {
     query = query
       .order("skill_rank", { ascending: false, nullsFirst: false })
       .order("created_at", { ascending: false });
+  } else if (sort === "name_asc") {
+    query = query.order("name", { ascending: true });
   } else {
     query = query.order("created_at", { ascending: false });
   }

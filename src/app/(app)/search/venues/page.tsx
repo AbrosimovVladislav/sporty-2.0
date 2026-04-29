@@ -6,10 +6,7 @@ import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
-  HeaderStatGroup,
-  HeaderStat,
   ListSearchBar,
-  ListMeta,
   ActiveFilterChips,
   EmptyState,
   type FilterChip,
@@ -31,18 +28,7 @@ type Venue = {
   district: { id: string; name: string } | null;
 };
 
-type Stats = { total: number };
-
 const EMPTY_FILTERS: VenueFilters = { city: "", districtId: "" };
-
-function pluralVenues(n: number): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return "площадок";
-  if (m === 1) return "площадка";
-  if (m >= 2 && m <= 4) return "площадки";
-  return "площадок";
-}
 
 export default function SearchVenuesPage() {
   const { activeCity } = useCity();
@@ -55,29 +41,11 @@ export default function SearchVenuesPage() {
     setFilters((f) => ({ ...f, city: activeCity }));
   }, [activeCity]);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
     return () => clearTimeout(t);
   }, [search]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams();
-    if (filters.city) params.set("city", filters.city);
-    fetch(`/api/venues/stats?${params}`)
-      .then((r) => r.json())
-      .then((d: Stats) => {
-        if (!cancelled) setStats(d);
-      })
-      .catch(() => {
-        if (!cancelled) setStats(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [filters.city]);
 
   const fetcher = useCallback(
     (offset: number) => {
@@ -149,18 +117,9 @@ export default function SearchVenuesPage() {
   const showSkeleton = venues.length === 0 && loading;
   const showEmpty = !loading && venues.length === 0;
 
-  const countLabel =
-    resultsTotal === null
-      ? "Загружаем…"
-      : `Найдено ${resultsTotal} ${pluralVenues(resultsTotal)}`;
-
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader title="Площадки">
-        <HeaderStatGroup>
-          <HeaderStat value={stats?.total ?? "—"} label="Всего" />
-        </HeaderStatGroup>
-      </PageHeader>
+      <PageHeader title="Площадки" />
 
       <SearchSubnav />
 
@@ -173,10 +132,8 @@ export default function SearchVenuesPage() {
           placeholder="Название, адрес…"
         />
 
-        <ListMeta countLabel={countLabel} />
-
         {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} className="mt-1.5" />
+          <ActiveFilterChips chips={activeChips} className="mt-3" />
         )}
       </div>
 
