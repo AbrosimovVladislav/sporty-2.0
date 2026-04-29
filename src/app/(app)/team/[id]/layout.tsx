@@ -119,8 +119,6 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
         titleSlot={titleSlot}
         subtitle={`${t.city} · ${sportLabel}`}
         leadingSlot={leadingSlot}
-        showBack
-        fallbackHref="/teams"
         onSettingsClick={isOrganizer ? () => router.push(`/team/${teamId}/settings`) : undefined}
         hasSettingsDot={isOrganizer && pendingRequestsCount > 0}
         settingsAriaLabel="Настройки команды"

@@ -32,6 +32,7 @@ export function PageHeader({
   children,
 }: Props) {
   const titleBlockMb = children ? "mb-[18px]" : "";
+  const hasTopRight = !!actions || !!onSettingsClick;
 
   return (
     <div
@@ -48,6 +49,28 @@ export function PageHeader({
             "repeating-linear-gradient(120deg, transparent, transparent 30px, rgba(255,255,255,0.03) 30px, rgba(255,255,255,0.03) 32px)",
         }}
       />
+      {hasTopRight && (
+        <div className="absolute top-5 right-4 flex items-center gap-2 z-10">
+          {actions}
+          {onSettingsClick && (
+            <button
+              type="button"
+              onClick={onSettingsClick}
+              aria-label={settingsAriaLabel}
+              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95"
+              style={{ background: "rgba(255,255,255,0.15)" }}
+            >
+              <GearIcon />
+              {hasSettingsDot && (
+                <span
+                  className="absolute top-2 right-2 w-2 h-2 rounded-full"
+                  style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
+                />
+              )}
+            </button>
+          )}
+        </div>
+      )}
       <div className="relative">
         <div className={`flex items-center gap-3${titleBlockMb ? ` ${titleBlockMb}` : ""}`}>
           {showBack && (
@@ -57,37 +80,15 @@ export function PageHeader({
             />
           )}
           {leadingSlot}
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              {titleSlot ?? (
-                <h1
-                  className="font-display font-bold uppercase text-white text-[30px] leading-none truncate"
-                  style={{ letterSpacing: "0.02em" }}
-                >
-                  {title}
-                </h1>
-              )}
-              <div className="flex items-center gap-2 shrink-0">
-                {actions}
-                {onSettingsClick && (
-                  <button
-                    type="button"
-                    onClick={onSettingsClick}
-                    aria-label={settingsAriaLabel}
-                    className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95"
-                    style={{ background: "rgba(255,255,255,0.15)" }}
-                  >
-                    <GearIcon />
-                    {hasSettingsDot && (
-                      <span
-                        className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                        style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
-                      />
-                    )}
-                  </button>
-                )}
-              </div>
-            </div>
+          <div className={`flex-1 min-w-0${hasTopRight ? " pr-12" : ""}`}>
+            {titleSlot ?? (
+              <h1
+                className="font-display font-bold uppercase text-white text-[30px] leading-none truncate"
+                style={{ letterSpacing: "0.02em" }}
+              >
+                {title}
+              </h1>
+            )}
             {subtitle && (
               <p
                 className="text-[13px] mt-1.5"
