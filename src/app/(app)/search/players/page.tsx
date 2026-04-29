@@ -29,7 +29,7 @@ type Player = {
   name: string;
   avatar_url: string | null;
   city: string | null;
-  position: string | null;
+  position: string[] | null;
   skill_level: string | null;
   looking_for_team: boolean;
   district: { id: string; name: string } | null;

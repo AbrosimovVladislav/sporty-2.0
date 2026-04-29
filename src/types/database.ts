@@ -34,7 +34,7 @@ export type Database = {
           created_at: string;
           bio: string | null;
           birth_date: string | null;
-          position: string | null;
+          position: string[] | null;
           skill_level: string | null;
           preferred_time: string | null;
           looking_for_team: boolean;
@@ -51,7 +51,7 @@ export type Database = {
           created_at?: string;
           bio?: string | null;
           birth_date?: string | null;
-          position?: string | null;
+          position?: string[] | null;
           skill_level?: string | null;
           preferred_time?: string | null;
           looking_for_team?: boolean;
@@ -65,7 +65,7 @@ export type Database = {
           onboarding_completed?: boolean;
           bio?: string | null;
           birth_date?: string | null;
-          position?: string | null;
+          position?: string[] | null;
           skill_level?: string | null;
           preferred_time?: string | null;
           looking_for_team?: boolean;

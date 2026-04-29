@@ -290,16 +290,11 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
 function AboutTab({ user }: { user: User }) {
   const [bioExpanded, setBioExpanded] = useState(false);
   const age = user.birth_date ? calcAge(user.birth_date) : null;
-  const positionChips = user.position
-    ? user.position
-        .split(",")
-        .map((s) => s.trim())
-        .filter(Boolean)
-    : [];
+  const positionChips = user.position ?? [];
   const isEmpty =
     !user.bio &&
     !user.skill_level &&
-    !user.position &&
+    positionChips.length === 0 &&
     !user.preferred_time &&
     age === null;
 

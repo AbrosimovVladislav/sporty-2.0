@@ -8,6 +8,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "userId and name required" }, { status: 400 });
   }
 
+  let positionArr: string[] | null = null;
+  if (Array.isArray(position)) {
+    const cleaned = position
+      .filter((p): p is string => typeof p === "string")
+      .map((p) => p.trim())
+      .filter((p) => p.length > 0);
+    positionArr = cleaned.length > 0 ? cleaned : null;
+  } else if (typeof position === "string" && position.trim()) {
+    positionArr = [position.trim()];
+  }
+
   const supabase = getServiceClient();
 
   // Derive city from district if provided
@@ -31,7 +42,7 @@ export async function POST(req: NextRequest) {
       birth_date: birth_date ?? null,
       skill_level: skill_level ?? null,
       district_id: district_id ?? null,
-      position: position ?? null,
+      position: positionArr,
     })
     .eq("id", userId)
     .select()

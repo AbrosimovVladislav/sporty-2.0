@@ -6,7 +6,7 @@ type PlayerRow = {
   name: string;
   avatar_url: string | null;
   city: string | null;
-  position: string | null;
+  position: string[] | null;
   skill_level: string | null;
   looking_for_team: boolean;
   district_id: string | null;
@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
   if (q) query = query.ilike("name", `%${q}%`);
   if (city) query = query.ilike("city", `%${city}%`);
   if (lookingForTeam === "true") query = query.eq("looking_for_team", true);
-  if (position) query = query.eq("position", position);
+  if (position) query = query.contains("position", [position]);
   if (district_id) query = query.eq("district_id", district_id);
 
   if (sort === "skill") {

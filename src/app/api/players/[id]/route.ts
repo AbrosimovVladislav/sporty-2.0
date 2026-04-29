@@ -6,7 +6,7 @@ type PlayerDetailRow = {
   name: string;
   city: string | null;
   sport: string | null;
-  position: string | null;
+  position: string[] | null;
   skill_level: string | null;
   preferred_time: string | null;
   bio: string | null;

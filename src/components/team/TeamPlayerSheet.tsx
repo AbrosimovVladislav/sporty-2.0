@@ -13,7 +13,7 @@ export type TeamPlayerSheetMember = {
     id: string;
     name: string;
     city: string | null;
-    position: string | null;
+    position: string[] | null;
     skill_level: string | null;
     avatar_url: string | null;
   };
@@ -81,10 +81,7 @@ export function TeamPlayerSheet({
   const isTargetOrganizer = member.role === "organizer";
   const canSeeFinances = isOrganizer || isSelf;
 
-  const positions = (member.user.position ?? "")
-    .split(",")
-    .map((p) => p.trim())
-    .filter(Boolean);
+  const positions = member.user.position ?? [];
   const skillNum = skillToNum(member.user.skill_level);
 
   // Pre-fetch reliability/finances summary so peek-info shows without expanding

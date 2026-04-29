@@ -49,12 +49,7 @@ function SettingsContent({
   const { activeCity, setActiveCity } = useCity();
   const [user, setUser] = useState(initialUser);
   const [bio, setBio] = useState(initialUser.bio ?? "");
-  const [positions, setPositions] = useState<string[]>(
-    (initialUser.position ?? "")
-      .split(",")
-      .map((s) => s.trim())
-      .filter(Boolean),
-  );
+  const [positions, setPositions] = useState<string[]>(initialUser.position ?? []);
   const [skillLevel, setSkillLevel] = useState(initialUser.skill_level ?? "");
   const [preferredTime, setPreferredTime] = useState(initialUser.preferred_time ?? "");
   const [birthDate, setBirthDate] = useState(initialUser.birth_date ?? "");
@@ -70,6 +65,7 @@ function SettingsContent({
         if (d.user) {
           setUser(d.user);
           setDistrictId(d.user.district_id ?? "");
+          setPositions(d.user.position ?? []);
         }
       })
       .catch(() => {});
@@ -89,7 +85,7 @@ function SettingsContent({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           bio: bio.trim() || null,
-          position: positions.length > 0 ? positions.join(", ") : null,
+          position: positions.length > 0 ? positions : null,
           skill_level: skillLevel || null,
           preferred_time: preferredTime.trim() || null,
           birth_date: birthDate || null,

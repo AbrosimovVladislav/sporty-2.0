@@ -20,7 +20,7 @@ type Player = {
   name: string;
   city: string | null;
   sport: string | null;
-  position: string | null;
+  position: string[] | null;
   skill_level: string | null;
   preferred_time: string | null;
   bio: string | null;
@@ -164,15 +164,17 @@ export default function PlayerProfilePage() {
         </div>
 
         {/* О себе */}
-        {(player.bio || player.position || player.skill_level || age !== null || player.preferred_time) && (
+        {(player.bio || (player.position && player.position.length > 0) || player.skill_level || age !== null || player.preferred_time) && (
           <Card>
             <SectionEyebrow tone="muted">О себе</SectionEyebrow>
             {player.bio && <p className="text-[15px] mb-3 leading-relaxed">{player.bio}</p>}
             <div className="flex flex-wrap gap-x-6 gap-y-2">
-              {player.position && (
+              {player.position && player.position.length > 0 && (
                 <div>
-                  <p className="text-[13px] text-foreground-secondary">Позиция</p>
-                  <p className="text-[15px] font-medium">{player.position}</p>
+                  <p className="text-[13px] text-foreground-secondary">
+                    {player.position.length > 1 ? "Позиции" : "Позиция"}
+                  </p>
+                  <p className="text-[15px] font-medium">{player.position.join(", ")}</p>
                 </div>
               )}
               {player.skill_level && (

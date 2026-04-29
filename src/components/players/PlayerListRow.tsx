@@ -8,7 +8,7 @@ type Props = {
   id: string;
   name: string;
   avatarUrl?: string | null;
-  position?: string | null;
+  position?: string[] | null;
   city?: string | null;
   district?: string | null;
   lookingForTeam?: boolean;
@@ -31,7 +31,8 @@ export function PlayerListRow({
   onClick,
   roleBadge,
 }: Props) {
-  const subtitle = [position, district || city].filter(Boolean).join(" · ");
+  const positionLabel = position && position.length > 0 ? position.join(", ") : null;
+  const subtitle = [positionLabel, district || city].filter(Boolean).join(" · ");
   const bars = reliabilityToBars(reliability ?? null, played);
 
   const sharedClass =

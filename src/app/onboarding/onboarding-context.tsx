@@ -7,7 +7,7 @@ type OnboardingState = {
   birthDate: string;
   skillLevel: string;
   districtId: string;
-  position: string;
+  positions: string[];
 };
 
 type Action =
@@ -15,7 +15,7 @@ type Action =
   | { type: "SET_BIRTH_DATE"; value: string }
   | { type: "SET_SKILL_LEVEL"; value: string }
   | { type: "SET_DISTRICT_ID"; value: string }
-  | { type: "SET_POSITION"; value: string };
+  | { type: "TOGGLE_POSITION"; value: string };
 
 function reducer(state: OnboardingState, action: Action): OnboardingState {
   switch (action.type) {
@@ -23,7 +23,13 @@ function reducer(state: OnboardingState, action: Action): OnboardingState {
     case "SET_BIRTH_DATE": return { ...state, birthDate: action.value };
     case "SET_SKILL_LEVEL": return { ...state, skillLevel: action.value };
     case "SET_DISTRICT_ID": return { ...state, districtId: action.value };
-    case "SET_POSITION": return { ...state, position: action.value };
+    case "TOGGLE_POSITION":
+      return {
+        ...state,
+        positions: state.positions.includes(action.value)
+          ? state.positions.filter((p) => p !== action.value)
+          : [...state.positions, action.value],
+      };
   }
 }
 
@@ -32,7 +38,7 @@ const initial: OnboardingState = {
   birthDate: "",
   skillLevel: "",
   districtId: "",
-  position: "",
+  positions: [],
 };
 
 type ContextValue = {

@@ -14,7 +14,20 @@ export async function PUT(
   const update: UserUpdate = {};
   if ("bio" in body) update.bio = body.bio ?? null;
   if ("birth_date" in body) update.birth_date = body.birth_date ?? null;
-  if ("position" in body) update.position = body.position ?? null;
+  if ("position" in body) {
+    const raw = body.position;
+    if (raw == null) {
+      update.position = null;
+    } else if (Array.isArray(raw)) {
+      const cleaned = raw
+        .filter((p): p is string => typeof p === "string")
+        .map((p) => p.trim())
+        .filter((p) => p.length > 0);
+      update.position = cleaned.length > 0 ? cleaned : null;
+    } else {
+      return NextResponse.json({ error: "position must be an array of strings" }, { status: 400 });
+    }
+  }
   if ("skill_level" in body) update.skill_level = body.skill_level ?? null;
   if ("preferred_time" in body) update.preferred_time = body.preferred_time ?? null;
   if ("looking_for_team" in body) update.looking_for_team = Boolean(body.looking_for_team);

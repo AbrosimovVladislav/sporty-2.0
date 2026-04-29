@@ -103,8 +103,12 @@ export default function EventsPage() {
     ? events.filter((e) => e.type === typeFilter)
     : events;
 
-  const planned = filtered.filter((e) => e.status === "planned");
-  const past = filtered.filter((e) => e.status !== "planned");
+  const planned = filtered
+    .filter((e) => e.status === "planned")
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  const past = filtered
+    .filter((e) => e.status !== "planned")
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <>

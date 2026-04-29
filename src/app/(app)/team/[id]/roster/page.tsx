@@ -25,7 +25,6 @@ const POSITION_PILLS = [
 
 const SORT_OPTIONS = [
   { value: "skill", label: "По уровню" },
-  { value: "recent", label: "Недавние" },
   { value: "organizers", label: "Сначала организаторы" },
 ];
 
@@ -41,9 +40,6 @@ function sortMembers(members: TeamMember[], sort: string): TeamMember[] {
   const arr = [...members];
   if (sort === "skill") {
     return arr.sort((a, b) => skillToNum(b.user.skill_level) - skillToNum(a.user.skill_level));
-  }
-  if (sort === "recent") {
-    return arr.sort((a, b) => new Date(b.joined_at).getTime() - new Date(a.joined_at).getTime());
   }
   if (sort === "organizers") {
     return arr.sort((a, b) => {
@@ -74,7 +70,7 @@ export default function RosterPage() {
   const filtered = useMemo(() => {
     if (team.status !== "ready") return [];
     let result = team.members;
-    if (posFilter) result = result.filter((m) => m.user.position === posFilter);
+    if (posFilter) result = result.filter((m) => m.user.position?.includes(posFilter) ?? false);
     if (searchQ.trim()) {
       const q = searchQ.trim().toLowerCase();
       result = result.filter((m) => m.user.name.toLowerCase().includes(q));

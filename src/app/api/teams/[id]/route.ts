@@ -11,7 +11,7 @@ type MembershipWithUser = {
     name: string;
     city: string | null;
     sport: string | null;
-    position: string | null;
+    position: string[] | null;
     skill_level: string | null;
     avatar_url: string | null;
   } | null;

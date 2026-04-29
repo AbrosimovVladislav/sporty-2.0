@@ -15,7 +15,7 @@
 | onboarding_completed | boolean | Прошёл ли онбординг |
 | bio | text? | Текст о себе |
 | birth_date | date? | Дата рождения |
-| position | text? | Игровая позиция |
+| position | text[]? | Игровые позиции (массив; игрок может иметь несколько амплуа) |
 | skill_level | text? | Уровень игры |
 | preferred_time | text? | Предпочтительное время тренировок |
 | looking_for_team | boolean | Ищет команду (default false) |
