@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import BackButton from "@/components/BackButton";
 
 type Props = {
   title?: string;
@@ -8,6 +9,8 @@ type Props = {
   subtitle?: string;
   /** Optional 56px slot rendered before the title (e.g. team logo) */
   leadingSlot?: ReactNode;
+  showBack?: boolean;
+  fallbackHref?: string;
   onBellClick?: () => void;
   hasBellDot?: boolean;
   bellAriaLabel?: string;
@@ -20,6 +23,8 @@ export function PageHeader({
   titleSlot,
   subtitle,
   leadingSlot,
+  showBack,
+  fallbackHref = "/",
   onBellClick,
   hasBellDot,
   bellAriaLabel = "Уведомления",
@@ -44,7 +49,13 @@ export function PageHeader({
         }}
       />
       <div className="relative">
-        <div className={`flex items-start gap-3${titleBlockMb ? ` ${titleBlockMb}` : ""}`}>
+        <div className={`flex items-center gap-3${titleBlockMb ? ` ${titleBlockMb}` : ""}`}>
+          {showBack && (
+            <BackButton
+              fallbackHref={fallbackHref}
+              className="shrink-0 w-9 h-9 rounded-full flex items-center justify-center text-white bg-black/25 backdrop-blur-sm"
+            />
+          )}
           {leadingSlot}
           <div className="flex-1 min-w-0">
             <div className="flex items-center justify-between gap-2">

@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
 import { EVENT_TYPE_LABEL, SPORT_LABEL } from "@/lib/catalogs";
 import { Avatar, IconButton, Pill, Button } from "@/components/ui";
+import { CitySheet } from "@/components/CitySheet";
+import { useCity } from "@/lib/city-context";
 import type { User } from "@/types/database";
 
 type Tab = "about" | "results" | "reliability" | "achievements";
@@ -74,7 +76,9 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null | undefined>(undefined);
+  const [citySheetOpen, setCitySheetOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const { activeCity } = useCity();
 
   useEffect(() => {
     fetch(`/api/users/${initialUser.id}`)
@@ -203,6 +207,24 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
           </p>
         )}
 
+        <div className="flex justify-center mt-2">
+          <button
+            type="button"
+            onClick={() => setCitySheetOpen(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full transition-colors active:opacity-70"
+            style={{ background: "var(--bg-secondary)", color: "var(--text-secondary)" }}
+          >
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+              <circle cx="12" cy="10" r="3" />
+            </svg>
+            <span className="text-[12px] font-medium">Регион: {activeCity}</span>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="6 9 12 15 18 9" />
+            </svg>
+          </button>
+        </div>
+
         {user.looking_for_team && (
           <div className="flex justify-center mt-3">
             <span
@@ -272,6 +294,8 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
 
         <MyJoinRequests userId={user.id} />
       </div>
+
+      {citySheetOpen && <CitySheet onClose={() => setCitySheetOpen(false)} />}
     </div>
   );
 }

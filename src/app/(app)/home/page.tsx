@@ -12,6 +12,8 @@ import { RequestsSheet } from "@/components/home/RequestsSheet";
 import { QuickActions } from "@/components/home/QuickActions";
 import { TeamPulseSection } from "@/components/home/TeamPulseSection";
 import { ScheduleSection } from "@/components/home/ScheduleSection";
+import { CitySheet } from "@/components/CitySheet";
+import { useCity } from "@/lib/city-context";
 
 type NextEvent = {
   id: string;
@@ -73,7 +75,9 @@ export default function HomePage() {
   const [pulseTeams, setPulseTeams] = useState<PulseTeam[]>([]);
   const [schedule, setSchedule] = useState<ScheduleEvent[]>([]);
   const [requestsOpen, setRequestsOpen] = useState(false);
+  const [citySheetOpen, setCitySheetOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const { activeCity } = useCity();
 
   // Telegram deep-link
   useEffect(() => {
@@ -149,8 +153,10 @@ export default function HomePage() {
     <div className="flex flex-1 flex-col">
       <HomeHero
         name={name}
+        city={activeCity}
         hasRequests={isOrganizer && requests.total > 0}
         onBellClick={() => setRequestsOpen(true)}
+        onCityClick={() => setCitySheetOpen(true)}
       >
         {loading ? (
           <div
@@ -198,6 +204,8 @@ export default function HomePage() {
         byTeam={requests.by_team}
         onClose={() => setRequestsOpen(false)}
       />
+
+      {citySheetOpen && <CitySheet onClose={() => setCitySheetOpen(false)} />}
     </div>
   );
 }

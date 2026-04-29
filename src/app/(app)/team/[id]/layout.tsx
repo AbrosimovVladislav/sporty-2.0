@@ -186,6 +186,8 @@ function TeamPageHeader({
         titleSlot={titleSlot}
         subtitle={`${t.city} · ${sportLabel}`}
         leadingSlot={leadingSlot}
+        showBack
+        fallbackHref="/teams"
         onBellClick={isOrganizer ? () => setRequestsOpen(true) : undefined}
         hasBellDot={isOrganizer && pendingRequestsCount > 0}
         bellAriaLabel="Заявки на вступление"

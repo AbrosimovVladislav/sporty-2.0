@@ -4,12 +4,14 @@ import { ReactNode } from "react";
 
 type Props = {
   name: string;
+  city: string;
   hasRequests: boolean;
   onBellClick: () => void;
+  onCityClick: () => void;
   children?: ReactNode;
 };
 
-export function HomeHero({ name, hasRequests, onBellClick, children }: Props) {
+export function HomeHero({ name, city, hasRequests, onBellClick, onCityClick, children }: Props) {
   return (
     <div
       className="relative overflow-hidden px-4 pt-4 pb-6"
@@ -28,7 +30,17 @@ export function HomeHero({ name, hasRequests, onBellClick, children }: Props) {
       <div className="relative">
         <div className="flex items-center justify-between mb-[18px]">
           <div>
-            <div className="text-[13px] text-white/70">Привет,</div>
+            <button
+              type="button"
+              onClick={onCityClick}
+              className="flex items-center gap-1 mb-0.5 active:opacity-70 transition-opacity"
+            >
+              <MapPinIcon />
+              <span className="text-[12px] font-medium" style={{ color: "rgba(255,255,255,0.75)" }}>
+                {city}
+              </span>
+              <ChevronDownSmallIcon />
+            </button>
             <div className="text-[18px] font-bold text-white">{name || "…"}</div>
           </div>
           <button
@@ -50,6 +62,23 @@ export function HomeHero({ name, hasRequests, onBellClick, children }: Props) {
         {children}
       </div>
     </div>
+  );
+}
+
+function MapPinIcon() {
+  return (
+    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.75)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function ChevronDownSmallIcon() {
+  return (
+    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.6)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
   );
 }
 
