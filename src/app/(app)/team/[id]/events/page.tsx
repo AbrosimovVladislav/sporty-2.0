@@ -11,6 +11,12 @@ import DistrictSelect from "@/components/DistrictSelect";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
+type InsightsSummary = {
+  eventsCount: number;
+  attendanceAvg: number;
+  collected: number | null;
+};
+
 type EventItem = {
   id: string;
   type: string;
@@ -53,6 +59,7 @@ export default function EventsPage() {
   const auth = useAuth();
 
   const [events, setEvents] = useState<EventItem[] | null>(null);
+  const [insights, setInsights] = useState<InsightsSummary | null>(null);
   const [typeFilter, setTypeFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -73,6 +80,21 @@ export default function EventsPage() {
   useEffect(() => {
     loadEvents();
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [teamId, userId]);
+
+  useEffect(() => {
+    if (!teamId) return;
+    const params = userId ? `?userId=${userId}` : "";
+    fetch(`/api/teams/${teamId}/insights${params}`)
+      .then((r) => r.json())
+      .then((d) =>
+        setInsights({
+          eventsCount: d.activity?.eventsCount ?? 0,
+          attendanceAvg: d.activity?.attendanceAvg ?? 0,
+          collected: d.finance30d?.collected ?? null,
+        }),
+      )
+      .catch(() => setInsights({ eventsCount: 0, attendanceAvg: 0, collected: null }));
   }, [teamId, userId]);
 
   if (team.status === "loading" || events === null) {
@@ -107,6 +129,15 @@ export default function EventsPage() {
 
   return (
     <>
+      {insights && (
+        <div className="flex gap-3 mb-3 px-1">
+          <StatPill label="Сыграно за 30 дней" value={String(insights.eventsCount)} />
+          <StatPill label="Средняя явка" value={`${insights.attendanceAvg}%`} />
+          {isOrganizer && insights.collected !== null && (
+            <StatPill label="Доход за 30 дней" value={`${insights.collected.toLocaleString("ru")} ₸`} />
+          )}
+        </div>
+      )}
       <div className="mb-4">
         <FilterPills options={TYPE_PILLS} value={typeFilter} onChange={setTypeFilter} />
       </div>
@@ -521,6 +552,30 @@ function EventCreateSheet({
           </button>
         </form>
       </div>
+    </div>
+  );
+}
+
+// ─── StatPill ─────────────────────────────────────────────────────────────────
+
+function StatPill({ label, value }: { label: string; value: string }) {
+  return (
+    <div
+      className="flex-1 flex flex-col items-center py-2.5 rounded-[12px]"
+      style={{ background: "var(--bg-secondary)" }}
+    >
+      <span
+        className="text-[18px] font-bold leading-none"
+        style={{ color: "var(--text-primary)" }}
+      >
+        {value}
+      </span>
+      <span
+        className="text-[10px] uppercase mt-1 text-center leading-tight px-1"
+        style={{ color: "var(--text-tertiary)", letterSpacing: "0.04em" }}
+      >
+        {label}
+      </span>
     </div>
   );
 }

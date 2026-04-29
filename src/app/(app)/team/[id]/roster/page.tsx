@@ -143,6 +143,7 @@ export default function RosterPage() {
               <PlayerListRow
                 id={m.user.id}
                 name={m.user.name}
+                avatarUrl={m.user.avatar_url}
                 position={m.user.position}
                 city={m.user.city}
                 roleBadge={m.role === "organizer" ? "Организатор" : undefined}
@@ -290,7 +291,7 @@ function PlayerSheet({
 
         <div className="px-4">
           <div className="flex items-center gap-3 mb-4">
-            <Avatar name={member.user.name} size="lg" />
+            <Avatar src={member.user.avatar_url} name={member.user.name} size="lg" />
             <div className="flex-1 min-w-0">
               <p className="text-[18px] font-bold truncate" style={{ color: "var(--text-primary)" }}>
                 {member.user.name}
