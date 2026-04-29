@@ -377,29 +377,16 @@ function EventCreateSheet({
               emptyLabel={null}
             />
 
-            {/* Date & time */}
+            {/* Date & time — custom pickers (native ones leak iOS placeholder text and open
+                inconsistently inside Telegram WebView) */}
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass} style={labelStyle}>Дата</label>
-                <input
-                  type="date"
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  required
-                  className={inputClass}
-                  style={inputStyle}
-                />
+                <DateField value={date} onChange={setDate} />
               </div>
               <div>
                 <label className={labelClass} style={labelStyle}>Время</label>
-                <input
-                  type="time"
-                  value={time}
-                  onChange={(e) => setTime(e.target.value)}
-                  required
-                  className={inputClass}
-                  style={inputStyle}
-                />
+                <TimeField value={time} onChange={setTime} />
               </div>
             </div>
 
@@ -625,7 +612,303 @@ function EventCreateSheet({
   );
 }
 
+// ─── DateField / TimeField (custom pickers via bottom-sheet) ──────────────────
+
+const PICKER_INPUT_CLASS =
+  "block w-full h-[46px] px-4 rounded-[12px] text-[14px] text-left flex items-center justify-between transition-colors";
+const PICKER_INPUT_STYLE: React.CSSProperties = {
+  background: "var(--bg-secondary)",
+  border: "1.5px solid var(--gray-200)",
+};
+
+const RU_WEEKDAYS_SHORT = ["вс", "пн", "вт", "ср", "чт", "пт", "сб"];
+const RU_MONTHS_SHORT = [
+  "янв", "фев", "мар", "апр", "мая", "июн",
+  "июл", "авг", "сен", "окт", "ноя", "дек",
+];
+const RU_MONTHS_FULL = [
+  "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+  "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь",
+];
+
+function pad2(n: number) {
+  return n < 10 ? `0${n}` : String(n);
+}
+
+function toLocalIsoDate(d: Date) {
+  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+}
+
+function parseIsoDate(iso: string): Date | null {
+  if (!iso) return null;
+  const [y, m, d] = iso.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  return new Date(y, m - 1, d);
+}
+
+function formatDateDisplay(iso: string) {
+  const d = parseIsoDate(iso);
+  if (!d) return "";
+  return `${RU_WEEKDAYS_SHORT[d.getDay()]}, ${d.getDate()} ${RU_MONTHS_SHORT[d.getMonth()]}`;
+}
+
+function DateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const display = value ? formatDateDisplay(value) : "Выбери дату";
+  const isPlaceholder = !value;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={PICKER_INPUT_CLASS}
+        style={PICKER_INPUT_STYLE}
+      >
+        <span style={{ color: isPlaceholder ? "var(--text-tertiary)" : "var(--text-primary)" }}>
+          {display}
+        </span>
+        <CalendarIcon />
+      </button>
+      {open && (
+        <DatePickerSheet
+          value={value}
+          onSelect={(v) => {
+            onChange(v);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function TimeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const display = value || "Выбери время";
+  const isPlaceholder = !value;
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className={PICKER_INPUT_CLASS}
+        style={PICKER_INPUT_STYLE}
+      >
+        <span style={{ color: isPlaceholder ? "var(--text-tertiary)" : "var(--text-primary)" }}>
+          {display}
+        </span>
+        <ClockIcon />
+      </button>
+      {open && (
+        <TimePickerSheet
+          value={value}
+          onSelect={(v) => {
+            onChange(v);
+            setOpen(false);
+          }}
+          onClose={() => setOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+
+function PickerSheet({
+  title,
+  onClose,
+  children,
+}: {
+  title: string;
+  onClose: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className="fixed inset-0 flex flex-col justify-end"
+      style={{ zIndex: 60 }}
+      role="dialog"
+      aria-modal="true"
+    >
+      <div
+        className="absolute inset-0"
+        style={{ background: "rgba(0,0,0,0.45)" }}
+        onClick={onClose}
+      />
+      <div
+        className="relative w-full bg-white flex flex-col"
+        style={{
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
+          boxShadow: "0 -8px 24px rgba(0,0,0,0.12)",
+          maxHeight: "75dvh",
+        }}
+      >
+        <div className="flex justify-center pt-2 pb-1 shrink-0">
+          <span className="block w-9 h-1 rounded-full" style={{ background: "var(--gray-300)" }} />
+        </div>
+        <div className="flex items-center justify-between px-4 pt-1 pb-3 shrink-0">
+          <h3 className="text-[17px] font-bold" style={{ color: "var(--text-primary)" }}>
+            {title}
+          </h3>
+          <button
+            type="button"
+            onClick={onClose}
+            className="w-7 h-7 rounded-full flex items-center justify-center"
+            style={{ background: "var(--gray-100)" }}
+            aria-label="Закрыть"
+          >
+            <CloseIcon />
+          </button>
+        </div>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function DatePickerSheet({
+  value,
+  onSelect,
+  onClose,
+}: {
+  value: string;
+  onSelect: (iso: string) => void;
+  onClose: () => void;
+}) {
+  // 90 days starting today, grouped by month
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const days: Date[] = [];
+  for (let i = 0; i < 90; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    days.push(d);
+  }
+  const groups = new Map<string, Date[]>();
+  for (const d of days) {
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const list = groups.get(key) ?? [];
+    list.push(d);
+    groups.set(key, list);
+  }
+
+  return (
+    <PickerSheet title="Выбери дату" onClose={onClose}>
+      <div className="overflow-y-auto px-4 pb-5 flex flex-col gap-4">
+        {Array.from(groups.entries()).map(([key, monthDays]) => {
+          const sample = monthDays[0];
+          const monthLabel = `${RU_MONTHS_FULL[sample.getMonth()]} ${sample.getFullYear()}`;
+          return (
+            <div key={key} className="flex flex-col gap-2">
+              <p
+                className="text-[12px] font-semibold uppercase"
+                style={{ letterSpacing: "0.06em", color: "var(--text-tertiary)" }}
+              >
+                {monthLabel}
+              </p>
+              <div className="grid grid-cols-3 gap-1.5">
+                {monthDays.map((d) => {
+                  const iso = toLocalIsoDate(d);
+                  const active = iso === value;
+                  const isToday = iso === toLocalIsoDate(today);
+                  return (
+                    <button
+                      key={iso}
+                      type="button"
+                      onClick={() => onSelect(iso)}
+                      className="px-2 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors"
+                      style={{
+                        background: active ? "var(--gray-900)" : "var(--bg-card)",
+                        color: active ? "white" : "var(--text-primary)",
+                        border: active
+                          ? "1.5px solid var(--gray-900)"
+                          : "1.5px solid var(--gray-200)",
+                      }}
+                    >
+                      {RU_WEEKDAYS_SHORT[d.getDay()]}, {d.getDate()} {RU_MONTHS_SHORT[d.getMonth()]}
+                      {isToday && !active && (
+                        <span style={{ color: "var(--green-600)" }}> ·</span>
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </PickerSheet>
+  );
+}
+
+function TimePickerSheet({
+  value,
+  onSelect,
+  onClose,
+}: {
+  value: string;
+  onSelect: (hhmm: string) => void;
+  onClose: () => void;
+}) {
+  // 06:00 → 23:30 with 30-min step
+  const slots: string[] = [];
+  for (let h = 6; h < 24; h++) {
+    slots.push(`${pad2(h)}:00`);
+    slots.push(`${pad2(h)}:30`);
+  }
+
+  return (
+    <PickerSheet title="Выбери время" onClose={onClose}>
+      <div className="overflow-y-auto px-4 pb-5">
+        <div className="grid grid-cols-4 gap-1.5">
+          {slots.map((s) => {
+            const active = s === value;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => onSelect(s)}
+                className="px-2 py-2.5 rounded-[10px] text-[13px] font-semibold transition-colors tabular-nums"
+                style={{
+                  background: active ? "var(--gray-900)" : "var(--bg-card)",
+                  color: active ? "white" : "var(--text-primary)",
+                  border: active
+                    ? "1.5px solid var(--gray-900)"
+                    : "1.5px solid var(--gray-200)",
+                }}
+              >
+                {s}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    </PickerSheet>
+  );
+}
+
 // ─── icons ────────────────────────────────────────────────────────────────────
+
+function CalendarIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)" }}>
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+      <line x1="16" y1="2" x2="16" y2="6" />
+      <line x1="8" y1="2" x2="8" y2="6" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+    </svg>
+  );
+}
+
+function ClockIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)" }}>
+      <circle cx="12" cy="12" r="10" />
+      <polyline points="12 6 12 12 16 14" />
+    </svg>
+  );
+}
 
 function PlusIcon() {
   return (

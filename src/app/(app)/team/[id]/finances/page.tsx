@@ -3,11 +3,10 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { useTeam } from "../team-context";
-import { PlayerCard } from "@/components/PlayerCard";
+import { useTeam, type TeamMember } from "../team-context";
+import { TeamPlayerSheet } from "@/components/team/TeamPlayerSheet";
 import { SkeletonCard } from "@/components/Skeleton";
-import { CircularProgress } from "@/components/CircularProgress";
-import { Avatar, Button, BottomActionBar, SectionEyebrow } from "@/components/ui";
+import { Avatar, Button, SectionEyebrow } from "@/components/ui";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { formatMoney } from "@/lib/format";
 
@@ -38,7 +37,6 @@ type FinancesData = {
 type FlowMonth = { month: string; collected: number; venuePaid: number };
 
 type InsightsFinance = {
-  finance30d: { netDelta: number; prevNetDelta: number } | null;
   financeFlowByMonth: FlowMonth[] | null;
 };
 
@@ -56,13 +54,14 @@ export default function TeamFinancesPage() {
   const auth = useAuth();
   const [data, setData] = useState<FinancesData | null>(null);
   const [insights, setInsights] = useState<InsightsFinance | null>(null);
-  const [openPlayerId, setOpenPlayerId] = useState<string | null>(null);
+  const [openMember, setOpenMember] = useState<TeamMember | null>(null);
   const [showDeposit, setShowDeposit] = useState(false);
   const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const teamId = team.status === "ready" ? team.team.id : null;
+  const teamMembers = team.status === "ready" ? team.members : [];
 
   const load = () => {
     if (!teamId || !userId) return;
@@ -109,81 +108,56 @@ export default function TeamFinancesPage() {
   if (team.status !== "ready" || team.role !== "organizer") return null;
 
   const m = data.metrics;
-  const trendUp =
-    insights?.finance30d != null
-      ? insights.finance30d.netDelta >= insights.finance30d.prevNetDelta
-      : null;
-  const collectionPct =
-    m.expected > 0 ? Math.round((m.collected / m.expected) * 100) : 0;
+
+  const openPlayer = (uid: string) => {
+    const found = teamMembers.find((tm) => tm.user.id === uid);
+    if (found) setOpenMember(found);
+  };
 
   return (
     <>
-      <div className="flex flex-col gap-3 pb-24">
+      <div className="flex flex-col gap-3">
         {/* 1. Hero KPI */}
         <div className="bg-gray-900 rounded-[16px] p-5">
           <p className="text-[11px] uppercase tracking-[0.06em] font-semibold text-white/50 mb-1.5">
             Реальный баланс
           </p>
-          <div className="flex items-end gap-2">
-            <span
-              className={`font-display text-[40px] font-bold tabular-nums leading-none ${
-                m.realBalance >= 0 ? "text-green-400" : "text-red-400"
-              }`}
-            >
-              {m.realBalance >= 0 ? "+" : ""}
-              {formatMoney(m.realBalance)}
-            </span>
-            {trendUp !== null && (
-              <span
-                className={`mb-1 text-[18px] leading-none ${
-                  trendUp ? "text-green-400" : "text-red-400"
-                }`}
-              >
-                {trendUp ? "↑" : "↓"}
-              </span>
-            )}
-          </div>
-          {trendUp !== null && (
-            <p className="text-[12px] text-white/40 mt-1">
-              {trendUp ? "Лучше прошлого месяца" : "Хуже прошлого месяца"}
-            </p>
-          )}
+          <span
+            className={`font-display text-[40px] font-bold tabular-nums leading-none ${
+              m.realBalance >= 0 ? "text-green-400" : "text-red-400"
+            }`}
+          >
+            {m.realBalance >= 0 ? "+" : ""}
+            {formatMoney(m.realBalance)}
+          </span>
           <div className="border-t border-white/10 mt-4 pt-4 grid grid-cols-3 gap-2">
-            <HeroSegment label="Касса" value={formatMoney(m.cash)} />
+            <HeroSegment label="На счету" sublabel="касса" value={formatMoney(m.cash)} />
             <HeroSegment
-              label="Долги игр."
+              label="Должны нам"
+              sublabel="игроки"
               value={formatMoney(m.playersDebt)}
               danger={m.playersDebt > 0}
             />
             <HeroSegment
-              label="К оплате"
+              label="Должны мы"
+              sublabel="площадкам"
               value={formatMoney(m.venueOutstanding)}
               danger={m.venueOutstanding > 0}
             />
           </div>
         </div>
 
-        {/* 2. Breakdown метрик */}
-        <MetricsBreakdown
-          collected={m.collected}
-          expected={m.expected}
-          venueCost={m.venueCostTotal}
-          venuePaid={m.venuePaidTotal}
-          overpaid={m.playersOverpaid}
-        />
+        {/* 2. Сводка */}
+        <MetricsBreakdown collected={m.collected} venueCost={m.venueCostTotal} />
 
         {/* 3. Bar chart — поток за 6 месяцев */}
         {insights?.financeFlowByMonth && insights.financeFlowByMonth.length > 0 && (
           <FlowChart data={insights.financeFlowByMonth} />
         )}
 
-        {/* 4. Donut — эффективность сборов */}
-        {m.expected > 0 && (
-          <CollectionDonut
-            collected={m.collected}
-            expected={m.expected}
-            percent={collectionPct}
-          />
+        {/* 4. Маржа */}
+        {(m.collected > 0 || m.venuePaidTotal > 0) && (
+          <MarginBar collected={m.collected} venuePaid={m.venuePaidTotal} />
         )}
 
         {/* 5. Должники */}
@@ -199,10 +173,10 @@ export default function TeamFinancesPage() {
                   userId={d.userId}
                   name={d.name}
                   amount={d.amount}
-                  maxAmount={data.debtors[0].amount}
+                  maxAmount={Math.max(...data.debtors.map((x) => x.amount))}
                   color="danger"
                   sign="−"
-                  onOpen={setOpenPlayerId}
+                  onOpen={openPlayer}
                 />
               ))}
             </ul>
@@ -222,73 +196,34 @@ export default function TeamFinancesPage() {
                   userId={c.userId}
                   name={c.name}
                   amount={c.amount}
-                  maxAmount={data.creditors[0].amount}
+                  maxAmount={Math.max(...data.creditors.map((x) => x.amount))}
                   color="success"
                   sign="+"
-                  onOpen={setOpenPlayerId}
+                  onOpen={openPlayer}
                 />
               ))}
             </ul>
           </div>
         )}
 
-        {/* 7. Расходы по площадкам */}
-        {data.venueEvents.length > 0 && (
-          <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
-            <div className="px-4 pt-4 pb-1">
-              <SectionEyebrow>Площадки</SectionEyebrow>
-            </div>
-            <ul className="divide-y divide-gray-100">
-              {data.venueEvents.map((v) => {
-                const date = new Date(v.date).toLocaleDateString("ru-RU", {
-                  day: "numeric",
-                  month: "short",
-                });
-                const remain = v.cost - v.paid;
-                return (
-                  <li key={v.eventId}>
-                    <Link
-                      href={`/team/${teamId}/events/${v.eventId}`}
-                      className="flex items-center justify-between py-3 px-4 gap-3"
-                    >
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[14px] font-medium truncate">
-                          {EVENT_TYPE_LABEL[v.type] ?? v.type} · {date}
-                        </p>
-                        {v.venueName && (
-                          <p className="text-[12px] text-text-secondary mt-0.5 truncate">
-                            {v.venueName}
-                          </p>
-                        )}
-                      </div>
-                      <span
-                        className={`text-[14px] font-semibold tabular-nums shrink-0 ${
-                          remain > 0 ? "text-danger" : "text-text-secondary"
-                        }`}
-                      >
-                        {remain > 0 ? `−${formatMoney(remain)}` : "оплачено"}
-                      </span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
+        {/* 7. Площадки */}
+        {data.venueEvents.length > 0 && teamId && (
+          <VenuesAccordion teamId={teamId} events={data.venueEvents} />
         )}
+
+        {/* 8. Депозит */}
+        <DepositCard onClick={() => setShowDeposit(true)} />
       </div>
 
-      <BottomActionBar>
-        <Button variant="primary" className="w-full" onClick={() => setShowDeposit(true)}>
-          Внести депозит
-        </Button>
-      </BottomActionBar>
-
-      {teamId && userId && openPlayerId && (
-        <PlayerCard
+      {teamId && userId && openMember && (
+        <TeamPlayerSheet
+          member={openMember}
           teamId={teamId}
-          requesterId={userId}
-          targetUserId={openPlayerId}
-          onClose={() => setOpenPlayerId(null)}
+          currentUserId={userId}
+          isOrganizer={true}
+          initialSection="finances"
+          onClose={() => setOpenMember(null)}
+          onActionDone={() => { setOpenMember(null); load(); }}
         />
       )}
 
@@ -309,16 +244,20 @@ export default function TeamFinancesPage() {
 
 function HeroSegment({
   label,
+  sublabel,
   value,
   danger,
 }: {
   label: string;
+  sublabel: string;
   value: string;
   danger?: boolean;
 }) {
   return (
     <div className="flex flex-col gap-0.5 min-w-0">
-      <span className="text-[10px] text-white/40 uppercase tracking-[0.05em] truncate">{label}</span>
+      <span className="text-[10px] text-white/40 uppercase tracking-[0.05em] truncate">
+        {label} · {sublabel}
+      </span>
       <span className={`text-[13px] font-semibold tabular-nums truncate ${danger ? "text-red-400" : "text-white/80"}`}>
         {value}
       </span>
@@ -344,16 +283,10 @@ function MetricCell({ label, value, accent }: { label: string; value: string; ac
 
 function MetricsBreakdown({
   collected,
-  expected,
   venueCost,
-  venuePaid,
-  overpaid,
 }: {
   collected: number;
-  expected: number;
   venueCost: number;
-  venuePaid: number;
-  overpaid: number;
 }) {
   return (
     <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
@@ -361,13 +294,8 @@ function MetricsBreakdown({
         Сводка
       </p>
       <div className="grid grid-cols-2 gap-x-4 gap-y-3">
-        <MetricCell label="Собрано от игроков" value={formatMoney(collected)} accent={collected > 0} />
-        <MetricCell label="Ожидаемый сбор" value={formatMoney(expected)} />
-        <MetricCell label="Расходы площадкам" value={formatMoney(venueCost)} />
-        <MetricCell label="Оплачено площадкам" value={formatMoney(venuePaid)} accent={venuePaid > 0} />
-        {overpaid > 0 && (
-          <MetricCell label="Переплаты игроков" value={formatMoney(overpaid)} accent />
-        )}
+        <MetricCell label="Собрано за всё время" value={formatMoney(collected)} accent={collected > 0} />
+        <MetricCell label="Расходы на площадки" value={formatMoney(venueCost)} />
       </div>
     </div>
   );
@@ -377,50 +305,73 @@ function MetricsBreakdown({
 
 function FlowChart({ data }: { data: FlowMonth[] }) {
   const maxVal = Math.max(...data.flatMap((d) => [d.collected, d.venuePaid]), 1);
-  const CHART_H = 56;
+  const CHART_H = 64;
   const BAR_W = 10;
   const PAIR_GAP = 2;
   const COLS = data.length;
   const COL_W = 44;
   const TOTAL_W = COLS * COL_W;
+  const LABEL_PAD = 14;
+
+  const totalCollected = data.reduce((s, d) => s + d.collected, 0);
+  const totalVenue = data.reduce((s, d) => s + d.venuePaid, 0);
+  const net = totalCollected - totalVenue;
 
   return (
     <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
       <p className="text-[13px] font-semibold text-text-primary mb-3">Поток за 6 месяцев</p>
       <svg
-        viewBox={`0 0 ${TOTAL_W} ${CHART_H + 18}`}
+        viewBox={`0 0 ${TOTAL_W} ${CHART_H + LABEL_PAD + 14}`}
         className="w-full"
-        style={{ height: `${CHART_H + 18}px` }}
+        style={{ height: `${CHART_H + LABEL_PAD + 14}px` }}
       >
         {data.map((d, i) => {
           const cx = i * COL_W + COL_W / 2;
-          const ch = Math.max((d.collected / maxVal) * CHART_H, 2);
-          const vh = Math.max((d.venuePaid / maxVal) * CHART_H, 2);
+          const ch = d.collected > 0 ? Math.max((d.collected / maxVal) * CHART_H, 2) : 0;
+          const vh = d.venuePaid > 0 ? Math.max((d.venuePaid / maxVal) * CHART_H, 2) : 0;
+          const topVal = Math.max(d.collected, d.venuePaid);
+          const showLabel = topVal > 0;
           return (
             <g key={d.month}>
-              <rect
-                x={cx - BAR_W - PAIR_GAP / 2}
-                y={CHART_H - ch}
-                width={BAR_W}
-                height={ch}
-                rx={2}
-                fill="var(--color-primary)"
-                opacity={0.85}
-              />
-              <rect
-                x={cx + PAIR_GAP / 2}
-                y={CHART_H - vh}
-                width={BAR_W}
-                height={vh}
-                rx={2}
-                fill="var(--color-border)"
-              />
+              {ch > 0 && (
+                <rect
+                  x={cx - BAR_W - PAIR_GAP / 2}
+                  y={LABEL_PAD + CHART_H - ch}
+                  width={BAR_W}
+                  height={ch}
+                  rx={2}
+                  fill="var(--color-primary)"
+                  opacity={0.85}
+                />
+              )}
+              {vh > 0 && (
+                <rect
+                  x={cx + PAIR_GAP / 2}
+                  y={LABEL_PAD + CHART_H - vh}
+                  width={BAR_W}
+                  height={vh}
+                  rx={2}
+                  fill="var(--color-border)"
+                />
+              )}
+              {showLabel && (
+                <text
+                  x={cx}
+                  y={LABEL_PAD + CHART_H - Math.max(ch, vh) - 3}
+                  textAnchor="middle"
+                  fontSize={9}
+                  fontWeight={600}
+                  fill="var(--text-secondary)"
+                >
+                  {compactNum(topVal)}
+                </text>
+              )}
               <text
                 x={cx}
-                y={CHART_H + 13}
+                y={LABEL_PAD + CHART_H + 11}
                 textAnchor="middle"
                 fontSize={9}
-                fill="var(--color-text-secondary)"
+                fill="var(--text-secondary)"
               >
                 {monthShort(d.month)}
               </text>
@@ -428,48 +379,78 @@ function FlowChart({ data }: { data: FlowMonth[] }) {
           );
         })}
       </svg>
-      <div className="flex gap-4 mt-1">
-        <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
-          <span className="w-2 h-2 rounded-sm bg-primary inline-block" />
-          Сборы
-        </span>
-        <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
-          <span className="w-2 h-2 rounded-sm bg-border inline-block" />
-          Площадки
+      <div className="flex items-center justify-between mt-2">
+        <div className="flex gap-3">
+          <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
+            <span className="w-2 h-2 rounded-sm bg-primary inline-block" />
+            Сборы
+          </span>
+          <span className="flex items-center gap-1.5 text-[11px] text-text-secondary">
+            <span className="w-2 h-2 rounded-sm bg-border inline-block" />
+            Площадки
+          </span>
+        </div>
+        <span
+          className="text-[12px] font-semibold tabular-nums"
+          style={{ color: net >= 0 ? "var(--green-600)" : "var(--danger)" }}
+        >
+          Чистый: {net >= 0 ? "+" : ""}{formatMoney(net)}
         </span>
       </div>
     </div>
   );
 }
 
-/* ─── Collection donut ─── */
+function compactNum(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  if (n >= 1_000) return `${Math.round(n / 1_000)}k`;
+  return String(n);
+}
 
-function CollectionDonut({
-  collected,
-  expected,
-  percent,
-}: {
-  collected: number;
-  expected: number;
-  percent: number;
-}) {
+/* ─── Margin bar ─── */
+
+function MarginBar({ collected, venuePaid }: { collected: number; venuePaid: number }) {
+  const net = collected - venuePaid;
+  const total = Math.max(collected + venuePaid, 1);
+  const collectedPct = (collected / total) * 100;
+  const venuePct = (venuePaid / total) * 100;
+
   return (
-    <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm flex items-center gap-4">
-      <div className="relative shrink-0">
-        <CircularProgress value={percent} size={80} strokeWidth={7} />
-        <div className="absolute inset-0 flex items-center justify-center">
-          <span className="font-display text-[18px] font-bold text-text-primary tabular-nums">
-            {percent}%
-          </span>
-        </div>
+    <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
+      <div className="flex items-baseline justify-between mb-3">
+        <p className="text-[14px] font-semibold text-text-primary">Маржинальность</p>
+        <span
+          className="font-display text-[18px] font-bold tabular-nums"
+          style={{ color: net >= 0 ? "var(--green-600)" : "var(--danger)" }}
+        >
+          {net >= 0 ? "+" : ""}{formatMoney(net)}
+        </span>
       </div>
-      <div className="min-w-0">
-        <p className="text-[14px] font-semibold text-text-primary">Эффективность сборов</p>
-        <p className="text-[13px] text-text-secondary mt-1">
-          Собрано {formatMoney(collected)}
-          <br />
-          из {formatMoney(expected)}
-        </p>
+
+      <div className="h-3 rounded-full overflow-hidden flex" style={{ background: "var(--gray-100)" }}>
+        {collectedPct > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${collectedPct}%`, background: "var(--color-primary)" }}
+          />
+        )}
+        {venuePct > 0 && (
+          <div
+            className="h-full"
+            style={{ width: `${venuePct}%`, background: "var(--gray-400)" }}
+          />
+        )}
+      </div>
+
+      <div className="flex justify-between mt-2 text-[12px]">
+        <span className="text-text-secondary">
+          <span className="font-semibold text-text-primary tabular-nums">{formatMoney(collected)}</span>
+          <span className="ml-1">сборы</span>
+        </span>
+        <span className="text-text-secondary text-right">
+          <span className="ml-1">расходы</span>
+          <span className="font-semibold text-text-primary tabular-nums ml-1">{formatMoney(venuePaid)}</span>
+        </span>
       </div>
     </div>
   );
@@ -494,7 +475,8 @@ function DebtorRow({
   sign: string;
   onOpen: (id: string) => void;
 }) {
-  const pct = maxAmount > 0 ? Math.round((amount / maxAmount) * 100) : 0;
+  const rawPct = maxAmount > 0 ? (amount / maxAmount) * 100 : 0;
+  const pct = Math.max(rawPct, 8); // visual minimum so smaller bars don't look empty
   return (
     <li>
       <button
@@ -520,6 +502,122 @@ function DebtorRow({
         </span>
       </button>
     </li>
+  );
+}
+
+/* ─── Venues accordion ─── */
+
+function VenuesAccordion({
+  teamId,
+  events,
+}: {
+  teamId: string;
+  events: FinancesData["venueEvents"];
+}) {
+  const [open, setOpen] = useState(false);
+  const totalCost = events.reduce((s, e) => s + e.cost, 0);
+  const totalPaid = events.reduce((s, e) => s + e.paid, 0);
+  const totalDebt = Math.max(0, totalCost - totalPaid);
+
+  return (
+    <div className="bg-bg-primary rounded-[16px] overflow-hidden shadow-sm">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-4 py-4 text-left gap-3"
+      >
+        <div className="flex flex-col min-w-0 flex-1">
+          <span className="text-[14px] font-semibold leading-tight text-text-primary">
+            Площадки · {events.length} {pluralEvents(events.length)}
+          </span>
+          <span className="text-[11px] mt-1" style={{ color: "var(--text-tertiary)" }}>
+            Оплачено {formatMoney(totalPaid)} из {formatMoney(totalCost)}
+            {totalDebt > 0 && <> · долг <span style={{ color: "var(--danger)" }}>{formatMoney(totalDebt)}</span></>}
+          </span>
+        </div>
+        <span
+          className="shrink-0 transition-transform"
+          style={{
+            transform: open ? "rotate(180deg)" : "rotate(0)",
+            color: "var(--text-secondary)",
+          }}
+        >
+          <ChevronDownIcon />
+        </span>
+      </button>
+      {open && (
+        <ul className="divide-y divide-gray-100 border-t border-gray-100">
+          {events.map((v) => {
+            const date = new Date(v.date).toLocaleDateString("ru-RU", {
+              day: "numeric",
+              month: "short",
+            });
+            const remain = v.cost - v.paid;
+            return (
+              <li key={v.eventId}>
+                <Link
+                  href={`/team/${teamId}/events/${v.eventId}`}
+                  className="flex items-center justify-between py-3 px-4 gap-3"
+                >
+                  <div className="flex-1 min-w-0">
+                    <p className="text-[14px] font-medium truncate">
+                      {EVENT_TYPE_LABEL[v.type] ?? v.type} · {date}
+                    </p>
+                    {v.venueName && (
+                      <p className="text-[12px] text-text-secondary mt-0.5 truncate">
+                        {v.venueName}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`text-[14px] font-semibold tabular-nums shrink-0 ${
+                      remain > 0 ? "text-danger" : "text-text-secondary"
+                    }`}
+                  >
+                    {remain > 0 ? `−${formatMoney(remain)}` : "оплачено"}
+                  </span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function pluralEvents(n: number): string {
+  const m = n % 10;
+  const tens = n % 100;
+  if (tens >= 11 && tens <= 14) return "событий";
+  if (m === 1) return "событие";
+  if (m >= 2 && m <= 4) return "события";
+  return "событий";
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+/* ─── Deposit card (inline) ─── */
+
+function DepositCard({ onClick }: { onClick: () => void }) {
+  return (
+    <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm flex flex-col gap-3">
+      <div>
+        <p className="text-[14px] font-semibold text-text-primary">Депозит игрока</p>
+        <p className="text-[12px] mt-0.5" style={{ color: "var(--text-tertiary)" }}>
+          Пополни баланс игрока, чтобы списывать оплату событий автоматически
+        </p>
+      </div>
+      <Button variant="primary" className="w-full" onClick={onClick}>
+        Внести депозит
+      </Button>
+    </div>
   );
 }
 

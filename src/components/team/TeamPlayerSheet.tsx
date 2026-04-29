@@ -24,6 +24,7 @@ type Props = {
   teamId: string;
   currentUserId: string | null;
   isOrganizer: boolean;
+  initialSection?: "reliability" | "finances" | "stats";
   onClose: () => void;
   onActionDone: () => void;
 };
@@ -65,11 +66,12 @@ export function TeamPlayerSheet({
   teamId,
   currentUserId,
   isOrganizer,
+  initialSection,
   onClose,
   onActionDone,
 }: Props) {
   const router = useRouter();
-  const [openSection, setOpenSection] = useState<Section>(null);
+  const [openSection, setOpenSection] = useState<Section>(initialSection ?? null);
   const [busy, setBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [confirmLeave, setConfirmLeave] = useState(false);
