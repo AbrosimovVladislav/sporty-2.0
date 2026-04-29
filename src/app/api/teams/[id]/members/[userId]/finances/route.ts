@@ -88,6 +88,7 @@ export async function GET(
       label,
       note: tx.note,
       created_at: tx.created_at,
+      event_id: tx.event_id,
     };
   });
 

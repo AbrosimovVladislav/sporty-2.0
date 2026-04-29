@@ -54,6 +54,7 @@ type FinancesData = {
     label: string;
     note: string | null;
     created_at: string;
+    event_id: string | null;
   }[];
 };
 
@@ -86,26 +87,32 @@ export function TeamPlayerSheet({
     .filter(Boolean);
   const skillNum = skillToNum(member.user.skill_level);
 
+  // Pre-fetch reliability/finances summary so peek-info shows without expanding
   useEffect(() => {
-    if (openSection !== "reliability" || reliability !== undefined) return;
     if (!currentUserId) return;
     fetch(`/api/teams/${teamId}/members/${member.user.id}/reliability?userId=${currentUserId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setReliability(d))
       .catch(() => setReliability(null));
-  }, [openSection, reliability, currentUserId, teamId, member.user.id]);
+  }, [currentUserId, teamId, member.user.id]);
 
   useEffect(() => {
-    if (openSection !== "finances" || finances !== undefined) return;
-    if (!currentUserId || !canSeeFinances) return;
+    if (!currentUserId || !canSeeFinances) {
+      setFinances(null);
+      return;
+    }
     fetch(`/api/teams/${teamId}/members/${member.user.id}/finances?userId=${currentUserId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setFinances(d))
       .catch(() => setFinances(null));
-  }, [openSection, finances, currentUserId, teamId, member.user.id, canSeeFinances]);
+  }, [currentUserId, teamId, member.user.id, canSeeFinances]);
 
   function toggleSection(s: Exclude<Section, null>) {
     setOpenSection((cur) => (cur === s ? null : s));
+  }
+
+  function navigateToEvent(eventId: string) {
+    router.push(`/team/${teamId}/events/${eventId}`);
   }
 
   async function handlePromote() {
@@ -168,6 +175,10 @@ export function TeamPlayerSheet({
     }
   }
 
+  // Peek summaries for collapsed accordions
+  const reliabilityPeek = peekReliability(reliability);
+  const financesPeek = peekFinances(finances);
+
   return (
     <div
       className="fixed inset-0 z-50 flex flex-col justify-end"
@@ -205,7 +216,7 @@ export function TeamPlayerSheet({
         </div>
 
         <div className="px-4 flex flex-col gap-3">
-          {/* Header — always visible */}
+          {/* Header */}
           <div className="flex items-start gap-3">
             <Avatar
               src={member.user.avatar_url}
@@ -234,17 +245,41 @@ export function TeamPlayerSheet({
                 )}
               </div>
 
-              {(positions.length > 0 || member.user.skill_level || member.user.city) && (
+              {/* Position pills + city — with icons */}
+              {(positions.length > 0 || member.user.city) && (
                 <div className="flex flex-wrap gap-1.5 mt-2">
                   {positions.map((p) => (
-                    <Chip key={p}>{p}</Chip>
+                    <span
+                      key={p}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium"
+                      style={{
+                        background: "var(--green-50)",
+                        color: "var(--green-700)",
+                      }}
+                    >
+                      <PositionIcon />
+                      {p}
+                    </span>
                   ))}
-                  {member.user.skill_level && (
-                    <Chip>
-                      {member.user.skill_level} · {skillNum}/{SKILL_LEVELS.length}
-                    </Chip>
+                  {member.user.city && (
+                    <span
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium"
+                      style={{
+                        background: "var(--bg-secondary)",
+                        color: "var(--text-secondary)",
+                      }}
+                    >
+                      <PinIcon />
+                      {member.user.city}
+                    </span>
                   )}
-                  {member.user.city && <Chip>{member.user.city}</Chip>}
+                </div>
+              )}
+
+              {/* Skill — distinct colored badge */}
+              {member.user.skill_level && (
+                <div className="mt-2">
+                  <SkillBadge level={member.user.skill_level} num={skillNum} />
                 </div>
               )}
             </div>
@@ -258,11 +293,12 @@ export function TeamPlayerSheet({
             Открыть профиль
           </button>
 
-          {/* Accordion: Reliability */}
+          {/* Reliability accordion */}
           <Accordion
             label="Надёжность · в этой команде"
             open={openSection === "reliability"}
             onToggle={() => toggleSection("reliability")}
+            peek={reliabilityPeek}
           >
             {reliability === undefined ? (
               <SkeletonRow />
@@ -270,28 +306,32 @@ export function TeamPlayerSheet({
               reliability.totals.votedYes + reliability.totals.cancelled === 0 ? (
               <Empty text="Нет завершённых событий" />
             ) : (
-              <ReliabilityBody data={reliability} />
+              <ReliabilityBody
+                data={reliability}
+                onEventClick={navigateToEvent}
+              />
             )}
           </Accordion>
 
-          {/* Accordion: Finances (organizer or self only) */}
+          {/* Finances accordion (organizer or self only) */}
           {canSeeFinances && (
             <Accordion
               label="Финансы · в этой команде"
               open={openSection === "finances"}
               onToggle={() => toggleSection("finances")}
+              peek={financesPeek}
             >
               {finances === undefined ? (
                 <SkeletonRow />
               ) : finances === null ? (
                 <Empty text="Не удалось загрузить" />
               ) : (
-                <FinancesBody data={finances} />
+                <FinancesBody data={finances} onEventClick={navigateToEvent} />
               )}
             </Accordion>
           )}
 
-          {/* Accordion: Game stats placeholder */}
+          {/* Game stats placeholder */}
           <Accordion
             label="Игровая статистика"
             open={openSection === "stats"}
@@ -309,7 +349,6 @@ export function TeamPlayerSheet({
             </p>
           )}
 
-          {/* Actions */}
           {isOrganizer && !isSelf && (
             <div className="flex flex-col gap-2 pt-1">
               {!isTargetOrganizer && (
@@ -381,17 +420,77 @@ export function TeamPlayerSheet({
   );
 }
 
+/* ─── Peek summaries ───────────────────────────────────────── */
+
+type PeekContent = {
+  primary: string;
+  primaryColor?: string;
+  secondary?: string;
+};
+
+function peekReliability(d: ReliabilityData | null | undefined): PeekContent | null {
+  if (d === undefined) return null;
+  if (!d || d.totals.votedYes + d.totals.cancelled === 0) {
+    return { primary: "—", secondary: "Нет данных" };
+  }
+  const { reliability, noShow, cancelled } = d.totals;
+  const issues: string[] = [];
+  if (noShow > 0) issues.push(`${noShow} неприход${plural(noShow)}`);
+  if (cancelled > 0) issues.push(`${cancelled} отмен${pluralCancel(cancelled)}`);
+
+  return {
+    primary: reliability !== null ? `${reliability}%` : "—",
+    primaryColor:
+      reliability !== null && reliability >= 90
+        ? "var(--green-600)"
+        : reliability !== null && reliability >= 70
+          ? "var(--text-primary)"
+          : "var(--danger)",
+    secondary: issues.length > 0 ? issues.join(" · ") : "Без нарушений",
+  };
+}
+
+function peekFinances(d: FinancesData | null | undefined): PeekContent | null {
+  if (d === undefined) return null;
+  if (!d) return null;
+  const { expected, paid, balance } = d.totals;
+  const positiveBalance = balance >= 0;
+  const balanceStr =
+    balance === 0
+      ? "0 ₸"
+      : `${positiveBalance ? "+" : "−"}${formatMoney(Math.abs(balance))} ₸`;
+
+  return {
+    primary: balanceStr,
+    primaryColor: positiveBalance ? "var(--green-600)" : "var(--danger)",
+    secondary: `Сдал ${formatMoney(paid)} из ${formatMoney(expected)} ₸`,
+  };
+}
+
+function plural(n: number): string {
+  if (n % 10 === 1 && n % 100 !== 11) return "";
+  return "а";
+}
+
+function pluralCancel(n: number): string {
+  if (n % 10 === 1 && n % 100 !== 11) return "а";
+  if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return "ы";
+  return "";
+}
+
 /* ─── Accordion ────────────────────────────────────────────── */
 
 function Accordion({
   label,
   open,
   onToggle,
+  peek,
   children,
 }: {
   label: string;
   open: boolean;
   onToggle: () => void;
+  peek?: PeekContent | null;
   children: React.ReactNode;
 }) {
   return (
@@ -402,20 +501,40 @@ function Accordion({
       <button
         type="button"
         onClick={onToggle}
-        className="w-full flex items-center justify-between px-4 py-3 text-left"
+        className="w-full flex items-center justify-between px-4 py-3 text-left gap-3"
       >
-        <span
-          className="text-[14px] font-semibold"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {label}
-        </span>
-        <span
-          className="transition-transform shrink-0"
-          style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
-        >
-          <ChevronDownIcon />
-        </span>
+        <div className="flex flex-col min-w-0 flex-1">
+          <span
+            className="text-[14px] font-semibold leading-tight"
+            style={{ color: "var(--text-primary)" }}
+          >
+            {label}
+          </span>
+          {!open && peek?.secondary && (
+            <span
+              className="text-[11px] mt-0.5 truncate"
+              style={{ color: "var(--text-tertiary)" }}
+            >
+              {peek.secondary}
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-2 shrink-0">
+          {!open && peek?.primary && (
+            <span
+              className="text-[15px] font-bold tabular-nums"
+              style={{ color: peek.primaryColor ?? "var(--text-primary)" }}
+            >
+              {peek.primary}
+            </span>
+          )}
+          <span
+            className="transition-transform shrink-0"
+            style={{ transform: open ? "rotate(180deg)" : "rotate(0)" }}
+          >
+            <ChevronDownIcon />
+          </span>
+        </div>
       </button>
       {open && <div className="px-4 pb-4 pt-1">{children}</div>}
     </div>
@@ -424,7 +543,13 @@ function Accordion({
 
 /* ─── Reliability body ─────────────────────────────────────── */
 
-function ReliabilityBody({ data }: { data: ReliabilityData }) {
+function ReliabilityBody({
+  data,
+  onEventClick,
+}: {
+  data: ReliabilityData;
+  onEventClick: (eventId: string) => void;
+}) {
   const { reliability, votedYes, noShow, cancelled, played } = data.totals;
   const reliabilityLabel =
     reliability === null
@@ -494,29 +619,37 @@ function ReliabilityBody({ data }: { data: ReliabilityData }) {
             return (
               <li
                 key={e.event_id}
-                className="flex items-center justify-between px-3 py-2.5"
                 style={{
                   borderTop: i === 0 ? undefined : "1px solid var(--gray-100)",
                 }}
               >
-                <div className="flex items-center gap-2.5 min-w-0">
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ background: dotColor }}
-                  />
-                  <span
-                    className="text-[13px] truncate"
-                    style={{ color: "var(--text-primary)" }}
-                  >
-                    {label}
-                  </span>
-                </div>
-                <span
-                  className="text-[12px] shrink-0 ml-2 tabular-nums"
-                  style={{ color: "var(--text-tertiary)" }}
+                <button
+                  type="button"
+                  onClick={() => onEventClick(e.event_id)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-left active:bg-[var(--gray-50)]"
                 >
-                  {formatShortDate(e.date)}
-                </span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <span
+                      className="w-2 h-2 rounded-full shrink-0"
+                      style={{ background: dotColor }}
+                    />
+                    <span
+                      className="text-[13px] truncate"
+                      style={{ color: "var(--text-primary)" }}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0 ml-2">
+                    <span
+                      className="text-[12px] tabular-nums"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      {formatShortDate(e.date)}
+                    </span>
+                    <ChevronRightIcon />
+                  </div>
+                </button>
               </li>
             );
           })}
@@ -528,7 +661,13 @@ function ReliabilityBody({ data }: { data: ReliabilityData }) {
 
 /* ─── Finances body ────────────────────────────────────────── */
 
-function FinancesBody({ data }: { data: FinancesData }) {
+function FinancesBody({
+  data,
+  onEventClick,
+}: {
+  data: FinancesData;
+  onEventClick: (eventId: string) => void;
+}) {
   const { expected, paid, balance } = data.totals;
   const positiveBalance = balance >= 0;
 
@@ -563,33 +702,55 @@ function FinancesBody({ data }: { data: FinancesData }) {
           className="rounded-lg overflow-hidden"
           style={{ background: "var(--bg-primary)" }}
         >
-          {data.history.slice(0, 8).map((h, i) => (
-            <li
-              key={h.id}
-              className="flex items-center justify-between px-3 py-2.5"
-              style={{
-                borderTop: i === 0 ? undefined : "1px solid var(--gray-100)",
-              }}
-            >
-              <span
-                className="text-[13px] truncate min-w-0 mr-2"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {h.label}
-              </span>
-              <span
-                className="text-[13px] font-semibold tabular-nums shrink-0"
+          {data.history.slice(0, 8).map((h, i) => {
+            const clickable = !!h.event_id;
+            const inner = (
+              <>
+                <span
+                  className="text-[13px] truncate min-w-0 mr-2"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {h.label}
+                </span>
+                <div className="flex items-center gap-1 shrink-0">
+                  <span
+                    className="text-[13px] font-semibold tabular-nums"
+                    style={{
+                      color:
+                        h.type === "deposit"
+                          ? "var(--green-600)"
+                          : "var(--text-primary)",
+                    }}
+                  >
+                    +{formatMoney(h.amount)} ₸
+                  </span>
+                  {clickable && <ChevronRightIcon />}
+                </div>
+              </>
+            );
+            return (
+              <li
+                key={h.id}
                 style={{
-                  color:
-                    h.type === "deposit"
-                      ? "var(--green-600)"
-                      : "var(--text-primary)",
+                  borderTop: i === 0 ? undefined : "1px solid var(--gray-100)",
                 }}
               >
-                +{formatMoney(h.amount)} ₸
-              </span>
-            </li>
-          ))}
+                {clickable ? (
+                  <button
+                    type="button"
+                    onClick={() => onEventClick(h.event_id!)}
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-left active:bg-[var(--gray-50)]"
+                  >
+                    {inner}
+                  </button>
+                ) : (
+                  <div className="flex items-center justify-between px-3 py-2.5">
+                    {inner}
+                  </div>
+                )}
+              </li>
+            );
+          })}
         </ul>
       )}
     </div>
@@ -598,16 +759,24 @@ function FinancesBody({ data }: { data: FinancesData }) {
 
 /* ─── Atoms ────────────────────────────────────────────────── */
 
-function Chip({ children }: { children: React.ReactNode }) {
+function SkillBadge({ level, num }: { level: string; num: number }) {
+  const total = SKILL_LEVELS.length;
+  // Color scale by skill rank
+  const palette: Record<number, { bg: string; fg: string }> = {
+    1: { bg: "#F1F4F8", fg: "#6B7280" },
+    2: { bg: "#E8F0FE", fg: "#1F66D9" },
+    3: { bg: "#E6F7EC", fg: "#1F8A4C" },
+    4: { bg: "#FFF4E0", fg: "#B86E00" },
+    5: { bg: "#FFE3E3", fg: "#C12A2A" },
+  };
+  const c = palette[num] ?? palette[1];
   return (
     <span
-      className="px-2.5 py-1 rounded-full text-[12px] font-medium"
-      style={{
-        background: "var(--bg-secondary)",
-        color: "var(--text-secondary)",
-      }}
+      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold"
+      style={{ background: c.bg, color: c.fg }}
     >
-      {children}
+      <StarIcon />
+      {level} · {num}/{total}
     </span>
   );
 }
@@ -681,6 +850,8 @@ function formatShortDate(iso: string): string {
   });
 }
 
+/* ─── Icons ────────────────────────────────────────────────── */
+
 function CloseIcon() {
   return (
     <svg
@@ -712,6 +883,73 @@ function ChevronDownIcon() {
       style={{ color: "var(--text-secondary)" }}
     >
       <polyline points="6 9 12 15 18 9" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ color: "var(--text-tertiary)" }}
+    >
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+      <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+
+function PositionIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <circle cx="12" cy="12" r="10" />
+      <circle cx="12" cy="12" r="3" />
+    </svg>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
     </svg>
   );
 }

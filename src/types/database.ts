@@ -166,6 +166,8 @@ export type Database = {
           created_by: string;
           created_at: string;
           district_id: string | null;
+          photo_url: string | null;
+          default_cost: number | null;
         };
         Insert: {
           id?: string;
@@ -175,12 +177,16 @@ export type Database = {
           created_by: string;
           created_at?: string;
           district_id?: string | null;
+          photo_url?: string | null;
+          default_cost?: number | null;
         };
         Update: {
           name?: string;
           address?: string;
           city?: string;
           district_id?: string | null;
+          photo_url?: string | null;
+          default_cost?: number | null;
         };
         Relationships: [];
       };

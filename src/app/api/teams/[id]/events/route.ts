@@ -219,7 +219,8 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Pick an existing venue, or create a new one from the form
+  // Pick an existing venue, or create a new one from the form.
+  // For new venues, save `venue_cost` as `default_cost` so future events can auto-fill.
   let venueId: string | null = venue_id ?? null;
   if (!venueId && venue && venue.name && venue.address) {
     const { data: v, error: vErr } = await supabase
@@ -229,6 +230,7 @@ export async function POST(
         address: venue.address,
         city: venue.city ?? "",
         district_id: venue.district_id ?? null,
+        default_cost: venue_cost != null ? Number(venue_cost) : null,
         created_by: userId,
       })
       .select("id")

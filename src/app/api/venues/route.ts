@@ -7,6 +7,7 @@ type VenueRow = {
   address: string;
   city: string;
   district_id: string | null;
+  default_cost: number | null;
   districts: { id: string; name: string } | null;
 };
 
@@ -22,7 +23,7 @@ export async function GET(req: NextRequest) {
   const supabase = getServiceClient();
   let query = supabase
     .from("venues")
-    .select("id, name, address, city, district_id, districts(id, name)", {
+    .select("id, name, address, city, district_id, default_cost, districts(id, name)", {
       count: "exact",
     })
     .order("name", { ascending: true })
@@ -48,6 +49,7 @@ export async function GET(req: NextRequest) {
     address: v.address,
     city: v.city,
     district_id: v.district_id,
+    default_cost: v.default_cost,
     district: v.districts ?? null,
   }));
 

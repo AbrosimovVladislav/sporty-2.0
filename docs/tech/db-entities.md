@@ -81,6 +81,9 @@
 | name | text | Название |
 | address | text | Адрес |
 | city | text | Город |
+| district_id | uuid? | FK → District |
+| photo_url | text? | Фото площадки |
+| default_cost | numeric? | Стандартная стоимость аренды; авто-подставляется в форме создания события |
 | created_by | uuid | FK → User |
 | created_at | timestamp | Дата создания |
 

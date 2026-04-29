@@ -218,7 +218,13 @@ function Eyebrow({ children, muted }: { children: React.ReactNode; muted?: boole
 
 // ─── EventCreateSheet ─────────────────────────────────────────────────────────
 
-type VenueOption = { id: string; name: string; address: string; city: string | null };
+type VenueOption = {
+  id: string;
+  name: string;
+  address: string;
+  city: string | null;
+  default_cost: number | null;
+};
 
 function EventCreateSheet({
   teamId,
@@ -415,28 +421,16 @@ function EventCreateSheet({
           {/* City — defaults to team city; affects venue list */}
           <div>
             <label className={labelClass} style={labelStyle}>Город</label>
-            <div className="flex flex-wrap gap-1.5">
-              {KZ_CITIES.map((c) => {
-                const active = city === c;
-                return (
-                  <button
-                    key={c}
-                    type="button"
-                    onClick={() => setCity(c)}
-                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors"
-                    style={{
-                      background: active ? "var(--gray-900)" : "var(--bg-secondary)",
-                      color: active ? "white" : "var(--text-secondary)",
-                      border: active
-                        ? "1.5px solid var(--gray-900)"
-                        : "1.5px solid var(--gray-200)",
-                    }}
-                  >
-                    {c}
-                  </button>
-                );
-              })}
-            </div>
+            <select
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              className={inputClass}
+              style={inputStyle}
+            >
+              {KZ_CITIES.map((c) => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           {/* Venue */}
@@ -446,9 +440,23 @@ function EventCreateSheet({
               value={venueMode === "existing" ? selectedVenueId : venueMode}
               onChange={(e) => {
                 const v = e.target.value;
-                if (v === "none") { setVenueMode("none"); setSelectedVenueId(""); }
-                else if (v === "__new__") { setVenueMode("new"); setSelectedVenueId(""); }
-                else { setVenueMode("existing"); setSelectedVenueId(v); }
+                if (v === "none") {
+                  setVenueMode("none");
+                  setSelectedVenueId("");
+                  setVenueCost("");
+                } else if (v === "__new__") {
+                  setVenueMode("new");
+                  setSelectedVenueId("");
+                  setVenueCost("");
+                } else {
+                  setVenueMode("existing");
+                  setSelectedVenueId(v);
+                  // Auto-fill venue cost from venue's default; organizer can override
+                  const picked = venueOptions.find((vo) => vo.id === v);
+                  setVenueCost(
+                    picked?.default_cost != null ? String(picked.default_cost) : "",
+                  );
+                }
               }}
               className={inputClass}
               style={inputStyle}
@@ -514,6 +522,27 @@ function EventCreateSheet({
                 className={inputClass}
                 style={inputStyle}
               />
+              {venueMode === "existing" &&
+                (() => {
+                  const picked = venueOptions.find((v) => v.id === selectedVenueId);
+                  if (picked?.default_cost == null) return null;
+                  return (
+                    <p
+                      className="text-[12px] mt-1.5"
+                      style={{ color: "var(--text-tertiary)" }}
+                    >
+                      Подставлена стандартная цена площадки. Можно изменить для конкретного события.
+                    </p>
+                  );
+                })()}
+              {venueMode === "new" && (
+                <p
+                  className="text-[12px] mt-1.5"
+                  style={{ color: "var(--text-tertiary)" }}
+                >
+                  Эта цена сохранится как стандартная цена площадки.
+                </p>
+              )}
             </div>
           )}
 
