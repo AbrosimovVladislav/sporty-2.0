@@ -142,10 +142,27 @@ function SkillChip({ level }: { level: string }) {
   const c = SKILL_PALETTE[num] ?? SKILL_PALETTE[1];
   return (
     <span
-      className="inline-flex items-center text-[11px] font-semibold rounded-full px-2 py-0.5 shrink-0 leading-none"
+      className="inline-flex items-center gap-1 text-[10px] font-bold rounded-md px-1.5 py-1 shrink-0 leading-none tracking-wider"
       style={{ background: c.bg, color: c.fg }}
     >
-      {level} · {num}/5
+      <StarIcon />
+      {level.toUpperCase()} · {num}/5
     </span>
+  );
+}
+
+function StarIcon() {
+  return (
+    <svg
+      width="11"
+      height="11"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      stroke="currentColor"
+      strokeWidth="1"
+      strokeLinejoin="round"
+    >
+      <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+    </svg>
   );
 }

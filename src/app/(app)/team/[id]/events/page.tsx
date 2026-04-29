@@ -665,17 +665,14 @@ function formatDateLabel(iso: string) {
 function NativeDateField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const display = value ? formatDateLabel(value) : "Выбери дату";
   return (
-    <div className="relative">
-      <div
-        className={FIELD_CLASS}
-        style={FIELD_STYLE}
-        aria-hidden
-      >
-        <span style={{ color: value ? "var(--text-primary)" : "var(--text-tertiary)" }}>
-          {display}
-        </span>
-        <CalendarIcon />
-      </div>
+    <label
+      className={`${FIELD_CLASS} relative cursor-pointer`}
+      style={FIELD_STYLE}
+    >
+      <span style={{ color: value ? "var(--text-primary)" : "var(--text-tertiary)" }}>
+        {display}
+      </span>
+      <CalendarIcon />
       <input
         type="date"
         value={value}
@@ -683,28 +680,26 @@ function NativeDateField({ value, onChange }: { value: string; onChange: (v: str
         required
         aria-label="Дата"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        style={{ colorScheme: "light" }}
       />
-    </div>
+    </label>
   );
 }
 
 function NativeTimeField({ value, onChange }: { value: string; onChange: (v: string) => void }) {
   const display = value || "Выбери время";
   return (
-    <div className="relative">
-      <div
-        className={FIELD_CLASS}
-        style={FIELD_STYLE}
-        aria-hidden
+    <label
+      className={`${FIELD_CLASS} relative cursor-pointer`}
+      style={FIELD_STYLE}
+    >
+      <span
+        className="tabular-nums"
+        style={{ color: value ? "var(--text-primary)" : "var(--text-tertiary)" }}
       >
-        <span
-          className="tabular-nums"
-          style={{ color: value ? "var(--text-primary)" : "var(--text-tertiary)" }}
-        >
-          {display}
-        </span>
-        <ClockIcon />
-      </div>
+        {display}
+      </span>
+      <ClockIcon />
       <input
         type="time"
         value={value}
@@ -712,8 +707,9 @@ function NativeTimeField({ value, onChange }: { value: string; onChange: (v: str
         required
         aria-label="Время"
         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+        style={{ colorScheme: "light" }}
       />
-    </div>
+    </label>
   );
 }
 
