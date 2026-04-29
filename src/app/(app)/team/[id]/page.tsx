@@ -5,11 +5,12 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
-import { useTeam } from "./team-context";
+import { useTeam, type TeamMember } from "./team-context";
 import { useTeamUI } from "./team-ui-context";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { Button } from "@/components/ui/Button";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
+import { TeamPlayerSheet } from "@/components/team/TeamPlayerSheet";
 import {
   formatCountdown,
   formatCountdownLabel,
@@ -53,10 +54,22 @@ export default function TeamHomePage() {
   const team = useTeam();
   const auth = useAuth();
   const ui = useTeamUI();
+  const router = useRouter();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const teamId = team.status === "ready" ? team.team.id : null;
 
   const [insights, setInsights] = useState<Insights | null | undefined>(undefined);
+  const [activePlayer, setActivePlayer] = useState<TeamMember | null>(null);
+
+  function handleLeaderClick(playerId: string) {
+    if (team.status !== "ready") return;
+    const member = team.members.find((m) => m.user.id === playerId);
+    if (member) {
+      setActivePlayer(member);
+    } else {
+      router.push(`/players/${playerId}`);
+    }
+  }
 
   useEffect(() => {
     if (!teamId) return;
@@ -98,7 +111,7 @@ export default function TeamHomePage() {
       <ActivityCard insights={insights} />
 
       {/* Block 3 — Top players */}
-      <TopPlayersCard insights={insights} />
+      <TopPlayersCard insights={insights} onPlayerClick={handleLeaderClick} />
 
       {/* Block 4 — Finances 30d (organizer only) */}
       {isOrganizer && (
@@ -141,6 +154,20 @@ export default function TeamHomePage() {
 
       {/* Block 6 — Guest join bar */}
       {role === "guest" && <GuestJoinBar teamId={team.team.id} />}
+
+      {activePlayer && team.status === "ready" && (
+        <TeamPlayerSheet
+          member={activePlayer}
+          teamId={team.team.id}
+          currentUserId={userId}
+          isOrganizer={isOrganizer}
+          onClose={() => setActivePlayer(null)}
+          onActionDone={() => {
+            setActivePlayer(null);
+            team.reload();
+          }}
+        />
+      )}
     </>
   );
 }
@@ -376,7 +403,13 @@ function ActivityCard({ insights }: { insights: Insights | null | undefined }) {
 
 /* ─── Top players ──────────────────────────────────────────── */
 
-function TopPlayersCard({ insights }: { insights: Insights | null | undefined }) {
+function TopPlayersCard({
+  insights,
+  onPlayerClick,
+}: {
+  insights: Insights | null | undefined;
+  onPlayerClick: (id: string) => void;
+}) {
   if (insights === undefined) {
     return (
       <div
@@ -392,12 +425,13 @@ function TopPlayersCard({ insights }: { insights: Insights | null | undefined })
       className="rounded-[16px] p-4"
       style={{ background: "var(--bg-primary)" }}
     >
-      <Eyebrow>Лидеры · 30 дней</Eyebrow>
+      <Eyebrow>Лидеры по посещаемости · 30 дней</Eyebrow>
       <div className="grid grid-cols-3 gap-2 mt-3">
         {insights.topPlayers.map((p, i) => (
-          <Link
+          <button
             key={p.id}
-            href={`/players/${p.id}`}
+            type="button"
+            onClick={() => onPlayerClick(p.id)}
             className="flex flex-col items-center text-center gap-2 rounded-[12px] p-2 transition-colors active:bg-bg-card"
           >
             <div className="relative">
@@ -448,7 +482,7 @@ function TopPlayersCard({ insights }: { insights: Insights | null | undefined })
             >
               {p.played} матчей · {p.attendancePct}%
             </p>
-          </Link>
+          </button>
         ))}
       </div>
     </div>

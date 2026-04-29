@@ -8,6 +8,7 @@ import { SheetChipGroup } from "@/components/ui/SheetChipGroup";
 import { EventListRow } from "@/components/events/EventListRow";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import DistrictSelect from "@/components/DistrictSelect";
+import { KZ_CITIES } from "@/lib/city-context";
 
 // ─── types ────────────────────────────────────────────────────────────────────
 
@@ -183,10 +184,11 @@ export default function EventsPage() {
         </button>
       )}
 
-      {showCreate && teamId && userId && (
+      {showCreate && teamId && userId && team.status === "ready" && (
         <EventCreateSheet
           teamId={teamId}
           userId={userId}
+          teamCity={team.team.city}
           onCreated={() => {
             setShowCreate(false);
             loadEvents();
@@ -221,11 +223,13 @@ type VenueOption = { id: string; name: string; address: string; city: string | n
 function EventCreateSheet({
   teamId,
   userId,
+  teamCity,
   onCreated,
   onClose,
 }: {
   teamId: string;
   userId: string;
+  teamCity: string;
   onCreated: () => void;
   onClose: () => void;
 }) {
@@ -235,6 +239,7 @@ function EventCreateSheet({
   const [price, setPrice] = useState("");
   const [minPlayers, setMinPlayers] = useState("");
   const [description, setDescription] = useState("");
+  const [city, setCity] = useState(teamCity);
   const [venueMode, setVenueMode] = useState<"none" | "existing" | "new">("none");
   const [venueOptions, setVenueOptions] = useState<VenueOption[]>([]);
   const [selectedVenueId, setSelectedVenueId] = useState("");
@@ -246,11 +251,22 @@ function EventCreateSheet({
   const [sending, setSending] = useState(false);
 
   useEffect(() => {
-    fetch("/api/venues")
+    if (!city) {
+      setVenueOptions([]);
+      return;
+    }
+    fetch(`/api/venues?city=${encodeURIComponent(city)}&limit=100`)
       .then((r) => r.json())
       .then((data) => setVenueOptions(data.venues ?? []))
       .catch(() => setVenueOptions([]));
-  }, []);
+  }, [city]);
+
+  // Reset venue/district selections when city changes — they belong to a specific city
+  useEffect(() => {
+    setSelectedVenueId("");
+    setVenueDistrictId("");
+    if (venueMode === "existing") setVenueMode("none");
+  }, [city]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -270,7 +286,7 @@ function EventCreateSheet({
           venue_id: venueMode === "existing" && selectedVenueId ? selectedVenueId : undefined,
           venue:
             venueMode === "new" && venueName && venueAddress
-              ? { name: venueName, address: venueAddress, city: "Алматы", district_id: venueDistrictId || null }
+              ? { name: venueName, address: venueAddress, city, district_id: venueDistrictId || null }
               : undefined,
           venue_cost: venueCost ? parseFloat(venueCost) : 0,
           is_public: isPublic,
@@ -396,6 +412,33 @@ function EventCreateSheet({
             </div>
           </div>
 
+          {/* City — defaults to team city; affects venue list */}
+          <div>
+            <label className={labelClass} style={labelStyle}>Город</label>
+            <div className="flex flex-wrap gap-1.5">
+              {KZ_CITIES.map((c) => {
+                const active = city === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setCity(c)}
+                    className="px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors"
+                    style={{
+                      background: active ? "var(--gray-900)" : "var(--bg-secondary)",
+                      color: active ? "white" : "var(--text-secondary)",
+                      border: active
+                        ? "1.5px solid var(--gray-900)"
+                        : "1.5px solid var(--gray-200)",
+                    }}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           {/* Venue */}
           <div>
             <label className={labelClass} style={labelStyle}>Площадка</label>
@@ -416,6 +459,11 @@ function EventCreateSheet({
               ))}
               <option value="__new__">+ Новая площадка</option>
             </select>
+            {venueOptions.length === 0 && (
+              <p className="text-[12px] mt-1.5" style={{ color: "var(--text-tertiary)" }}>
+                В городе «{city}» пока нет площадок — добавьте новую.
+              </p>
+            )}
           </div>
 
           {venueMode === "new" && (
@@ -445,7 +493,7 @@ function EventCreateSheet({
               <div>
                 <label className={labelClass} style={labelStyle}>Район</label>
                 <DistrictSelect
-                  city="Алматы"
+                  city={city}
                   value={venueDistrictId}
                   onChange={setVenueDistrictId}
                   className={inputClass + " bg-bg-secondary border-gray-200 text-text-primary"}

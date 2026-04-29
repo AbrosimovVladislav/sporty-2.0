@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useTeam, type TeamMember } from "../team-context";
 import { useAuth } from "@/lib/auth-context";
 import { SKILL_LEVELS } from "@/lib/catalogs";
@@ -9,9 +9,9 @@ import {
   ListSearchBar,
   ListMeta,
   FilterPills,
-  Avatar,
 } from "@/components/ui";
 import { PlayerListRow } from "@/components/players/PlayerListRow";
+import { TeamPlayerSheet } from "@/components/team/TeamPlayerSheet";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -155,11 +155,11 @@ export default function RosterPage() {
       )}
 
       {activePlayer && (
-        <PlayerSheet
+        <TeamPlayerSheet
           member={activePlayer}
+          teamId={teamId}
           currentUserId={userId}
           isOrganizer={isOrganizer}
-          teamId={teamId}
           onClose={() => setActivePlayer(null)}
           onActionDone={() => {
             setActivePlayer(null);
@@ -168,249 +168,5 @@ export default function RosterPage() {
         />
       )}
     </div>
-  );
-}
-
-// ─── PlayerSheet ──────────────────────────────────────────────────────────────
-
-function PlayerSheet({
-  member,
-  currentUserId,
-  isOrganizer,
-  teamId,
-  onClose,
-  onActionDone,
-}: {
-  member: TeamMember;
-  currentUserId: string | null;
-  isOrganizer: boolean;
-  teamId: string;
-  onClose: () => void;
-  onActionDone: () => void;
-}) {
-  const router = useRouter();
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const isSelf = member.user.id === currentUserId;
-  const isTargetOrganizer = member.role === "organizer";
-  const skillNum = skillToNum(member.user.skill_level);
-  const roleLabel = member.role === "organizer" ? "Организатор" : "Игрок";
-  const [confirmLeave, setConfirmLeave] = useState(false);
-
-  async function handlePromote() {
-    if (!currentUserId || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/teams/${teamId}/members/${member.id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: currentUserId }),
-      });
-      if (res.ok) {
-        onActionDone();
-      } else {
-        const data = await res.json();
-        setError(data.error ?? "Ошибка");
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleRemove() {
-    if (!currentUserId || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(
-        `/api/teams/${teamId}/members/${member.id}?userId=${currentUserId}`,
-        { method: "DELETE" },
-      );
-      if (res.ok) {
-        onActionDone();
-      } else {
-        const data = await res.json();
-        setError(data.error ?? "Ошибка");
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function handleLeave() {
-    if (!currentUserId || busy) return;
-    setBusy(true);
-    setError(null);
-    try {
-      const res = await fetch(`/api/teams/${teamId}/leave`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: currentUserId }),
-      });
-      if (res.ok) {
-        router.replace("/home");
-      } else {
-        const data = await res.json();
-        setError(data.error ?? "Ошибка");
-        setConfirmLeave(false);
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
-      <div
-        className="absolute inset-0"
-        style={{ background: "rgba(0,0,0,0.4)" }}
-        onClick={onClose}
-      />
-      <div
-        className="relative w-full bg-white pb-8"
-        style={{ borderTopLeftRadius: 24, borderTopRightRadius: 24, boxShadow: "0 -8px 24px rgba(0,0,0,0.12)" }}
-      >
-        <div className="flex justify-center pt-2 pb-1">
-          <span className="block w-9 h-1 rounded-full" style={{ background: "var(--gray-300)" }} />
-        </div>
-        <div className="flex items-center justify-between px-4 pt-1 pb-3">
-          <h2 className="text-[16px] font-bold" style={{ color: "var(--text-primary)" }}>
-            Карточка игрока
-          </h2>
-          <button
-            onClick={onClose}
-            className="w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: "var(--gray-100)" }}
-            aria-label="Закрыть"
-          >
-            <CloseIcon />
-          </button>
-        </div>
-
-        <div className="px-4">
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar src={member.user.avatar_url} name={member.user.name} size="lg" />
-            <div className="flex-1 min-w-0">
-              <p className="text-[18px] font-bold truncate" style={{ color: "var(--text-primary)" }}>
-                {member.user.name}
-              </p>
-              <p className="text-[13px] mt-0.5" style={{ color: "var(--text-secondary)" }}>
-                {member.user.position ?? "Позиция не указана"}
-              </p>
-              <span
-                className="inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
-                style={{
-                  background: member.role === "organizer" ? "var(--green-50)" : "var(--gray-100)",
-                  color: member.role === "organizer" ? "var(--green-700)" : "var(--text-secondary)",
-                  letterSpacing: "0.6px",
-                }}
-              >
-                {roleLabel}
-              </span>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 mb-4">
-            <StatBox
-              label="Уровень"
-              value={member.user.skill_level ? `${member.user.skill_level} (${skillNum}/${SKILL_LEVELS.length})` : "—"}
-            />
-            <StatBox label="Город" value={member.user.city ?? "—"} />
-          </div>
-
-          {error && (
-            <p className="mb-3 text-[12px] text-center" style={{ color: "#E53935" }}>
-              {error}
-            </p>
-          )}
-
-          <div className="flex flex-col gap-2">
-            <button
-              onClick={() => router.push(`/players/${member.user.id}`)}
-              className="w-full h-11 rounded-xl text-[14px] font-semibold"
-              style={{ background: "var(--green-500)", color: "white" }}
-            >
-              Открыть профиль
-            </button>
-            {isOrganizer && !isSelf && (
-              <>
-                {!isTargetOrganizer && (
-                  <button
-                    onClick={handlePromote}
-                    disabled={busy}
-                    className="w-full h-11 rounded-xl text-[14px] font-semibold disabled:opacity-50"
-                    style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}
-                  >
-                    {busy ? "Обновляю…" : "Сделать организатором"}
-                  </button>
-                )}
-                <button
-                  onClick={handleRemove}
-                  disabled={busy}
-                  className="w-full h-11 rounded-xl text-[14px] font-semibold disabled:opacity-50"
-                  style={{ background: "#FFF1F1", color: "#E53935" }}
-                >
-                  {busy ? "Удаляю…" : "Удалить из команды"}
-                </button>
-              </>
-            )}
-            {isSelf && (
-              confirmLeave ? (
-                <div className="rounded-xl p-3" style={{ background: "#FFF1F1" }}>
-                  <p className="text-[13px] text-center mb-3" style={{ color: "#E53935" }}>
-                    Вы уверены? Вы покинете команду.
-                  </p>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setConfirmLeave(false)}
-                      className="flex-1 h-10 rounded-xl text-[14px] font-semibold"
-                      style={{ background: "var(--bg-secondary)", color: "var(--text-primary)" }}
-                    >
-                      Отмена
-                    </button>
-                    <button
-                      onClick={handleLeave}
-                      disabled={busy}
-                      className="flex-1 h-10 rounded-xl text-[14px] font-semibold disabled:opacity-50"
-                      style={{ background: "#E53935", color: "white" }}
-                    >
-                      {busy ? "Выхожу…" : "Выйти"}
-                    </button>
-                  </div>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setConfirmLeave(true)}
-                  className="w-full h-11 rounded-xl text-[14px] font-semibold"
-                  style={{ background: "#FFF1F1", color: "#E53935" }}
-                >
-                  Покинуть команду
-                </button>
-              )
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StatBox({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl px-3 py-2.5" style={{ background: "var(--bg-secondary)" }}>
-      <p className="text-[11px]" style={{ color: "var(--text-tertiary)" }}>{label}</p>
-      <p className="text-[15px] font-semibold mt-0.5" style={{ color: "var(--text-primary)" }}>{value}</p>
-    </div>
-  );
-}
-
-function CloseIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round">
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
   );
 }
