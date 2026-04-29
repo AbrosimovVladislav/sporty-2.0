@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { FilterPills } from "@/components/ui/FilterPills";
 import { SheetChipGroup } from "@/components/ui/SheetChipGroup";
+import { Button } from "@/components/ui/Button";
 import { EventListRow } from "@/components/events/EventListRow";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import DistrictSelect from "@/components/DistrictSelect";
@@ -308,14 +309,22 @@ function EventCreateSheet({
     }
   }
 
-  const inputClass = "w-full px-4 py-3 rounded-[12px] text-[14px] outline-none transition-colors focus:border-green-500";
-  const inputStyle = {
+  // Fixed-height inputs — every form row is 46px tall, full width, native pickers
+  // get `appearance: none` so iOS/Android don't shrink them to fit content.
+  const inputClass = "block w-full h-[46px] px-4 rounded-[12px] text-[14px] outline-none transition-colors focus:border-green-500";
+  const inputStyle: React.CSSProperties = {
     background: "var(--bg-secondary)",
     color: "var(--text-primary)",
     border: "1.5px solid var(--gray-200)",
+    WebkitAppearance: "none",
+    appearance: "none",
+    minWidth: 0,
   };
   const labelClass = "text-[12px] font-semibold uppercase mb-1.5 block";
   const labelStyle = { color: "var(--text-tertiary)", letterSpacing: "0.06em" };
+
+  const cityOptions = KZ_CITIES.map((c) => ({ value: c, label: c }));
+  const venueSelectValue = venueMode === "existing" ? selectedVenueId : venueMode;
 
   return (
     <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
@@ -354,252 +363,262 @@ function EventCreateSheet({
           </button>
         </div>
 
-        {/* Scrollable form */}
         <form
           onSubmit={handleSubmit}
-          className="overflow-y-auto px-4 pb-8 flex flex-col gap-5"
+          className="flex flex-col min-h-0 flex-1"
         >
-          {/* Type */}
-          <SheetChipGroup
-            label="Тип события"
-            options={EVENT_TYPE_OPTIONS}
-            value={eventType}
-            onChange={setEventType}
-            emptyLabel={null}
-          />
+          <div className="overflow-y-auto px-4 pt-1 pb-5 flex flex-col gap-4">
+            {/* Type */}
+            <SheetChipGroup
+              label="Тип события"
+              options={EVENT_TYPE_OPTIONS}
+              value={eventType}
+              onChange={setEventType}
+              emptyLabel={null}
+            />
 
-          {/* Date & time */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass} style={labelStyle}>Дата</label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-                className={inputClass}
-                style={inputStyle}
-              />
+            {/* Date & time */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass} style={labelStyle}>Дата</label>
+                <input
+                  type="date"
+                  value={date}
+                  onChange={(e) => setDate(e.target.value)}
+                  required
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label className={labelClass} style={labelStyle}>Время</label>
+                <input
+                  type="time"
+                  value={time}
+                  onChange={(e) => setTime(e.target.value)}
+                  required
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
             </div>
-            <div>
-              <label className={labelClass} style={labelStyle}>Время</label>
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                required
-                className={inputClass}
-                style={inputStyle}
-              />
-            </div>
-          </div>
 
-          {/* Price & min players */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className={labelClass} style={labelStyle}>Цена с игрока, ₸</label>
-              <input
-                type="number"
-                value={price}
-                onChange={(e) => setPrice(e.target.value)}
-                min="0"
-                placeholder="0"
-                className={inputClass}
-                style={inputStyle}
-              />
+            {/* Price & min players */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass} style={labelStyle}>Цена с игрока, ₸</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={price}
+                  onChange={(e) => setPrice(e.target.value)}
+                  min="0"
+                  placeholder="0"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
+              <div>
+                <label className={labelClass} style={labelStyle}>Мин. игроков</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={minPlayers}
+                  onChange={(e) => setMinPlayers(e.target.value)}
+                  min="1"
+                  placeholder="1"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+              </div>
             </div>
-            <div>
-              <label className={labelClass} style={labelStyle}>Мин. игроков</label>
-              <input
-                type="number"
-                value={minPlayers}
-                onChange={(e) => setMinPlayers(e.target.value)}
-                min="1"
-                placeholder="1"
-                className={inputClass}
-                style={inputStyle}
-              />
-            </div>
-          </div>
 
-          {/* City — defaults to team city; affects venue list */}
-          <div>
-            <label className={labelClass} style={labelStyle}>Город</label>
-            <select
+            {/* City — defaults to team city; affects venue list. Same chip-group pattern as type. */}
+            <SheetChipGroup
+              label="Город"
+              options={cityOptions}
               value={city}
-              onChange={(e) => setCity(e.target.value)}
-              className={inputClass}
-              style={inputStyle}
-            >
-              {KZ_CITIES.map((c) => (
-                <option key={c} value={c}>{c}</option>
-              ))}
-            </select>
-          </div>
+              onChange={setCity}
+              emptyLabel={null}
+            />
 
-          {/* Venue */}
-          <div>
-            <label className={labelClass} style={labelStyle}>Площадка</label>
-            <select
-              value={venueMode === "existing" ? selectedVenueId : venueMode}
-              onChange={(e) => {
-                const v = e.target.value;
-                if (v === "none") {
-                  setVenueMode("none");
-                  setSelectedVenueId("");
-                  setVenueCost("");
-                } else if (v === "__new__") {
-                  setVenueMode("new");
-                  setSelectedVenueId("");
-                  setVenueCost("");
-                } else {
-                  setVenueMode("existing");
-                  setSelectedVenueId(v);
-                  // Auto-fill venue cost from venue's default; organizer can override
-                  const picked = venueOptions.find((vo) => vo.id === v);
-                  setVenueCost(
-                    picked?.default_cost != null ? String(picked.default_cost) : "",
-                  );
-                }
-              }}
-              className={inputClass}
-              style={inputStyle}
-            >
-              <option value="none">Не указана</option>
-              {venueOptions.map((v) => (
-                <option key={v.id} value={v.id}>{v.name} — {v.address}</option>
-              ))}
-              <option value="__new__">+ Новая площадка</option>
-            </select>
-            {venueOptions.length === 0 && (
-              <p className="text-[12px] mt-1.5" style={{ color: "var(--text-tertiary)" }}>
-                В городе «{city}» пока нет площадок — добавьте новую.
-              </p>
-            )}
-          </div>
-
-          {venueMode === "new" && (
-            <>
-              <div>
-                <label className={labelClass} style={labelStyle}>Название</label>
-                <input
-                  type="text"
-                  value={venueName}
-                  onChange={(e) => setVenueName(e.target.value)}
-                  placeholder="Например, Лужники"
-                  className={inputClass}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label className={labelClass} style={labelStyle}>Адрес</label>
-                <input
-                  type="text"
-                  value={venueAddress}
-                  onChange={(e) => setVenueAddress(e.target.value)}
-                  placeholder="Адрес"
-                  className={inputClass}
-                  style={inputStyle}
-                />
-              </div>
-              <div>
-                <label className={labelClass} style={labelStyle}>Район</label>
-                <DistrictSelect
-                  city={city}
-                  value={venueDistrictId}
-                  onChange={setVenueDistrictId}
-                  className={inputClass + " bg-bg-secondary border-gray-200 text-text-primary"}
-                />
-              </div>
-            </>
-          )}
-
-          {venueMode !== "none" && (
+            {/* Venue — native select kept (long, dynamic list); chevron added via background-image */}
             <div>
-              <label className={labelClass} style={labelStyle}>Стоимость площадки, ₸</label>
-              <input
-                type="number"
-                value={venueCost}
-                onChange={(e) => setVenueCost(e.target.value)}
-                min="0"
-                placeholder="0"
-                className={inputClass}
-                style={inputStyle}
-              />
-              {venueMode === "existing" &&
-                (() => {
-                  const picked = venueOptions.find((v) => v.id === selectedVenueId);
-                  if (picked?.default_cost == null) return null;
-                  return (
-                    <p
-                      className="text-[12px] mt-1.5"
-                      style={{ color: "var(--text-tertiary)" }}
-                    >
-                      Подставлена стандартная цена площадки. Можно изменить для конкретного события.
-                    </p>
-                  );
-                })()}
-              {venueMode === "new" && (
-                <p
-                  className="text-[12px] mt-1.5"
-                  style={{ color: "var(--text-tertiary)" }}
-                >
-                  Эта цена сохранится как стандартная цена площадки.
+              <label className={labelClass} style={labelStyle}>Площадка</label>
+              <select
+                value={venueSelectValue}
+                onChange={(e) => {
+                  const v = e.target.value;
+                  if (v === "none") {
+                    setVenueMode("none");
+                    setSelectedVenueId("");
+                    setVenueCost("");
+                  } else if (v === "__new__") {
+                    setVenueMode("new");
+                    setSelectedVenueId("");
+                    setVenueCost("");
+                  } else {
+                    setVenueMode("existing");
+                    setSelectedVenueId(v);
+                    const picked = venueOptions.find((vo) => vo.id === v);
+                    setVenueCost(
+                      picked?.default_cost != null ? String(picked.default_cost) : "",
+                    );
+                  }
+                }}
+                className={inputClass + " pr-10"}
+                style={{
+                  ...inputStyle,
+                  backgroundImage:
+                    "url(\"data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polyline points='1,1 6,7 11,1' /></svg>\")",
+                  backgroundRepeat: "no-repeat",
+                  backgroundPosition: "right 14px center",
+                }}
+              >
+                <option value="none">Не указана</option>
+                {venueOptions.map((v) => (
+                  <option key={v.id} value={v.id}>{v.name} — {v.address}</option>
+                ))}
+                <option value="__new__">+ Новая площадка</option>
+              </select>
+              {venueOptions.length === 0 && (
+                <p className="text-[12px] mt-1.5" style={{ color: "var(--text-tertiary)" }}>
+                  В городе «{city}» пока нет площадок — добавьте новую.
                 </p>
               )}
             </div>
-          )}
 
-          {/* Description */}
-          <div>
-            <label className={labelClass} style={labelStyle}>Описание</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              placeholder="Необязательно"
-              className={inputClass + " resize-none"}
-              style={inputStyle}
-            />
-          </div>
+            {venueMode === "new" && (
+              <>
+                <div>
+                  <label className={labelClass} style={labelStyle}>Название</label>
+                  <input
+                    type="text"
+                    value={venueName}
+                    onChange={(e) => setVenueName(e.target.value)}
+                    placeholder="Например, Лужники"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass} style={labelStyle}>Адрес</label>
+                  <input
+                    type="text"
+                    value={venueAddress}
+                    onChange={(e) => setVenueAddress(e.target.value)}
+                    placeholder="Адрес"
+                    className={inputClass}
+                    style={inputStyle}
+                  />
+                </div>
+                <div>
+                  <label className={labelClass} style={labelStyle}>Район</label>
+                  <DistrictSelect
+                    city={city}
+                    value={venueDistrictId}
+                    onChange={setVenueDistrictId}
+                    className={inputClass}
+                  />
+                </div>
+              </>
+            )}
 
-          {/* Public toggle */}
-          <div
-            className="flex items-center gap-3 p-3 rounded-[14px]"
-            style={{ background: "var(--bg-secondary)" }}
-          >
-            <button
-              type="button"
-              role="switch"
-              aria-checked={isPublic}
-              onClick={() => setIsPublic((v) => !v)}
-              className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0"
-              style={{ background: isPublic ? "var(--green-500)" : "var(--gray-300)" }}
-            >
-              <span
-                className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
-                style={{ transform: isPublic ? "translateX(22px)" : "translateX(4px)" }}
-              />
-            </button>
+            {venueMode !== "none" && (
+              <div>
+                <label className={labelClass} style={labelStyle}>Стоимость площадки, ₸</label>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  value={venueCost}
+                  onChange={(e) => setVenueCost(e.target.value)}
+                  min="0"
+                  placeholder="0"
+                  className={inputClass}
+                  style={inputStyle}
+                />
+                {venueMode === "existing" &&
+                  (() => {
+                    const picked = venueOptions.find((v) => v.id === selectedVenueId);
+                    if (picked?.default_cost == null) return null;
+                    return (
+                      <p
+                        className="text-[12px] mt-1.5"
+                        style={{ color: "var(--text-tertiary)" }}
+                      >
+                        Подставлена стандартная цена площадки. Можно изменить для конкретного события.
+                      </p>
+                    );
+                  })()}
+                {venueMode === "new" && (
+                  <p
+                    className="text-[12px] mt-1.5"
+                    style={{ color: "var(--text-tertiary)" }}
+                  >
+                    Эта цена сохранится как стандартная цена площадки.
+                  </p>
+                )}
+              </div>
+            )}
+
+            {/* Description — multi-line, height auto-fits two rows */}
             <div>
-              <p className="text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>
-                Публичное событие
-              </p>
-              <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                Видно всем в поиске
-              </p>
+              <label className={labelClass} style={labelStyle}>Описание</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                placeholder="Необязательно"
+                className="block w-full px-4 py-3 rounded-[12px] text-[14px] outline-none transition-colors focus:border-green-500 resize-none"
+                style={inputStyle}
+              />
+            </div>
+
+            {/* Public toggle */}
+            <div
+              className="flex items-center gap-3 p-3 rounded-[14px]"
+              style={{ background: "var(--bg-secondary)" }}
+            >
+              <button
+                type="button"
+                role="switch"
+                aria-checked={isPublic}
+                onClick={() => setIsPublic((v) => !v)}
+                className="relative inline-flex h-6 w-11 items-center rounded-full transition-colors shrink-0"
+                style={{ background: isPublic ? "var(--green-500)" : "var(--gray-300)" }}
+              >
+                <span
+                  className="inline-block h-4 w-4 transform rounded-full bg-white transition-transform"
+                  style={{ transform: isPublic ? "translateX(22px)" : "translateX(4px)" }}
+                />
+              </button>
+              <div>
+                <p className="text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>
+                  Публичное событие
+                </p>
+                <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
+                  Видно всем в поиске
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Submit */}
-          <button
-            type="submit"
-            disabled={!date || !time || sending}
-            className="w-full h-12 rounded-xl text-[15px] font-semibold disabled:opacity-50 transition-opacity"
-            style={{ background: "var(--green-500)", color: "white" }}
+          {/* Sticky footer with primary CTA — uses ДС Button */}
+          <div
+            className="px-4 pt-3 pb-5 shrink-0 bg-white"
+            style={{ borderTop: "1px solid var(--gray-100)" }}
           >
-            {sending ? "Создаю…" : "Создать событие"}
-          </button>
+            <Button
+              type="submit"
+              variant="primary"
+              size="lg"
+              disabled={!date || !time}
+              loading={sending}
+              className="w-full"
+            >
+              Создать событие
+            </Button>
+          </div>
         </form>
       </div>
     </div>
