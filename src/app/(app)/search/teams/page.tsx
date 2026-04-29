@@ -22,6 +22,7 @@ import {
   type TeamFilters,
 } from "@/components/teams/TeamFiltersSheet";
 import { SPORT_LABEL } from "@/lib/catalogs";
+import { useCity } from "@/lib/city-context";
 
 type Team = {
   id: string;
@@ -62,10 +63,15 @@ function pluralTeams(n: number): string {
 export default function SearchTeamsPage() {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const { activeCity } = useCity();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState<TeamFilters>(EMPTY_FILTERS);
+
+  useEffect(() => {
+    setFilters((f) => ({ ...f, city: activeCity }));
+  }, [activeCity]);
   const [sheetOpen, setSheetOpen] = useState(false);
 
   const [stats, setStats] = useState<Stats | null>(null);
@@ -266,7 +272,7 @@ export default function SearchTeamsPage() {
                 label: "Сбросить фильтры",
                 onClick: () => {
                   setSearch("");
-                  setFilters(EMPTY_FILTERS);
+                  setFilters({ ...EMPTY_FILTERS, city: activeCity });
                 },
               }}
             />

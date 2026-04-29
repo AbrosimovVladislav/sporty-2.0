@@ -20,6 +20,7 @@ import {
   VenueFiltersSheet,
   type VenueFilters,
 } from "@/components/venues/VenueFiltersSheet";
+import { useCity } from "@/lib/city-context";
 
 type Venue = {
   id: string;
@@ -44,9 +45,15 @@ function pluralVenues(n: number): string {
 }
 
 export default function SearchVenuesPage() {
+  const { activeCity } = useCity();
+
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState<VenueFilters>(EMPTY_FILTERS);
+
+  useEffect(() => {
+    setFilters((f) => ({ ...f, city: activeCity }));
+  }, [activeCity]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
 
@@ -184,7 +191,7 @@ export default function SearchVenuesPage() {
                 label: "Сбросить фильтры",
                 onClick: () => {
                   setSearch("");
-                  setFilters(EMPTY_FILTERS);
+                  setFilters({ ...EMPTY_FILTERS, city: activeCity });
                 },
               }}
             />

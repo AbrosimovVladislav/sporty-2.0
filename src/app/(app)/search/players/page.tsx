@@ -22,6 +22,7 @@ import {
   PlayerFiltersSheet,
   type PlayerFilters,
 } from "@/components/players/PlayerFiltersSheet";
+import { useCity } from "@/lib/city-context";
 
 type Player = {
   id: string;
@@ -76,6 +77,7 @@ function pluralPlayers(n: number): string {
 export default function SearchPlayersPage() {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const { activeCity } = useCity();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -84,6 +86,10 @@ export default function SearchPlayersPage() {
   const [filters, setFilters] = useState<PlayerFilters>(EMPTY_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
+
+  useEffect(() => {
+    setFilters((f) => ({ ...f, city: activeCity }));
+  }, [activeCity]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -277,7 +283,7 @@ export default function SearchPlayersPage() {
                 onClick: () => {
                   setSearch("");
                   setPositionPill("");
-                  setFilters(EMPTY_FILTERS);
+                  setFilters({ ...EMPTY_FILTERS, city: activeCity });
                 },
               }}
             />

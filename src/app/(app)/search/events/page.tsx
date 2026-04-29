@@ -23,6 +23,7 @@ import {
   type EventFilters,
 } from "@/components/events/EventFiltersSheet";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
+import { useCity } from "@/lib/city-context";
 
 type PublicEvent = {
   id: string;
@@ -72,6 +73,7 @@ function pluralEvents(n: number): string {
 export default function SearchEventsPage() {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const { activeCity } = useCity();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -80,6 +82,10 @@ export default function SearchEventsPage() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
   const [myTeamIds, setMyTeamIds] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    setFilters((f) => ({ ...f, city: activeCity }));
+  }, [activeCity]);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -251,7 +257,7 @@ export default function SearchEventsPage() {
                 onClick: () => {
                   setSearch("");
                   setTypePill("");
-                  setFilters(EMPTY_FILTERS);
+                  setFilters({ ...EMPTY_FILTERS, city: activeCity });
                 },
               }}
             />
