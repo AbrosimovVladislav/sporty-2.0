@@ -190,15 +190,50 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const { userId, looking_for_players } = await req.json();
+  const body = await req.json();
+  const { userId, ...rawPatch } = body as Record<string, unknown>;
 
-  if (!userId || typeof looking_for_players !== "boolean") {
-    return NextResponse.json({ error: "userId and looking_for_players required" }, { status: 400 });
+  if (!userId || typeof userId !== "string") {
+    return NextResponse.json({ error: "userId required" }, { status: 400 });
+  }
+
+  const update: {
+    looking_for_players?: boolean;
+    name?: string;
+    sport?: string;
+    city?: string;
+    district_id?: string | null;
+    description?: string | null;
+  } = {};
+  if (typeof rawPatch.looking_for_players === "boolean") {
+    update.looking_for_players = rawPatch.looking_for_players;
+  }
+  if (typeof rawPatch.name === "string") {
+    const trimmed = rawPatch.name.trim();
+    if (!trimmed) {
+      return NextResponse.json({ error: "Name cannot be empty" }, { status: 400 });
+    }
+    update.name = trimmed;
+  }
+  if (typeof rawPatch.sport === "string" && rawPatch.sport.trim()) {
+    update.sport = rawPatch.sport.trim();
+  }
+  if (typeof rawPatch.city === "string" && rawPatch.city.trim()) {
+    update.city = rawPatch.city.trim();
+  }
+  if (rawPatch.district_id === null || typeof rawPatch.district_id === "string") {
+    update.district_id = (rawPatch.district_id as string | null) || null;
+  }
+  if (rawPatch.description === null || typeof rawPatch.description === "string") {
+    update.description = (rawPatch.description as string | null)?.trim() || null;
+  }
+
+  if (Object.keys(update).length === 0) {
+    return NextResponse.json({ error: "No fields to update" }, { status: 400 });
   }
 
   const supabase = getServiceClient();
 
-  // Verify caller is organizer
   const { data: membership } = await supabase
     .from("team_memberships")
     .select("role")
@@ -212,7 +247,7 @@ export async function PATCH(
 
   const { error } = await supabase
     .from("teams")
-    .update({ looking_for_players })
+    .update(update)
     .eq("id", id);
 
   if (error) {

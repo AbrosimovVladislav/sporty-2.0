@@ -21,12 +21,16 @@
 
 ## Где видно (со стороны организатора)
 
-Bell-иконка в `PageHeader` команды (red-dot если `pendingRequestsCount > 0`) → `TeamRequestsSheet`:
+Точки входа:
+- Шестерёнка в `PageHeader` команды (red-dot если `pendingRequestsCount > 0`) → `/team/[id]/settings` → раздел «Заявки и приглашения» открывает `TeamRequestsSheet`
+- Карточка «N новых заявок» на главной команды (если есть pending) → тот же `TeamRequestsSheet`
+
+`TeamRequestsSheet`:
 - **Tab «Входящие · N»** — pending player_to_team. Карточка игрока + кнопки «Принять» (`PATCH /api/teams/[id]/join-requests/[requestId]` `action=accept`) / «Отклонить» (`action=reject`)
 - **Tab «Отправлены · M»** — pending team_to_player по этой команде. Карточка игрока + «Приглашён 3 дня назад» + кнопка «Отозвать» (`DELETE`)
 - Если одна сторона пустая — таб-стрип скрыт, рендерится только непустая секция
 
-`pendingRequestsCount` в bell-dot и счётчиках на главной — только incoming (player_to_team).
+`pendingRequestsCount` в red-dot шестерёнки и счётчиках на главной — только incoming (player_to_team).
 
 ## Cooldown после отклонения
 

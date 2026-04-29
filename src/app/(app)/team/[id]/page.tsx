@@ -139,15 +139,7 @@ export default function TeamHomePage() {
         </button>
       )}
 
-      {/* Block 6 — Looking for players toggle (organizer only) */}
-      {isOrganizer && (
-        <LookingForPlayersToggle
-          teamId={team.team.id}
-          initial={team.team.looking_for_players}
-        />
-      )}
-
-      {/* Block 7 — Guest join bar */}
+      {/* Block 6 — Guest join bar */}
       {role === "guest" && <GuestJoinBar teamId={team.team.id} />}
     </>
   );
@@ -540,78 +532,6 @@ function FinanceCard({
         </div>
       </div>
     </Link>
-  );
-}
-
-/* ─── Looking for players ──────────────────────────────────── */
-
-function LookingForPlayersToggle({
-  teamId,
-  initial,
-}: {
-  teamId: string;
-  initial: boolean;
-}) {
-  const auth = useAuth();
-  const userId = auth.status === "authenticated" ? auth.user.id : null;
-  const [enabled, setEnabled] = useState(initial);
-  const [saving, setSaving] = useState(false);
-
-  async function toggle() {
-    if (!userId || saving) return;
-    const next = !enabled;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/teams/${teamId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId, looking_for_players: next }),
-      });
-      if (res.ok) setEnabled(next);
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  return (
-    <button
-      type="button"
-      onClick={toggle}
-      disabled={saving}
-      className="flex items-center justify-between rounded-[16px] px-4 py-3 transition-colors disabled:opacity-50"
-      style={{
-        background: "var(--bg-primary)",
-        border: "1px solid var(--gray-100)",
-      }}
-    >
-      <div className="text-left">
-        <p
-          className="text-[14px] font-semibold"
-          style={{ color: "var(--text-primary)" }}
-        >
-          Набор игроков
-        </p>
-        <p
-          className="text-[12px] mt-0.5"
-          style={{ color: "var(--text-secondary)" }}
-        >
-          {enabled ? "Открыт — отображается в каталоге" : "Закрыт"}
-        </p>
-      </div>
-      <div
-        className="relative w-11 h-6 rounded-full transition-colors shrink-0"
-        style={{
-          background: enabled ? "var(--green-500)" : "var(--gray-300)",
-        }}
-      >
-        <div
-          className="absolute top-1 w-4 h-4 rounded-full bg-white transition-transform"
-          style={{
-            transform: enabled ? "translateX(24px)" : "translateX(4px)",
-          }}
-        />
-      </div>
-    </button>
   );
 }
 

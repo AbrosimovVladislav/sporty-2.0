@@ -1,7 +1,7 @@
 "use client";
 
-import { use, useEffect, useRef, useState } from "react";
-import { usePathname } from "next/navigation";
+import { use, useEffect, useState } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import { TeamProvider, useTeam } from "./team-context";
 import { TeamUIProvider } from "./team-ui-context";
 import {
@@ -19,6 +19,7 @@ import { formatMoney, teamGradient } from "@/lib/format";
 
 const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
 const EVENT_DETAIL_PATH_RE = /\/team\/[^/]+\/events\/[^/]+/;
+const SETTINGS_PATH_RE = /\/team\/[^/]+\/settings(\/|$)/;
 
 type TeamSubTabDef = {
   label: string;
@@ -34,30 +35,12 @@ const SUB_TABS: TeamSubTabDef[] = [
   { label: "Финансы", href: (id) => `/team/${id}/finances`, organizerOnly: true },
 ];
 
-function TeamPageHeader({
-  teamId,
-  requestsOpen,
-  setRequestsOpen,
-}: {
-  teamId: string;
-  requestsOpen: boolean;
-  setRequestsOpen: (v: boolean) => void;
-}) {
+function TeamPageHeader({ teamId }: { teamId: string }) {
   const team = useTeam();
   const auth = useAuth();
+  const router = useRouter();
   const [myTeamCount, setMyTeamCount] = useState(0);
   const [switcherOpen, setSwitcherOpen] = useState(false);
-  const [logoUploading, setLogoUploading] = useState(false);
-  const [logoError, setLogoError] = useState<string | null>(null);
-  const logoInputRef = useRef<HTMLInputElement>(null);
-
-  const userId = auth.status === "authenticated" ? auth.user.id : null;
-
-  useEffect(() => {
-    if (!logoError) return;
-    const t = setTimeout(() => setLogoError(null), 3000);
-    return () => clearTimeout(t);
-  }, [logoError]);
 
   useEffect(() => {
     if (auth.status !== "authenticated") return;
@@ -68,30 +51,6 @@ function TeamPageHeader({
       .catch(() => {});
     return () => { cancelled = true; };
   }, [auth]);
-
-  async function handleLogoFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file || !userId || team.status !== "ready") return;
-    setLogoUploading(true);
-    setLogoError(null);
-    try {
-      const fd = new FormData();
-      fd.append("file", file);
-      fd.append("userId", userId);
-      const res = await fetch(`/api/teams/${teamId}/logo`, { method: "POST", body: fd });
-      if (res.ok) {
-        team.reload();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setLogoError(data.error ?? "Не удалось загрузить");
-      }
-    } catch {
-      setLogoError("Сеть недоступна");
-    } finally {
-      setLogoUploading(false);
-      if (logoInputRef.current) logoInputRef.current.value = "";
-    }
-  }
 
   if (team.status === "loading") {
     return (
@@ -138,7 +97,6 @@ function TeamPageHeader({
         style={{
           background: t.logo_url ? "white" : teamGradient(t.id),
           border: "2px solid rgba(255,255,255,0.25)",
-          opacity: logoUploading ? 0.6 : 1,
         }}
       >
         {t.logo_url ? (
@@ -150,31 +108,6 @@ function TeamPageHeader({
           </span>
         )}
       </div>
-      {isOrganizer && (
-        <>
-          <label
-            htmlFor="team-logo-upload"
-            className="absolute bottom-0 right-0 w-5 h-5 rounded-full flex items-center justify-center cursor-pointer"
-            style={{ background: logoUploading ? "var(--gray-400)" : "var(--green-500)", border: "2px solid white" }}
-            aria-label="Загрузить лого"
-          >
-            {logoUploading ? (
-              <span className="w-2 h-2 border border-white border-t-transparent rounded-full animate-spin block" />
-            ) : (
-              <CameraIcon />
-            )}
-          </label>
-          <input
-            id="team-logo-upload"
-            ref={logoInputRef}
-            type="file"
-            accept="image/jpeg,image/png,image/webp,image/gif"
-            className="sr-only"
-            disabled={logoUploading}
-            onChange={handleLogoFile}
-          />
-        </>
-      )}
     </div>
   );
 
@@ -188,9 +121,9 @@ function TeamPageHeader({
         leadingSlot={leadingSlot}
         showBack
         fallbackHref="/teams"
-        onBellClick={isOrganizer ? () => setRequestsOpen(true) : undefined}
-        hasBellDot={isOrganizer && pendingRequestsCount > 0}
-        bellAriaLabel="Заявки на вступление"
+        onSettingsClick={isOrganizer ? () => router.push(`/team/${teamId}/settings`) : undefined}
+        hasSettingsDot={isOrganizer && pendingRequestsCount > 0}
+        settingsAriaLabel="Настройки команды"
       >
         <HeaderStatGroup>
           <HeaderStat value={members.length} label="В составе" />
@@ -204,23 +137,6 @@ function TeamPageHeader({
           open={switcherOpen}
           currentTeamId={teamId}
           onClose={() => setSwitcherOpen(false)}
-        />
-      )}
-      {logoError && (
-        <div
-          className="mx-4 mt-2 px-3 py-2 rounded-xl text-[13px] text-center"
-          style={{ background: "#FFF1F1", color: "#E53935" }}
-        >
-          {logoError}
-        </div>
-      )}
-      {isOrganizer && (
-        <TeamRequestsSheet
-          open={requestsOpen}
-          teamId={teamId}
-          userId={userId}
-          onClose={() => setRequestsOpen(false)}
-          onActionDone={() => team.reload()}
         />
       )}
     </>
@@ -253,10 +169,16 @@ function TeamSubNav({ id }: { id: string }) {
 
 function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNode }) {
   const pathname = usePathname();
+  const team = useTeam();
+  const auth = useAuth();
   const path = pathname ?? "";
   const isRoster = ROSTER_PATH_RE.test(path);
   const isEventDetail = EVENT_DETAIL_PATH_RE.test(path);
+  const isSettings = SETTINGS_PATH_RE.test(path);
   const [requestsOpen, setRequestsOpen] = useState(false);
+
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const isOrganizer = team.status === "ready" && team.role === "organizer";
 
   useEffect(() => {
     setLastActiveTeamId(id);
@@ -264,10 +186,21 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
 
   const ui = { openRequests: () => setRequestsOpen(true) };
 
-  if (isEventDetail) {
+  const requestsSheet = isOrganizer && team.status === "ready" ? (
+    <TeamRequestsSheet
+      open={requestsOpen}
+      teamId={id}
+      userId={userId}
+      onClose={() => setRequestsOpen(false)}
+      onActionDone={() => team.reload()}
+    />
+  ) : null;
+
+  if (isEventDetail || isSettings) {
     return (
       <TeamUIProvider value={ui}>
         <div className="flex flex-1 flex-col">{children}</div>
+        {requestsSheet}
       </TeamUIProvider>
     );
   }
@@ -279,24 +212,12 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
   return (
     <TeamUIProvider value={ui}>
       <div className="flex flex-1 flex-col">
-        <TeamPageHeader
-          teamId={id}
-          requestsOpen={requestsOpen}
-          setRequestsOpen={setRequestsOpen}
-        />
+        <TeamPageHeader teamId={id} />
         <TeamSubNav id={id} />
         <div className={contentClass}>{children}</div>
       </div>
+      {requestsSheet}
     </TeamUIProvider>
-  );
-}
-
-function CameraIcon() {
-  return (
-    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
-    </svg>
   );
 }
 
