@@ -664,7 +664,8 @@ Domain-специфичные строки (`PlayerListRow`, будущие `Tea
 - Stats: Всего / Сегодня / На неделе (только публичные `is_public=true`, status=planned, future)
 - Search: ilike по `teams.name`
 - Pills: тип события (Все / Игра / Трен. / Сбор / Другое) — фильтр одного измерения
-- Sheet: город, район
+- Sheet: город, район, **Период** (пресеты «Сегодня / Эта неделя / Следующая / 2 недели» + native `<input type="date">` от–до; пресет и custom range взаимоисключающие), **Цена** (пресеты до 1/2/3 тыс. ₸ + «Бесплатно»), toggle **Только со свободными местами** (yes_count < min_players)
+- URL `?venue=<id>` — фильтр по площадке (используется кнопкой «Все события на площадке» с `/venues/[id]`)
 - Сортировка: дата asc (без диалога)
 - Row: `EventListRow` — 44×44 цветной date-tile (`green-50`/`green-700`, day + month) + название команды (+ опц. бейдж «Моя команда») + `тип · время · площадка · район`. Справа: `yes_count` с галочкой + опц. цена
 
@@ -688,7 +689,24 @@ Domain-специфичные строки (`PlayerListRow`, будущие `Tea
 - Search: ilike по `name`/`city`
 - Sheet: город, район
 - Без pills и sort
-- Row: `VenueListRow` — 44px иконка-pin tile + название + адрес · район + город
+- Row: `VenueListRow` — 44px иконка-pin tile + название + адрес · район + город. Тап → `/venues/[id]` (профиль площадки)
+
+### Площадка — детали (`/venues/[id]`)
+
+Структура сверху вниз — **dark hero** (как `EventHero`) + светлый контент:
+
+1. **Dark hero** (`gray-900`, скруглён снизу 28px):
+   - Фото 230px (`venues.photo_url`); если null — диагональный градиент `gray-700 → gray-900`. Сверху мягкий dim для back-кнопки, снизу — затемнение в `gray-900`.
+   - Back-таблетка (`top-3 left-3 w-10 h-10 rounded-full bg-rgba(0,0,0,0.4)`).
+   - Название — `font-display` (Oswald) `text-[24px] uppercase font-bold` white.
+   - Адрес — `text-[13px] rgba(255,255,255,0.55)`.
+   - Чипы (если есть): район (`PinIcon`), цена-за-час (`CoinIcon` + `formatPrice(default_cost) / час`). Стиль чипа — полупрозрачный белый (`rgba(255,255,255,0.06)` фон, `rgba(255,255,255,0.65)` текст).
+2. **Маршрут** — primary full-width зелёная кнопка (`green-500`), белый текст + стрелка-иконка. `<a target=_blank>` на 2GIS (`https://2gis.kz/<city-slug>/search/<address>`).
+3. **Контакты** (если есть `phone` или `website`) — карточка `bg-card` с разделителями. Каждая строка: квадратная иконка 36px (`bg-green-50` / `green-600`) + лейбл-эйбрау (`Телефон` / `Сайт`) + значение + chevron. `<a href="tel:...">` для телефона.
+4. **Описание** (если есть) — текст 14px в `bg-secondary` плашке.
+5. **Ближайшие события · N** — эйбрау + `EventListRow` (первые 5 публичных future-событий). Если `N > 5` — снизу зелёная плашка-ссылка «Все события на площадке» → `/search/events?venue=<id>`. Если событий нет — `EmptyState` «Пока никаких событий».
+
+**Backend.** `GET /api/venues/[id]` — `{ venue, upcomingEvents (≤ 5), upcomingTotal }`.
 
 ### Моя команда (`/teams` → `/team/[id]/*`)
 

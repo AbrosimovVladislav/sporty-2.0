@@ -1,6 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
@@ -20,6 +21,7 @@ import { SearchSubnav } from "@/components/search/SearchSubnav";
 import { EventListRow } from "@/components/events/EventListRow";
 import {
   EventFiltersSheet,
+  type DatePreset,
   type EventFilters,
 } from "@/components/events/EventFiltersSheet";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
@@ -63,16 +65,81 @@ const SORT_OPTIONS = [
   { value: "price_asc", label: "По цене (дешевле)" },
 ];
 
+const PRESET_LABEL: Record<DatePreset, string> = {
+  "": "",
+  today: "Сегодня",
+  this_week: "На этой неделе",
+  next_week: "На следующей",
+  two_weeks: "На 2 недели",
+};
+
 const EMPTY_FILTERS: EventFilters = {
   city: "",
   districtId: "",
   type: "",
+  datePreset: "",
+  dateFrom: "",
+  dateTo: "",
+  priceMax: "",
+  hasSpots: false,
 };
 
-export default function SearchEventsPage() {
+function pad(n: number): string {
+  return String(n).padStart(2, "0");
+}
+
+function toIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function startOfWeek(d: Date): Date {
+  const day = (d.getDay() + 6) % 7; // Mon = 0
+  const r = new Date(d);
+  r.setDate(d.getDate() - day);
+  return r;
+}
+
+function resolvePreset(
+  preset: DatePreset,
+): { from: string; to: string } | null {
+  if (!preset) return null;
+  const today = new Date();
+  if (preset === "today") {
+    const iso = toIsoDate(today);
+    return { from: iso, to: iso };
+  }
+  if (preset === "this_week") {
+    const start = startOfWeek(today);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { from: toIsoDate(today), to: toIsoDate(end) };
+  }
+  if (preset === "next_week") {
+    const start = startOfWeek(today);
+    start.setDate(start.getDate() + 7);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    return { from: toIsoDate(start), to: toIsoDate(end) };
+  }
+  if (preset === "two_weeks") {
+    const end = new Date(today);
+    end.setDate(today.getDate() + 14);
+    return { from: toIsoDate(today), to: toIsoDate(end) };
+  }
+  return null;
+}
+
+function formatChipDate(iso: string): string {
+  const d = new Date(`${iso}T00:00:00`);
+  return `${pad(d.getDate())}.${pad(d.getMonth() + 1)}`;
+}
+
+function SearchEventsInner() {
   const auth = useAuth();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const { activeCity } = useCity();
+  const searchParams = useSearchParams();
+  const venueId = searchParams.get("venue");
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
@@ -131,13 +198,39 @@ export default function SearchEventsPage() {
 
   const effectiveType = typePill || filters.type;
 
+  const dateRange = useMemo(() => {
+    const preset = resolvePreset(filters.datePreset);
+    if (preset) return preset;
+    return { from: filters.dateFrom, to: filters.dateTo };
+  }, [filters.datePreset, filters.dateFrom, filters.dateTo]);
+
+  const buildParams = useCallback(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (filters.city) params.set("city", filters.city);
+    if (filters.districtId) params.set("district_id", filters.districtId);
+    if (effectiveType) params.set("type", effectiveType);
+    if (dateRange.from) params.set("from", dateRange.from);
+    if (dateRange.to) params.set("to", dateRange.to);
+    if (filters.priceMax) params.set("price_max", filters.priceMax);
+    if (filters.hasSpots) params.set("has_spots", "true");
+    if (venueId) params.set("venue", venueId);
+    return params;
+  }, [
+    debouncedSearch,
+    filters.city,
+    filters.districtId,
+    effectiveType,
+    dateRange.from,
+    dateRange.to,
+    filters.priceMax,
+    filters.hasSpots,
+    venueId,
+  ]);
+
   const fetcher = useCallback(
     (offset: number) => {
-      const params = new URLSearchParams();
-      if (debouncedSearch) params.set("q", debouncedSearch);
-      if (filters.city) params.set("city", filters.city);
-      if (filters.districtId) params.set("district_id", filters.districtId);
-      if (effectiveType) params.set("type", effectiveType);
+      const params = buildParams();
       params.set("sort", sort);
       params.set("offset", String(offset));
       return fetch(`/api/events/public?${params}`)
@@ -148,7 +241,7 @@ export default function SearchEventsPage() {
           total: d.total as number | null,
         }));
     },
-    [debouncedSearch, filters.city, filters.districtId, effectiveType, sort],
+    [buildParams, sort],
   );
 
   const { items: events, loading, loadMore, hasMore, reset } =
@@ -157,11 +250,7 @@ export default function SearchEventsPage() {
 
   useEffect(() => {
     let cancelled = false;
-    const params = new URLSearchParams();
-    if (debouncedSearch) params.set("q", debouncedSearch);
-    if (filters.city) params.set("city", filters.city);
-    if (filters.districtId) params.set("district_id", filters.districtId);
-    if (effectiveType) params.set("type", effectiveType);
+    const params = buildParams();
     params.set("sort", sort);
     params.set("limit", "1");
     fetch(`/api/events/public?${params}`)
@@ -178,7 +267,7 @@ export default function SearchEventsPage() {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [debouncedSearch, filters.city, filters.districtId, effectiveType, sort]);
+  }, [buildParams, sort]);
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
@@ -197,13 +286,51 @@ export default function SearchEventsPage() {
         onRemove: () => setFilters((f) => ({ ...f, type: "" })),
       });
     }
+    if (filters.datePreset) {
+      chips.push({
+        id: "date_preset",
+        label: PRESET_LABEL[filters.datePreset],
+        onRemove: () =>
+          setFilters((f) => ({ ...f, datePreset: "" })),
+      });
+    } else if (filters.dateFrom || filters.dateTo) {
+      const left = filters.dateFrom ? formatChipDate(filters.dateFrom) : "...";
+      const right = filters.dateTo ? formatChipDate(filters.dateTo) : "...";
+      chips.push({
+        id: "date_range",
+        label: `${left} — ${right}`,
+        onRemove: () =>
+          setFilters((f) => ({ ...f, dateFrom: "", dateTo: "" })),
+      });
+    }
+    if (filters.priceMax) {
+      const label =
+        filters.priceMax === "0"
+          ? "Бесплатно"
+          : `До ${Number(filters.priceMax).toLocaleString("ru-RU")} ₸`;
+      chips.push({
+        id: "price",
+        label,
+        onRemove: () => setFilters((f) => ({ ...f, priceMax: "" })),
+      });
+    }
+    if (filters.hasSpots) {
+      chips.push({
+        id: "has_spots",
+        label: "Есть места",
+        onRemove: () => setFilters((f) => ({ ...f, hasSpots: false })),
+      });
+    }
     return chips;
   }, [filters, typePill]);
 
   const sheetActiveCount =
     (filters.city ? 1 : 0) +
     (filters.districtId ? 1 : 0) +
-    (filters.type && !typePill ? 1 : 0);
+    (filters.type && !typePill ? 1 : 0) +
+    (filters.datePreset || filters.dateFrom || filters.dateTo ? 1 : 0) +
+    (filters.priceMax ? 1 : 0) +
+    (filters.hasSpots ? 1 : 0);
 
   const showSkeleton = events.length === 0 && loading;
   const showEmpty = !loading && events.length === 0;
@@ -308,5 +435,13 @@ export default function SearchEventsPage() {
         onApply={(next) => setFilters(next)}
       />
     </div>
+  );
+}
+
+export default function SearchEventsPage() {
+  return (
+    <Suspense fallback={<div className="flex flex-1" />}>
+      <SearchEventsInner />
+    </Suspense>
   );
 }

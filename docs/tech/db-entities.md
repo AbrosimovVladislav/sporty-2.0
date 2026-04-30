@@ -84,6 +84,9 @@
 | district_id | uuid? | FK → District |
 | photo_url | text? | Фото площадки |
 | default_cost | numeric? | Стандартная стоимость аренды; авто-подставляется в форме создания события |
+| phone | text? | Телефон администрации (контакт на странице площадки) |
+| website | text? | Сайт / Telegram / любая URL-ссылка на площадку |
+| description | text? | Описание площадки (свободный текст, выводится на странице площадки) |
 | created_by | uuid | FK → User |
 | created_at | timestamp | Дата создания |
 
