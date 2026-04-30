@@ -4,18 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import BackButton from "@/components/BackButton";
-import DistrictSelect from "@/components/DistrictSelect";
+import DistrictPicker from "@/components/DistrictPicker";
 import { Button, BottomActionBar, SheetChipGroup } from "@/components/ui";
 import { POSITIONS, SKILL_LEVELS } from "@/lib/catalogs";
 import { useCity, KZ_CITIES } from "@/lib/city-context";
 import type { User } from "@/types/database";
-
-const PREFERRED_TIME_PRESETS = [
-  "Утром",
-  "Днём",
-  "Вечером",
-  "Выходные",
-];
 
 export default function ProfileSettingsPage() {
   const auth = useAuth();
@@ -36,7 +29,12 @@ export default function ProfileSettingsPage() {
   }
   if (auth.status !== "authenticated") return null;
 
-  return <SettingsContent initialUser={auth.user} onSaved={() => router.push("/profile")} />;
+  return (
+    <SettingsContent
+      initialUser={auth.user}
+      onSaved={() => router.push("/profile")}
+    />
+  );
 }
 
 function SettingsContent({
@@ -49,13 +47,16 @@ function SettingsContent({
   const { activeCity, setActiveCity } = useCity();
   const [user, setUser] = useState(initialUser);
   const [bio, setBio] = useState(initialUser.bio ?? "");
-  const [positions, setPositions] = useState<string[]>(initialUser.position ?? []);
+  const [positions, setPositions] = useState<string[]>(
+    initialUser.position ?? [],
+  );
   const [skillLevel, setSkillLevel] = useState(initialUser.skill_level ?? "");
-  const [preferredTime, setPreferredTime] = useState(initialUser.preferred_time ?? "");
   const [birthDate, setBirthDate] = useState(initialUser.birth_date ?? "");
   const [city, setCity] = useState(activeCity || initialUser.city || "");
   const [districtId, setDistrictId] = useState(initialUser.district_id ?? "");
-  const [lookingForTeam, setLookingForTeam] = useState(initialUser.looking_for_team);
+  const [lookingForTeam, setLookingForTeam] = useState(
+    initialUser.looking_for_team,
+  );
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -87,7 +88,6 @@ function SettingsContent({
           bio: bio.trim() || null,
           position: positions.length > 0 ? positions : null,
           skill_level: skillLevel || null,
-          preferred_time: preferredTime.trim() || null,
           birth_date: birthDate || null,
           city: city || null,
           district_id: districtId || null,
@@ -120,46 +120,31 @@ function SettingsContent({
           className="text-[22px] font-bold leading-tight"
           style={{ color: "var(--text-primary)" }}
         >
-          Настройки
+          Настройки профиля
         </h1>
       </header>
 
       <div className="flex flex-col gap-4 px-4 py-4 pb-28">
         <Section>
-          <FieldLabel>Город</FieldLabel>
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {KZ_CITIES.map((c) => {
-              const active = city === c;
-              return (
-                <button
-                  key={c}
-                  type="button"
-                  onClick={() => {
-                    setCity(c);
-                    setDistrictId("");
-                  }}
-                  className="px-3.5 py-2 rounded-full text-[13px] font-semibold transition-colors"
-                  style={{
-                    background: active ? "var(--gray-900)" : "var(--bg-card)",
-                    color: active ? "white" : "var(--text-secondary)",
-                    border: active ? "1.5px solid var(--gray-900)" : "1.5px solid var(--gray-200)",
-                  }}
-                >
-                  {c}
-                </button>
-              );
-            })}
-          </div>
+          <SheetChipGroup
+            label="Город"
+            options={KZ_CITIES.map((c) => ({ value: c, label: c }))}
+            value={city}
+            onChange={(v) => {
+              setCity(v);
+              setDistrictId("");
+            }}
+            emptyLabel={null}
+          />
         </Section>
 
         {city && (
           <Section>
             <FieldLabel>Район</FieldLabel>
-            <DistrictSelect
+            <DistrictPicker
               city={city}
               value={districtId}
               onChange={setDistrictId}
-              className="w-full rounded-[12px] px-3.5 py-3 text-[15px] outline-none appearance-none"
             />
           </Section>
         )}
@@ -220,52 +205,12 @@ function SettingsContent({
         </Section>
 
         <Section>
-          <FieldLabel>Время тренировок</FieldLabel>
-          <div className="flex flex-wrap gap-1.5 mt-1">
-            {PREFERRED_TIME_PRESETS.map((preset) => {
-              const active = preferredTime === preset;
-              return (
-                <button
-                  key={preset}
-                  type="button"
-                  onClick={() =>
-                    setPreferredTime(active ? "" : preset)
-                  }
-                  className="px-3.5 py-2 rounded-full text-[13px] font-semibold transition-colors"
-                  style={{
-                    background: active ? "var(--gray-900)" : "var(--bg-card)",
-                    color: active ? "white" : "var(--text-secondary)",
-                    border: active
-                      ? "1.5px solid var(--gray-900)"
-                      : "1.5px solid var(--gray-200)",
-                  }}
-                >
-                  {preset}
-                </button>
-              );
-            })}
-          </div>
-          <input
-            type="text"
-            value={preferredTime}
-            onChange={(e) => setPreferredTime(e.target.value)}
-            placeholder="Или своё описание…"
-            className="w-full mt-2 rounded-[12px] px-3.5 py-3 text-[15px] outline-none transition-colors"
-            style={{
-              background: "var(--bg-card)",
-              border: "1.5px solid var(--gray-200)",
-              color: "var(--text-primary)",
-            }}
-          />
-        </Section>
-
-        <Section>
           <FieldLabel>Дата рождения</FieldLabel>
           <input
             type="date"
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
-            className="w-full rounded-[12px] px-3.5 py-3 text-[15px] outline-none transition-colors"
+            className="w-full rounded-[12px] px-3.5 h-[46px] text-[15px] outline-none transition-colors"
             style={{
               background: "var(--bg-card)",
               border: "1.5px solid var(--gray-200)",

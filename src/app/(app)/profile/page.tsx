@@ -2,11 +2,19 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { CircularProgress } from "@/components/CircularProgress";
 import { EVENT_TYPE_LABEL, SPORT_LABEL } from "@/lib/catalogs";
-import { Avatar, IconButton, Pill, Button } from "@/components/ui";
-import { CitySheet } from "@/components/CitySheet";
+import { Pill, Button } from "@/components/ui";
+import {
+  PageHeader,
+  HeaderStatGroup,
+  HeaderStat,
+} from "@/components/ui/PageHeader";
+import { UnderlineTabs, type UnderlineTab } from "@/components/ui/UnderlineTabs";
+import { PositionChipList } from "@/components/PositionChip";
 import { useCity } from "@/lib/city-context";
 import type { User } from "@/types/database";
 
@@ -70,13 +78,14 @@ export default function ProfilePage() {
 /* ─── Shell ────────────────────────────────────────────────── */
 
 function ProfileContent({ initialUser }: { initialUser: User }) {
+  const router = useRouter();
   const [user, setUser] = useState(initialUser);
   const [districtName, setDistrictName] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("about");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null | undefined>(undefined);
-  const [citySheetOpen, setCitySheetOpen] = useState(false);
+  const [teamsCount, setTeamsCount] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { activeCity } = useCity();
 
@@ -101,6 +110,14 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
       })
       .catch(() => {
         if (!cancelled) setStats(null);
+      });
+    fetch(`/api/users/${initialUser.id}/teams`)
+      .then((r) => (r.ok ? r.json() : { teams: [] }))
+      .then((d) => {
+        if (!cancelled) setTeamsCount((d.teams ?? []).length);
+      })
+      .catch(() => {
+        if (!cancelled) setTeamsCount(0);
       });
     return () => {
       cancelled = true;
@@ -142,135 +159,129 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
     { id: "about", label: "Обо мне" },
     { id: "results", label: "Результаты" },
     { id: "reliability", label: "Надёжность" },
-    { id: "achievements", label: "Достижения" },
+    { id: "achievements", label: "Награды" },
   ];
 
-  const locationLabel = [activeCity, activeCity === user.city ? districtName : null].filter(Boolean).join(" · ");
+  const subtitleLocation = [
+    user.city || activeCity,
+    user.city === (activeCity || user.city) ? districtName : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
+  const tabsForUI: UnderlineTab[] = tabs.map((t) => ({
+    label: t.label,
+    active: tab === t.id,
+    onClick: () => setTab(t.id),
+  }));
+
+  const reliabilityValue =
+    stats?.reliability !== null && stats?.reliability !== undefined
+      ? `${stats.reliability}%`
+      : "—";
+
+  const leadingSlot = (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        aria-label="Загрузить фото"
+        className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center"
+        style={{
+          background: user.avatar_url ? "white" : "rgba(255,255,255,0.18)",
+          border: "2px solid rgba(255,255,255,0.25)",
+          opacity: uploading ? 0.5 : 1,
+        }}
+      >
+        {user.avatar_url ? (
+          <Image
+            src={user.avatar_url}
+            alt={user.name}
+            width={64}
+            height={64}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className="font-display text-[24px] font-bold text-white leading-none">
+            {(user.name || "?").trim().charAt(0).toUpperCase()}
+          </span>
+        )}
+      </button>
+      <button
+        type="button"
+        onClick={() => fileInputRef.current?.click()}
+        aria-label="Сменить фото"
+        className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+        style={{
+          background: "var(--green-500)",
+          border: "2px solid var(--green-600)",
+        }}
+        disabled={uploading}
+      >
+        {uploading ? (
+          <div className="w-2.5 h-2.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+        ) : (
+          <CameraIcon />
+        )}
+      </button>
+    </div>
+  );
 
   return (
-    <div
-      className="flex flex-1 flex-col"
-      style={{ background: "var(--bg-secondary)" }}
-    >
-      {/* Hero */}
-      <div className="relative pt-6 pb-5 px-4" style={{ background: "var(--bg-primary)" }}>
-        <Link
-          href="/profile/settings"
-          aria-label="Настройки"
-          className="absolute top-4 right-4 w-10 h-10 rounded-full flex items-center justify-center"
-          style={{
-            background: "var(--bg-card)",
-            color: "var(--text-secondary)",
-            border: "1px solid var(--gray-200)",
-          }}
-        >
-          <SettingsIcon />
-        </Link>
-
-        <div className="relative w-24 h-24 mx-auto">
-          <Avatar size="xl" src={user.avatar_url} name={user.name} />
-          <IconButton
-            kind="on-photo"
-            onClick={() => fileInputRef.current?.click()}
-            aria-label="Загрузить фото"
-            className="absolute bottom-0 right-0 w-8 h-8 disabled:opacity-50"
-          >
-            {uploading ? (
-              <div className="w-3.5 h-3.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
-            ) : (
-              <CameraIcon />
-            )}
-          </IconButton>
-        </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*"
-          className="hidden"
-          onChange={handleAvatarChange}
-        />
-
-        <h1
-          className="text-[28px] font-bold text-center leading-tight mt-3"
-          style={{ color: "var(--text-primary)" }}
-        >
-          {user.name}
-        </h1>
-
-        <button
-          type="button"
-          onClick={() => setCitySheetOpen(true)}
-          className="flex items-center justify-center gap-1.5 mt-2 mx-auto active:opacity-60 transition-opacity"
-        >
-          <MapPinIcon />
-          <span className="text-[13px]" style={{ color: "var(--text-secondary)" }}>
-            {locationLabel || "Город не выбран"}
-          </span>
-          <PencilIcon />
-        </button>
-
+    <div className="flex flex-1 flex-col" style={{ background: "var(--bg-secondary)" }}>
+      <PageHeader
+        title={user.name}
+        subtitle={subtitleLocation || undefined}
+        leadingSlot={leadingSlot}
+        onSettingsClick={() => router.push("/profile/settings")}
+        settingsAriaLabel="Настройки профиля"
+      >
         {user.looking_for_team && (
-          <div className="flex justify-center mt-3">
+          <div className="mb-3 -mt-1">
             <span
-              className="text-[12px] font-semibold rounded-full px-3 py-1"
+              className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full px-3 py-1"
               style={{
-                background: "var(--green-50)",
-                color: "var(--green-700)",
+                background: "rgba(255,255,255,0.18)",
+                color: "white",
               }}
             >
-              Ищет команду
+              <span
+                className="w-1.5 h-1.5 rounded-full"
+                style={{ background: "white" }}
+              />
+              Ищу команду
             </span>
           </div>
         )}
+        <HeaderStatGroup>
+          <HeaderStat value={stats?.playedCount ?? 0} label="Сыграно" />
+          <HeaderStat value={reliabilityValue} label="Надёжность" />
+          <HeaderStat value={teamsCount ?? 0} label="Команд" />
+        </HeaderStatGroup>
+      </PageHeader>
 
-        {uploadError && (
-          <p
-            className="text-[13px] text-center mt-2"
-            style={{ color: "var(--danger)" }}
-          >
-            {uploadError}
-          </p>
-        )}
-      </div>
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarChange}
+      />
 
-      {/* UnderlineTabs (state-based) */}
-      <nav
-        className="flex sticky top-0 z-10"
-        style={{
-          background: "var(--bg-primary)",
-          borderBottom: "1px solid var(--gray-100)",
-        }}
-      >
-        {tabs.map((t) => {
-          const active = tab === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              onClick={() => setTab(t.id)}
-              className="relative flex-1 text-center pt-2 pb-2.5 text-[14px] transition-colors whitespace-nowrap"
-              style={{
-                color: active ? "var(--green-700)" : "var(--text-secondary)",
-                fontWeight: active ? 700 : 500,
-              }}
-            >
-              {t.label}
-              {active && (
-                <span
-                  className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[2.5px] rounded-full"
-                  style={{
-                    background: "var(--green-500)",
-                    width: "calc(100% - 16px)",
-                  }}
-                />
-              )}
-            </button>
-          );
-        })}
-      </nav>
+      {uploadError && (
+        <p
+          className="text-[13px] text-center mt-2 px-4"
+          style={{ color: "var(--danger)" }}
+        >
+          {uploadError}
+        </p>
+      )}
 
-      {/* Tab content */}
+      <UnderlineTabs
+        tabs={tabsForUI}
+        className="sticky top-0 z-10 bg-white"
+      />
+
       <div className="flex flex-col gap-4 px-4 py-4 pb-6">
         {tab === "about" && <AboutTab user={user} />}
         {tab === "results" && <ResultsTab stats={stats} />}
@@ -279,8 +290,6 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
 
         <MyJoinRequests userId={user.id} />
       </div>
-
-      {citySheetOpen && <CitySheet onClose={() => setCitySheetOpen(false)} />}
     </div>
   );
 }
@@ -295,7 +304,6 @@ function AboutTab({ user }: { user: User }) {
     !user.bio &&
     !user.skill_level &&
     positionChips.length === 0 &&
-    !user.preferred_time &&
     age === null;
 
   if (isEmpty) {
@@ -364,36 +372,9 @@ function AboutTab({ user }: { user: User }) {
           style={{ background: "var(--bg-primary)" }}
         >
           <Eyebrow>На поле</Eyebrow>
-          <div className="flex flex-wrap gap-1.5 mt-2">
-            {positionChips.map((chip) => (
-              <span
-                key={chip}
-                className="text-[13px] font-semibold rounded-full px-3 py-1.5"
-                style={{
-                  background: "var(--bg-card)",
-                  color: "var(--text-secondary)",
-                  border: "1px solid var(--gray-200)",
-                }}
-              >
-                {chip}
-              </span>
-            ))}
+          <div className="mt-2">
+            <PositionChipList positions={positionChips} />
           </div>
-        </div>
-      )}
-
-      {user.preferred_time && (
-        <div
-          className="rounded-[16px] p-4"
-          style={{ background: "var(--bg-primary)" }}
-        >
-          <Eyebrow>Время тренировок</Eyebrow>
-          <p
-            className="text-[15px] mt-2"
-            style={{ color: "var(--text-primary)" }}
-          >
-            {user.preferred_time}
-          </p>
         </div>
       )}
     </div>
@@ -404,13 +385,6 @@ function AboutTab({ user }: { user: User }) {
 
 function ResultsTab({ stats }: { stats: Stats | null | undefined }) {
   if (stats === undefined) return <SkeletonBlock />;
-
-  const secondary = [
-    { label: "Голы" },
-    { label: "Передачи" },
-    { label: "Жёлтые" },
-    { label: "MVP" },
-  ];
 
   return (
     <div className="flex flex-col gap-3">
@@ -427,28 +401,23 @@ function ResultsTab({ stats }: { stats: Stats | null | undefined }) {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
-        {secondary.map(({ label }) => (
-          <div
-            key={label}
-            className="rounded-[16px] p-4"
-            style={{ background: "var(--bg-primary)" }}
-          >
-            <Eyebrow>{label}</Eyebrow>
-            <p
-              className="font-display text-[28px] font-bold leading-none tabular-nums mt-2"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              —
-            </p>
-            <p
-              className="text-[12px] mt-1"
-              style={{ color: "var(--text-tertiary)" }}
-            >
-              скоро
-            </p>
-          </div>
-        ))}
+      <div
+        className="rounded-[16px] p-5"
+        style={{ background: "var(--bg-primary)" }}
+      >
+        <p
+          className="text-[15px] font-semibold"
+          style={{ color: "var(--text-primary)" }}
+        >
+          🏗 Игровая статистика — в разработке
+        </p>
+        <p
+          className="text-[13px] mt-1.5 leading-relaxed"
+          style={{ color: "var(--text-secondary)" }}
+        >
+          Скоро ты сможешь видеть свои голы, передачи, MVP-награды и другие
+          показатели за каждый матч.
+        </p>
       </div>
     </div>
   );
@@ -481,6 +450,8 @@ function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
     hasData && stats!.votedYesCount > 0
       ? Math.round((stats!.attendedCount / stats!.votedYesCount) * 100)
       : 0;
+
+  // recentEvents already comes sorted DESC from /api/users/[id]/stats (events(date) desc)
 
   return (
     <div className="flex flex-col gap-3">
@@ -601,42 +572,48 @@ function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
                   : e.attended === false
                     ? "var(--danger)"
                     : "var(--text-tertiary)";
-              const label =
+              const statusLabel =
                 e.attended === true
-                  ? e.type === "training"
-                    ? "Был на тренировке"
-                    : "Сыграл матч"
+                  ? "Был"
                   : e.attended === false
-                    ? e.type === "training"
-                      ? "Пропустил тренировку"
-                      : "Пропустил матч"
-                    : `Записался — ${EVENT_TYPE_LABEL[e.type] ?? e.type}`;
+                    ? "Не был"
+                    : "Не голосовал";
+              const typeLabel = EVENT_TYPE_LABEL[e.type] ?? e.type;
               return (
                 <li
                   key={e.event_id}
-                  className="flex items-center justify-between px-4 py-3"
+                  className="flex items-center justify-between gap-3 px-4 py-3"
                   style={{
                     borderTop:
                       i === 0 ? undefined : "1px solid var(--gray-100)",
                   }}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
                     <span
                       className="w-2.5 h-2.5 rounded-full shrink-0"
                       style={{ background: dotColor }}
                     />
-                    <span
-                      className="text-[15px]"
-                      style={{ color: "var(--text-primary)" }}
-                    >
-                      {label}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p
+                        className="text-[15px] truncate"
+                        style={{ color: "var(--text-primary)" }}
+                      >
+                        {formatAbsoluteDate(e.date)} · {typeLabel}
+                      </p>
+                    </div>
                   </div>
                   <span
-                    className="text-[13px] shrink-0 ml-3"
-                    style={{ color: "var(--text-secondary)" }}
+                    className="text-[13px] font-semibold shrink-0"
+                    style={{
+                      color:
+                        e.attended === true
+                          ? "var(--green-600)"
+                          : e.attended === false
+                            ? "var(--danger)"
+                            : "var(--text-tertiary)",
+                    }}
                   >
-                    {formatRelativeDate(e.date)}
+                    {statusLabel}
                   </span>
                 </li>
               );
@@ -1068,53 +1045,17 @@ function SkeletonBlock() {
 function CameraIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="11"
+      height="11"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
+      stroke="white"
+      strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
     >
       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
       <circle cx="12" cy="13" r="4" />
-    </svg>
-  );
-}
-
-function SettingsIcon() {
-  return (
-    <svg
-      width="20"
-      height="20"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <circle cx="12" cy="12" r="3" />
-      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" />
-    </svg>
-  );
-}
-
-function MapPinIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)", flexShrink: 0 }}>
-      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
-      <circle cx="12" cy="10" r="3" />
-    </svg>
-  );
-}
-
-function PencilIcon() {
-  return (
-    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: "var(--text-tertiary)", flexShrink: 0 }}>
-      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
     </svg>
   );
 }
@@ -1134,14 +1075,8 @@ function calcAge(birthDate: string): number | null {
   return age;
 }
 
-function formatRelativeDate(iso: string): string {
+function formatAbsoluteDate(iso: string): string {
   const d = new Date(iso);
-  const now = new Date();
-  const diffMs = now.getTime() - d.getTime();
-  const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return "Сегодня";
-  if (diffDays === 1) return "Вчера";
-  if (diffDays < 7) return `${diffDays} дн. назад`;
-  if (diffDays < 30) return `${Math.floor(diffDays / 7)} нед. назад`;
+  if (isNaN(d.getTime())) return "—";
   return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
 }

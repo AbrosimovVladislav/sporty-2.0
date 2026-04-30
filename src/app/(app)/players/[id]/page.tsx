@@ -22,7 +22,6 @@ type Player = {
   sport: string | null;
   position: string[] | null;
   skill_level: string | null;
-  preferred_time: string | null;
   bio: string | null;
   birth_date: string | null;
   looking_for_team: boolean;
@@ -164,7 +163,7 @@ export default function PlayerProfilePage() {
         </div>
 
         {/* О себе */}
-        {(player.bio || (player.position && player.position.length > 0) || player.skill_level || age !== null || player.preferred_time) && (
+        {(player.bio || (player.position && player.position.length > 0) || player.skill_level || age !== null) && (
           <Card>
             <SectionEyebrow tone="muted">О себе</SectionEyebrow>
             {player.bio && <p className="text-[15px] mb-3 leading-relaxed">{player.bio}</p>}
@@ -187,12 +186,6 @@ export default function PlayerProfilePage() {
                 <div>
                   <p className="text-[13px] text-foreground-secondary">Возраст</p>
                   <p className="text-[15px] font-medium">{age} лет</p>
-                </div>
-              )}
-              {player.preferred_time && (
-                <div>
-                  <p className="text-[13px] text-foreground-secondary">Время</p>
-                  <p className="text-[15px] font-medium">{player.preferred_time}</p>
                 </div>
               )}
             </div>
