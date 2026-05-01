@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { useTeamUI } from "../team-ui-context";
@@ -194,8 +195,14 @@ function SettingsContent() {
                 }}
               >
                 {t.logo_url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={t.logo_url} alt="" className="w-full h-full object-cover" />
+                  <Image
+                    src={t.logo_url}
+                    alt=""
+                    width={80}
+                    height={80}
+                    sizes="80px"
+                    className="w-full h-full object-cover"
+                  />
                 ) : (
                   <span className="font-display text-[34px] font-bold text-white leading-none">
                     {initial}

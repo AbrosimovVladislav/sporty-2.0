@@ -2,6 +2,7 @@
 
 import { use, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
+import Image from "next/image";
 import { TeamProvider, useTeam } from "./team-context";
 import { TeamUIProvider } from "./team-ui-context";
 import {
@@ -11,7 +12,7 @@ import {
 } from "@/components/ui/PageHeader";
 import { UnderlineTabs, type UnderlineTab } from "@/components/ui/UnderlineTabs";
 import { TeamSwitcherSheet } from "@/components/teams/TeamSwitcherSheet";
-import { TeamRequestsSheet } from "@/components/team/TeamRequestsSheet";
+import { TeamRequestsSheet } from "@/components/team/lazy";
 import { useAuth } from "@/lib/auth-context";
 import { setLastActiveTeamId } from "@/lib/lastActiveTeam";
 import { SPORT_LABEL } from "@/lib/catalogs";
@@ -100,8 +101,15 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
         }}
       >
         {t.logo_url ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={t.logo_url} alt="" className="w-full h-full object-cover" />
+          <Image
+            src={t.logo_url}
+            alt=""
+            width={56}
+            height={56}
+            sizes="56px"
+            priority
+            className="w-full h-full object-cover"
+          />
         ) : (
           <span className="font-display text-[24px] font-bold text-white leading-none">
             {initial}
@@ -145,7 +153,6 @@ function TeamSubNav({ id }: { id: string }) {
   const pathname = usePathname();
   const team = useTeam();
   const isOrganizer = team.status === "ready" && team.role === "organizer";
-  const reload = team.status === "ready" ? team.reload : undefined;
 
   const tabs: UnderlineTab[] = SUB_TABS
     .filter((tab) => !tab.organizerOnly || isOrganizer)
@@ -154,7 +161,7 @@ function TeamSubNav({ id }: { id: string }) {
       const active = tab.exact
         ? pathname === href
         : pathname === href || pathname.startsWith(href + "/");
-      return { href, label: tab.label, active, onClick: reload };
+      return { href, label: tab.label, active };
     });
 
   return (

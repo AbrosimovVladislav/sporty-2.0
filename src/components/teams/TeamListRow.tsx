@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import { Avatar } from "@/components/ui";
 import { SPORT_LABEL } from "@/lib/catalogs";
 
@@ -16,7 +17,7 @@ type Props = {
   logoUrl?: string | null;
 };
 
-export function TeamListRow({
+function TeamListRowImpl({
   id,
   name,
   sport,
@@ -76,6 +77,8 @@ export function TeamListRow({
     </Link>
   );
 }
+
+export const TeamListRow = memo(TeamListRowImpl);
 
 function RoleBadge({ children }: { children: React.ReactNode }) {
   return (

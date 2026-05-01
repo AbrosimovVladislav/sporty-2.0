@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 
 type Props = {
@@ -34,7 +35,7 @@ function formatDateBlock(iso: string): { day: string; month: string; time: strin
   return { day, month, time };
 }
 
-export function EventListRow({
+function EventListRowImpl({
   id,
   teamId,
   teamName,
@@ -116,6 +117,8 @@ export function EventListRow({
     </Link>
   );
 }
+
+export const EventListRow = memo(EventListRowImpl);
 
 function RoleBadge({ children }: { children: React.ReactNode }) {
   return (

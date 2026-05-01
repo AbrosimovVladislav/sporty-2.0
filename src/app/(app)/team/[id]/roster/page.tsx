@@ -11,7 +11,7 @@ import {
   FilterPills,
 } from "@/components/ui";
 import { PlayerListRow } from "@/components/players/PlayerListRow";
-import { TeamPlayerSheet } from "@/components/team/TeamPlayerSheet";
+import { TeamPlayerSheet } from "@/components/team/lazy";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 

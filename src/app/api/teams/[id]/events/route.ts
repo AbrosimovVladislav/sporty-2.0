@@ -94,35 +94,32 @@ export async function GET(
 
   const supabase = getServiceClient();
 
-  let isGuestAccess = true;
-  if (userId) {
-    const { data: membership } = await supabase
-      .from("team_memberships")
-      .select("role")
-      .eq("user_id", userId)
+  // Параллельно — фуллстэк событий + membership-проба. Не-членов отфильтруем после.
+  const [{ data: membership }, { data, error }] = await Promise.all([
+    userId
+      ? supabase
+          .from("team_memberships")
+          .select("role")
+          .eq("user_id", userId)
+          .eq("team_id", teamId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
+    supabase
+      .from("events")
+      .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address)")
       .eq("team_id", teamId)
-      .maybeSingle();
-    if (membership) isGuestAccess = false;
-  }
+      .order("date", { ascending: false }),
+  ]);
 
-  let eventsQuery = supabase
-    .from("events")
-    .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address)")
-    .eq("team_id", teamId)
-    .order("date", { ascending: false });
-
-  if (isGuestAccess) {
-    eventsQuery = eventsQuery.eq("is_public", true);
-  }
-
-  const { data, error } = await eventsQuery;
+  const isGuestAccess = !membership;
 
   if (error) {
     console.error("Events fetch error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  const events = (data ?? []) as unknown as EventWithVenue[];
+  const allEvents = (data ?? []) as unknown as EventWithVenue[];
+  const events = isGuestAccess ? allEvents.filter((e) => e.is_public) : allEvents;
   const eventIds = events.map((e) => e.id);
 
   // Batch fetch attendances and transactions for all events

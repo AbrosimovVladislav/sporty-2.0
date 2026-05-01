@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, pluralize } from "@/lib/format";
 
 type Attendance = {
   user_id: string;
@@ -264,7 +264,7 @@ export function EventFinanceForOrganizer({
                       }}
                     >
                       <span>
-                        Должны {debtors.length} {plural(debtors.length, "человек", "человека", "человек")} · {formatMoney(debtAmount)}
+                        Должны {debtors.length} {pluralize(debtors.length, ["человек", "человека", "человек"])} · {formatMoney(debtAmount)}
                       </span>
                       <span style={{ transform: showDebtors ? "rotate(180deg)" : "rotate(0deg)" }}>
                         <ChevronDownIcon />
@@ -301,7 +301,7 @@ export function EventFinanceForOrganizer({
                   {formatMoney(expected)}
                 </p>
                 <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
-                  Ожидается с {yesCount} {plural(yesCount, "игрока", "игроков", "игроков")}
+                  Ожидается с {yesCount} {pluralize(yesCount, ["игрока", "игроков", "игроков"])}
                 </p>
               </>
             )}
@@ -353,12 +353,4 @@ function ChevronDownIcon() {
       <polyline points="6 9 12 15 18 9" />
     </svg>
   );
-}
-function plural(n: number, one: string, few: string, many: string): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return many;
-  if (m === 1) return one;
-  if (m >= 2 && m <= 4) return few;
-  return many;
 }

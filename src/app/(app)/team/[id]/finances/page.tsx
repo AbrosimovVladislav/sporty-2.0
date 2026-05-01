@@ -1,14 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam, type TeamMember } from "../team-context";
-import { TeamPlayerSheet } from "@/components/team/TeamPlayerSheet";
+import { TeamPlayerSheet } from "@/components/team/lazy";
 import { SkeletonCard } from "@/components/Skeleton";
 import { Avatar, Button, SectionEyebrow } from "@/components/ui";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, formatMonthShort, pluralize } from "@/lib/format";
 
 type FinancesData = {
   metrics: {
@@ -42,13 +42,6 @@ type InsightsFinance = {
 
 type Member = { user_id: string; name: string };
 
-function monthShort(monthStr: string): string {
-  const [year, month] = monthStr.split("-").map(Number);
-  return new Date(year, month - 1, 1)
-    .toLocaleDateString("ru-RU", { month: "short" })
-    .replace(".", "");
-}
-
 export default function TeamFinancesPage() {
   const team = useTeam();
   const auth = useAuth();
@@ -56,12 +49,17 @@ export default function TeamFinancesPage() {
   const [insights, setInsights] = useState<InsightsFinance | null>(null);
   const [openMember, setOpenMember] = useState<TeamMember | null>(null);
   const [showDeposit, setShowDeposit] = useState(false);
-  const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const teamId = team.status === "ready" ? team.team.id : null;
   const teamMembers = team.status === "ready" ? team.members : [];
+
+  // Members for DepositModal — берём из team-context, лишний fetch не нужен.
+  const members = useMemo<Member[]>(
+    () => teamMembers.map((m) => ({ user_id: m.user.id, name: m.user.name })),
+    [teamMembers],
+  );
 
   const load = () => {
     if (!teamId || !userId) return;
@@ -81,16 +79,6 @@ export default function TeamFinancesPage() {
 
   useEffect(() => { load(); }, [teamId, userId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  useEffect(() => {
-    if (!teamId || !showDeposit || members.length > 0) return;
-    fetch(`/api/teams/${teamId}`)
-      .then((r) => r.json())
-      .then((d) => setMembers((d.members ?? []).map((m: { user: { id: string; name: string } }) => ({
-        user_id: m.user.id,
-        name: m.user.name,
-      }))));
-  }, [teamId, showDeposit, members.length]);
-
   if (team.status === "loading" || data === null) {
     return error ? (
       <div className="bg-bg-primary rounded-[16px] p-4 shadow-sm">
@@ -108,6 +96,8 @@ export default function TeamFinancesPage() {
   if (team.status !== "ready" || team.role !== "organizer") return null;
 
   const m = data.metrics;
+  const debtorsMax = data.debtors.length > 0 ? data.debtors[0].amount : 0;
+  const creditorsMax = data.creditors.length > 0 ? data.creditors[0].amount : 0;
 
   const openPlayer = (uid: string) => {
     const found = teamMembers.find((tm) => tm.user.id === uid);
@@ -171,7 +161,7 @@ export default function TeamFinancesPage() {
                   userId={d.userId}
                   name={d.name}
                   amount={d.amount}
-                  maxAmount={Math.max(...data.debtors.map((x) => x.amount))}
+                  maxAmount={debtorsMax}
                   color="danger"
                   sign="−"
                   onOpen={openPlayer}
@@ -194,7 +184,7 @@ export default function TeamFinancesPage() {
                   userId={c.userId}
                   name={c.name}
                   amount={c.amount}
-                  maxAmount={Math.max(...data.creditors.map((x) => x.amount))}
+                  maxAmount={creditorsMax}
                   color="success"
                   sign="+"
                   onOpen={openPlayer}
@@ -381,7 +371,7 @@ function FlowChart({ data }: { data: FlowMonth[] }) {
                 fontSize={9}
                 fill="var(--text-secondary)"
               >
-                {monthShort(d.month)}
+                {formatMonthShort(d.month)}
               </text>
             </g>
           );
@@ -546,7 +536,7 @@ function VenuesAccordion({
       >
         <div className="flex flex-col min-w-0 flex-1">
           <span className="text-[14px] font-semibold leading-tight text-text-primary">
-            Площадки · {events.length} {pluralEvents(events.length)}
+            Площадки · {events.length} {pluralize(events.length, ["событие", "события", "событий"])}
           </span>
           <span className="text-[11px] mt-1" style={{ color: "var(--text-tertiary)" }}>
             Оплачено {formatMoney(totalPaid)} из {formatMoney(totalCost)}
@@ -602,15 +592,6 @@ function VenuesAccordion({
       )}
     </div>
   );
-}
-
-function pluralEvents(n: number): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return "событий";
-  if (m === 1) return "событие";
-  if (m >= 2 && m <= 4) return "события";
-  return "событий";
 }
 
 function ChevronDownIcon() {

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Avatar } from "@/components/ui";
 import { PositionChipList } from "@/components/PositionChip";
 import { SKILL_LEVELS, EVENT_TYPE_LABEL } from "@/lib/catalogs";
-import { formatMoney } from "@/lib/format";
+import { formatMoney, pluralize } from "@/lib/format";
 
 export type TeamPlayerSheetMember = {
   id: string;
@@ -423,8 +423,8 @@ function peekReliability(d: ReliabilityData | null | undefined): PeekContent | n
   }
   const { reliability, noShow, cancelled } = d.totals;
   const issues: string[] = [];
-  if (noShow > 0) issues.push(`${noShow} неприход${plural(noShow)}`);
-  if (cancelled > 0) issues.push(`${cancelled} отмен${pluralCancel(cancelled)}`);
+  if (noShow > 0) issues.push(`${noShow} ${pluralize(noShow, ["неприход", "неприхода", "неприходов"])}`);
+  if (cancelled > 0) issues.push(`${cancelled} ${pluralize(cancelled, ["отмена", "отмены", "отмен"])}`);
 
   return {
     primary: reliability !== null ? `${reliability}%` : "—",
@@ -453,17 +453,6 @@ function peekFinances(d: FinancesData | null | undefined): PeekContent | null {
     primaryColor: positiveBalance ? "var(--green-600)" : "var(--danger)",
     secondary: `Сдал ${formatMoney(paid)} из ${formatMoney(expected)} ₸`,
   };
-}
-
-function plural(n: number): string {
-  if (n % 10 === 1 && n % 100 !== 11) return "";
-  return "а";
-}
-
-function pluralCancel(n: number): string {
-  if (n % 10 === 1 && n % 100 !== 11) return "а";
-  if ([2, 3, 4].includes(n % 10) && ![12, 13, 14].includes(n % 100)) return "ы";
-  return "";
 }
 
 /* ─── Accordion ────────────────────────────────────────────── */

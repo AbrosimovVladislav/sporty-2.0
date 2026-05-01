@@ -442,44 +442,115 @@
 
 ## ⬜ Итерация 1.5.1 — Code review, рефакторинг, оптимизация
 
-**Цель.** Финальный проход по кодовой базе после прохождения всех функциональных итераций 1.5. Скоуп уточняем после полного тестирования 1.5 — здесь зафиксированы первоначальные направления.
+**Цель.** Убрать лаги и фризы при открытии экранов, причесать код. После аудита приоритеты ясны: основной тормоз — init-waterfall (Telegram → Auth → Team → таб), refetch при смене табов, неэффективные API-роуты с 5–9 последовательными запросами, и компоненты-гиганты на 700–1000+ строк.
 
-> **Порядок.** Эта итерация запускается **после** того, как пользователь протестировал и принял итерации 43–52. Детальный план составляем по результатам тестирования и быстрого аудита.
+> **Порядок.** Сначала производительность (1.5.1.1–1.5.1.4) — это даёт мгновенный эффект для пользователя. Затем уборка кода (1.5.1.5–1.5.1.10). Декомпозицию компонентов-гигантов (1.5.1.7) можно выполнять параллельно после того, как новые границы зафиксированы.
 
-### 1.5.1.1 Аудит кодовой базы
+### 1.5.1.1 Init-waterfall: убрать блокировку первого рендера
 
-- Найти и удалить мёртвый код (компоненты/утилиты, на которые не осталось ссылок после итераций 1.4–1.5)
-- Дедупликация: одинаковая логика в разных файлах (например, sort-функции событий, format-функции дат, position-helpers)
-- Проверить, что все компоненты выровнены по дизайн-системе (нет старых `Card`, инлайн-цветов, hardcoded `#hex`)
-- Аудит TypeScript: убрать `any`, привести типы API-ответов к единому стилю
+**Проблема.** Сейчас порядок инициализации последовательный:
 
-### 1.5.1.2 Производительность: первая загрузка
+1. `TelegramProvider` ([src/components/TelegramProvider.tsx](../../src/components/TelegramProvider.tsx)) возвращает `null` пока `setReady(true)` не отработает после загрузки `telegram-web-app.js` → белый экран
+2. `AuthProvider` дожидается ответа `/api/auth/telegram` (мс)
+3. `TeamProvider` ждёт `auth.status !== "loading"`, потом fetch'ит `/api/teams/[id]`
+4. Страница таба ждёт `team.status === "ready"`, потом fetch'ит свои данные
 
-**Известная проблема.** Пользователь отмечает заметные задержки при первичном открытии страниц приложения.
+Итого 3–4 последовательных round-trip до первого осмысленного пикселя.
 
-Направления (приоритизация после измерений):
+**Решение.**
 
-- Bundle size: проверить `npm run build` output, найти тяжёлые зависимости, посмотреть на dynamic imports для редко используемых компонентов (sheet'ы, графики)
-- Supabase-запросы: дублирующиеся запросы при навигации между табами одной команды/профиля — кэшировать через context или React Query (если введём)
-- Изображения: проверить, что `avatar_url`, `logo_url`, `photo_url` отдаются через Next.js `<Image>` с правильными `sizes`/`priority`
-- Lazy-load для второстепенных секций (графики финансов, список достижений)
-- Telegram Mini App init: проверить, не блокируем ли первый рендер ожиданием SDK
+- `TelegramProvider`: убрать `if (!ready) return null`, рендерить children сразу, side-effect `twa.ready()/expand()` оставить в `useEffect`. Telegram не требует синхронной init для отображения UI.
+- `AuthProvider`: показывать skeleton/children сразу, обернуть value в `useMemo`, кэшировать `user` в `sessionStorage` для мгновенного возврата при reload.
+- `TeamProvider`: добавить in-memory кэш `Map<teamId, TeamData>` — при возврате в ту же команду рендерить из кэша мгновенно, refetch в фоне.
 
-### 1.5.1.3 Производительность: in-app навигация
+### 1.5.1.2 Контексты: убрать лишние ре-fetch'и и перерисовки
 
-- Проверить, что переходы между табами `/team/[id]/`* не перезапрашивают одинаковые данные
-- `team-context` — посмотреть, не происходит ли refetch при каждом монтировании
-- Skeleton-стейты: убедиться, что они есть на всех страницах, где данные грузятся > 200ms
+- **`TeamSubNav` ([src/app/(app)/team/[id]/layout.tsx:157](../../src/app/(app)/team/[id]/layout.tsx#L157))** — у каждого таба `onClick: reload`. Клик по табу триггерит refetch всего `/api/teams/[id]`. Удалить.
+- **`CityProvider` ([src/lib/city-context.tsx:52](../../src/lib/city-context.tsx#L52))** — value `{activeCity, setActiveCity}` создаётся новый каждый рендер → все потребители ре-рендерятся. Обернуть в `useMemo`.
+- **`AuthProvider`** — то же самое.
+- **`TeamProvider`** — value тоже не мемоизирован, но менее критично из-за discriminated union.
+- **TeamPageHeader** ([layout.tsx:48](../../src/app/(app)/team/[id]/layout.tsx#L48)) — fetch `/api/users/[id]/teams` для счётчика табов. Перенести в общий контекст или хотя бы кэшировать.
 
-### 1.5.1.4 Мелкие фиксы по итогам тестирования 1.5
+### 1.5.1.3 API: распараллелить запросы внутри роутов
 
-Резерв под мелкие баги/UX-косяки, которые всплывут при тестировании итераций 43–52. Список собираем во время тестирования и закрываем здесь, перед релизом 1.5.
+**Главный виновник: `GET /api/teams/[id]` ([src/app/api/teams/[id]/route.ts](../../src/app/api/teams/[id]/route.ts))** — до 9 последовательных запросов:
+
+1. `teams.select()` — нужен сразу
+2. `team_memberships.select(...)` — независим
+3. `join_requests.select(...)` (для guest) — зависит от members (роль)
+4. `join_requests.count(...)` (для organizer) — зависит от роли
+5. `events.count(completed)` — независим
+6. `events.count(planned)` — независим
+7. `events.select(completed)` (для долга) — независим
+8. `event_attendances.select(...)` — зависит от 7
+9. `financial_transactions.select(...)` — независим
+
+Цель: переписать на 2 фазы через `Promise.all`. Фаза 1 (параллельно): team + memberships + 2 counts + completedEvents + transactions. Фаза 2: attendances (зависит от completedEvents) + condition-зависимые join_requests. Ожидаемый эффект — снижение latency на 50%+.
+
+**Аналогично проверить:** `/api/teams/[id]/events`, `/api/teams/[id]/finances`, `/api/teams/[id]/insights`. Заменить sequential awaits на `Promise.all` где независимо.
+
+### 1.5.1.4 Дублирующие fetch'и при смене табов
+
+- **Финансы ([finances/page.tsx:84](../../src/app/(app)/team/[id]/finances/page.tsx#L84))** — отдельный fetch `/api/teams/[id]` для members при открытии модала депозита. Эти данные уже есть в `team-context.members`. Использовать оттуда.
+- **Финансы (page.tsx:66–80)** — `Promise.all([finances, insights])` хорошо. Но `insights` дублирует часть данных, отдаваемых в `/api/teams/[id]`. Подумать о слиянии.
+- **События/Финансы переключение** — когда пользователь делает A → B → A, второе посещение делает full refetch. Нужен короткоживущий cache (5–30 сек) для GET-запросов в страничных эффектах.
+
+### 1.5.1.5 Мемоизация списков
+
+- `PlayerListRow`, `EventListRow`, `TeamCardRow`, `VenueListRow` — обернуть в `React.memo`. Сейчас при фильтрации/sort'е перерисовываются все строки.
+- Handler'ы (`onClick`, `onVote`) — поднять в `useCallback`, чтобы memo работал.
+- В страницах со списками — `useMemo` для отфильтрованных/отсортированных массивов.
+
+### 1.5.1.6 Изображения
+
+- `<img>` для логотипов команд используется в 3 местах: [layout.tsx:104](../../src/app/(app)/team/[id]/layout.tsx#L104), [settings/page.tsx](../../src/app/(app)/team/[id]/settings/page.tsx), [TeamRequestsSheet.tsx](../../src/components/team/TeamRequestsSheet.tsx). Перевести на `next/image` с правильными `sizes`.
+- Сконфигурировать `next.config.ts` (`images.remotePatterns`) для домена Supabase Storage.
+- Аватары игроков в списках — поставить `sizes="44px"`, hero-аватар команды — `priority`.
+
+### 1.5.1.7 Декомпозиция компонентов-гигантов
+
+Файлы >500 строк трудно поддерживать и провоцируют каскады ре-рендеров. Разбить на под-компоненты:
+
+| Файл | Строк | Разбить на |
+|------|-------|-----------|
+| `profile/page.tsx` | 1082 | `ProfileHeader`, `ProfileTabs`, `AboutTab`, `ResultsTab`, `ReliabilityTab`, `AchievementsTab` |
+| `TeamPlayerSheet.tsx` | 925 | `SheetHeader`, `ReliabilityAccordion`, `FinancesAccordion`, `StatsAccordion`, `PlayerActions` |
+| `team/[id]/page.tsx` | 879 | `TeamMainHeader`, `LeadersSection`, `NextEventCard`, `RecentEventsList`, `RequestsCard` |
+| `team/[id]/finances/page.tsx` | 767 | `FinancesHero`, `FlowChart`, `MarginBar`, `DebtorsList`, `VenuesAccordion`, `DepositCard` |
+| `team/[id]/events/page.tsx` | 734 | `EventsFilterBar`, `EventsList`, `CreateEventSheet` |
+
+### 1.5.1.8 Дедупликация утилит
+
+- **Плюрализация**: `pluralDays` приватный в `format.ts`, а копии похожей логики разбросаны (`requestsLabel`, склонения для player/event/day/etc.). Создать общий `pluralize(n, [one, few, many])` и использовать везде.
+- **`monthShort` локально в `finances/page.tsx:45`** — перенести в `format.ts`.
+- Прямые `toLocaleDateString` (~23 места) — заменить на хелперы из `format.ts`. Если форматов не хватает — расширить `format.ts`, не плодить inline-вызовы.
+
+### 1.5.1.9 Мёртвый код, типы, console.log
+
+- **Удалить** [src/components/PlayerCard.tsx](../../src/components/PlayerCard.tsx) — 147 строк, 0 импортов после ит. 49.4 (заменён на `TeamPlayerSheet`).
+- Прогрепать `as any` / `: any` — заменить на конкретные типы или `unknown` с narrow'ом. Главные жертвы: API notify-helpers.
+- `console.error` в API-роутах — оставить (server-side логирование). На клиенте — убрать или обернуть в `if (process.env.NODE_ENV === 'development')`.
+
+### 1.5.1.10 Race conditions и cleanup
+
+- Все useEffect с fetch используют ручной `let cancelled = true` — паттерн правильный, но дублируется. Вынести в `useFetchData(url, deps)` с `AbortController`.
+- Проверить, что нет `setState` после unmount.
+
+### 1.5.1.11 Dynamic imports для тяжёлых sheet'ов
+
+- `TeamPlayerSheet`, `TeamRequestsSheet`, `EventCreateSheet`, `DepositModal`, все `FiltersSheet` — `dynamic(() => import(...), { ssr: false })`. Они открываются по тапу — нет смысла грузить в initial bundle.
+- Bar chart финансов — `dynamic` с `ssr: false`.
+
+### 1.5.1.12 Мелкие фиксы по итогам тестирования 1.5
+
+Резерв под баги/UX-косяки, которые всплывут при тестировании итераций 43–52.
 
 ### Не входит
 
 - Серверные оптимизации Supabase (RLS, индексы) — отдельная задача с замерами
 - Перевод на React Query / SWR — большое архитектурное решение, не делаем без отдельного обсуждения
 - Telegram CDN / hosting — деплоится через Vercel, на 1.5 не трогаем
+- Виртуализация списков (react-window) — пока списки <100 элементов, не нужна; вернуться при росте
 
 ---
 

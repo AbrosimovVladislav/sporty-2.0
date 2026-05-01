@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Image from "next/image";
 
 type IncomingRequest = {
   id: string;
@@ -362,8 +363,14 @@ function Avatar({
         className="w-11 h-11 rounded-full overflow-hidden shrink-0"
         style={{ background: "var(--gray-100)" }}
       >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={src} alt={name} className="w-full h-full object-cover" />
+        <Image
+          src={src}
+          alt={name}
+          width={44}
+          height={44}
+          sizes="44px"
+          className="w-full h-full object-cover"
+        />
       </div>
     );
   }

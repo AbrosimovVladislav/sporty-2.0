@@ -17,6 +17,11 @@ type MembershipWithUser = {
   } | null;
 };
 
+type CompletedEvent = { id: string; price_per_player: number };
+type Transaction = { player_id: string; amount: number };
+type Attendance = { user_id: string; event_id: string };
+type JoinRequestRow = { id: string; status: string; resolved_at: string | null };
+
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -27,11 +32,61 @@ export async function GET(
 
   const supabase = getServiceClient();
 
-  const { data: team, error: teamError } = await supabase
-    .from("teams")
-    .select()
-    .eq("id", id)
-    .maybeSingle();
+  // Phase 1 — все запросы, не требующие предыдущих результатов, параллельно.
+  const [
+    { data: team, error: teamError },
+    { data: rawMemberships, error: membersError },
+    { count: completedEventsCount },
+    { count: plannedEventsCount },
+    { data: completedEvents },
+    { data: transactions },
+    pendingRequestsRes,
+    guestJoinReqRes,
+  ] = await Promise.all([
+    supabase.from("teams").select().eq("id", id).maybeSingle(),
+    supabase
+      .from("team_memberships")
+      .select("id, user_id, role, joined_at, users(id, name, city, sport, position, skill_level, avatar_url)")
+      .eq("team_id", id)
+      .order("joined_at", { ascending: true }),
+    supabase
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("team_id", id)
+      .eq("status", "completed"),
+    supabase
+      .from("events")
+      .select("*", { count: "exact", head: true })
+      .eq("team_id", id)
+      .eq("status", "planned"),
+    supabase
+      .from("events")
+      .select("id, price_per_player")
+      .eq("team_id", id)
+      .eq("status", "completed"),
+    supabase
+      .from("financial_transactions")
+      .select("player_id, amount")
+      .eq("team_id", id),
+    supabase
+      .from("join_requests")
+      .select("*", { count: "exact", head: true })
+      .eq("team_id", id)
+      .eq("direction", "player_to_team")
+      .eq("status", "pending"),
+    userId
+      ? supabase
+          .from("join_requests")
+          .select("id, status, resolved_at")
+          .eq("user_id", userId)
+          .eq("team_id", id)
+          .eq("direction", "player_to_team")
+          .in("status", ["pending", "rejected"])
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle()
+      : Promise.resolve({ data: null as JoinRequestRow | null }),
+  ]);
 
   if (teamError) {
     console.error("Team fetch error:", teamError);
@@ -40,12 +95,6 @@ export async function GET(
   if (!team) {
     return NextResponse.json({ error: "Team not found" }, { status: 404 });
   }
-
-  const { data: rawMemberships, error: membersError } = await supabase
-    .from("team_memberships")
-    .select("id, user_id, role, joined_at, users(id, name, city, sport, position, skill_level, avatar_url)")
-    .eq("team_id", id)
-    .order("joined_at", { ascending: true });
 
   if (membersError) {
     console.error("Memberships fetch error:", membersError);
@@ -69,29 +118,18 @@ export async function GET(
       user: m.users!,
     }));
 
-  // If guest, check if they have a pending/rejected player_to_team request
+  // Guest join-request status — берём из уже выполненного запроса.
   let joinRequestStatus: "none" | "pending" | "rejected" = "none";
   let joinRequestId: string | null = null;
   let joinRequestCooldownUntil: string | null = null;
   if (currentRole === "guest" && userId) {
-    const { data: jr } = await supabase
-      .from("join_requests")
-      .select("id, status, resolved_at")
-      .eq("user_id", userId)
-      .eq("team_id", id)
-      .eq("direction", "player_to_team")
-      .in("status", ["pending", "rejected"])
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    const jr = guestJoinReqRes?.data ?? null;
     if (jr) {
       joinRequestStatus = jr.status as "pending" | "rejected";
       joinRequestId = jr.status === "pending" ? jr.id : null;
       if (jr.status === "rejected" && jr.resolved_at) {
         const resolvedAt = new Date(jr.resolved_at);
-        const until = new Date(
-          resolvedAt.getTime() + 7 * 24 * 60 * 60 * 1000,
-        );
+        const until = new Date(resolvedAt.getTime() + 7 * 24 * 60 * 60 * 1000);
         if (until.getTime() > Date.now()) {
           joinRequestCooldownUntil = until.toISOString();
         }
@@ -99,62 +137,34 @@ export async function GET(
     }
   }
 
-  // If organizer, count pending player_to_team requests (not outgoing invites)
-  let pendingRequestsCount = 0;
-  if (currentRole === "organizer") {
-    const { count } = await supabase
-      .from("join_requests")
-      .select("*", { count: "exact", head: true })
-      .eq("team_id", id)
-      .eq("direction", "player_to_team")
-      .eq("status", "pending");
-    pendingRequestsCount = count ?? 0;
-  }
+  const pendingRequestsCount = currentRole === "organizer" ? (pendingRequestsRes.count ?? 0) : 0;
 
-  // Team event stats
-  const { count: completedEventsCount } = await supabase
-    .from("events")
-    .select("*", { count: "exact", head: true })
-    .eq("team_id", id)
-    .eq("status", "completed");
-
-  const { count: plannedEventsCount } = await supabase
-    .from("events")
-    .select("*", { count: "exact", head: true })
-    .eq("team_id", id)
-    .eq("status", "planned");
-
-  // Organizer-only: total debt across all players
+  // Phase 2 — посчитать долг игроков. Зависит от completedEvents и transactions.
   let totalPlayersDebt: number | null = null;
   if (currentRole === "organizer") {
-    const { data: completedEvents } = await supabase
-      .from("events")
-      .select("id, price_per_player")
-      .eq("team_id", id)
-      .eq("status", "completed");
+    const completedList = (completedEvents ?? []) as CompletedEvent[];
+    const txs = (transactions ?? []) as Transaction[];
+    const completedIds = completedList.map((e) => e.id);
+    const priceByEvent = new Map(completedList.map((e) => [e.id, e.price_per_player]));
 
-    const completedIds = (completedEvents ?? []).map((e) => e.id);
-    const priceByEvent = new Map((completedEvents ?? []).map((e) => [e.id, e.price_per_player as number]));
-
-    const playerExpected = new Map<string, number>();
+    let attendances: Attendance[] = [];
     if (completedIds.length > 0) {
-      const { data: attendances } = await supabase
+      const { data: rows } = await supabase
         .from("event_attendances")
         .select("user_id, event_id")
         .in("event_id", completedIds)
         .eq("attended", true);
-      for (const a of (attendances ?? []) as { user_id: string; event_id: string }[]) {
-        const price = priceByEvent.get(a.event_id) ?? 0;
-        playerExpected.set(a.user_id, (playerExpected.get(a.user_id) ?? 0) + price);
-      }
+      attendances = (rows ?? []) as Attendance[];
     }
 
-    const { data: transactions } = await supabase
-      .from("financial_transactions")
-      .select("player_id, amount")
-      .eq("team_id", id);
+    const playerExpected = new Map<string, number>();
+    for (const a of attendances) {
+      const price = priceByEvent.get(a.event_id) ?? 0;
+      playerExpected.set(a.user_id, (playerExpected.get(a.user_id) ?? 0) + price);
+    }
+
     const playerPaid = new Map<string, number>();
-    for (const tx of (transactions ?? []) as { player_id: string; amount: number }[]) {
+    for (const tx of txs) {
       playerPaid.set(tx.player_id, (playerPaid.get(tx.player_id) ?? 0) + tx.amount);
     }
 

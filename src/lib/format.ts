@@ -1,3 +1,20 @@
+/**
+ * Русское склонение по количеству (1, 2-4, 5+).
+ * @example pluralize(1, ['день', 'дня', 'дней']) // 'день'
+ * @example pluralize(3, ['событие', 'события', 'событий']) // 'события'
+ */
+export function pluralize(n: number, forms: [one: string, few: string, many: string]): string {
+  const abs = Math.abs(n);
+  const mod10 = abs % 10;
+  const mod100 = abs % 100;
+  if (mod100 >= 11 && mod100 <= 14) return forms[2];
+  if (mod10 === 1) return forms[0];
+  if (mod10 >= 2 && mod10 <= 4) return forms[1];
+  return forms[2];
+}
+
+const DAYS_FORMS: [string, string, string] = ["день", "дня", "дней"];
+
 export function formatCountdown(dateStr: string): string {
   const now = new Date();
   const d = new Date(dateStr);
@@ -7,16 +24,7 @@ export function formatCountdown(dateStr: string): string {
   if (days < 0) return "прошло";
   if (days === 0) return "сегодня";
   if (days === 1) return "завтра";
-  return `${days} ${pluralDays(days)}`;
-}
-
-function pluralDays(n: number): string {
-  const m = n % 10;
-  const tens = n % 100;
-  if (tens >= 11 && tens <= 14) return "дней";
-  if (m === 1) return "день";
-  if (m >= 2 && m <= 4) return "дня";
-  return "дней";
+  return `${days} ${pluralize(days, DAYS_FORMS)}`;
 }
 
 export function formatCountdownLabel(dateStr: string): string {
@@ -59,6 +67,14 @@ export function formatFullDate(dateStr: string): string {
   const day = d.toLocaleDateString("ru-RU", { day: "numeric", month: "long" });
   const time = d.toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit" });
   return `${weekday}, ${day} в ${time}`;
+}
+
+/** "2026-05" → "май" (короткое название месяца). */
+export function formatMonthShort(monthStr: string): string {
+  const [year, month] = monthStr.split("-").map(Number);
+  return new Date(year, month - 1, 1)
+    .toLocaleDateString("ru-RU", { month: "short" })
+    .replace(".", "");
 }
 
 export function teamGradient(id: string): string {

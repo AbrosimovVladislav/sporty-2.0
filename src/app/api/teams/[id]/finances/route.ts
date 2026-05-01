@@ -24,30 +24,40 @@ export async function GET(
 
   const supabase = getServiceClient();
 
-  const { data: membership } = await supabase
-    .from("team_memberships")
-    .select("role")
-    .eq("user_id", userId)
-    .eq("team_id", teamId)
-    .maybeSingle();
+  // Phase 1 — membership-проверка + независимые тяжёлые fetch'и параллельно.
+  // Если organizer-check провалится, мы просто отбросим уже полученные данные.
+  const [
+    { data: membership },
+    { data: rawEvents, error: eventsErr },
+    { data: rawTx },
+  ] = await Promise.all([
+    supabase
+      .from("team_memberships")
+      .select("role")
+      .eq("user_id", userId)
+      .eq("team_id", teamId)
+      .maybeSingle(),
+    supabase
+      .from("events")
+      .select("id, type, date, status, price_per_player, venue_cost, venue_paid, venues(id, name)")
+      .eq("team_id", teamId)
+      .order("date", { ascending: false }),
+    supabase
+      .from("financial_transactions")
+      .select("player_id, amount, users!financial_transactions_player_id_fkey(id, name)")
+      .eq("team_id", teamId),
+  ]);
 
   if (!membership || membership.role !== "organizer") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
-
-  // Fetch all events
-  const { data: rawEvents, error: eventsErr } = await supabase
-    .from("events")
-    .select("id, type, date, status, price_per_player, venue_cost, venue_paid, venues(id, name)")
-    .eq("team_id", teamId)
-    .order("date", { ascending: false });
 
   if (eventsErr) return NextResponse.json({ error: "Database error" }, { status: 500 });
 
   const events = (rawEvents ?? []) as unknown as EventRow[];
   const completedEventIds = events.filter((e) => e.status === "completed").map((e) => e.id);
 
-  // Expected per player (attended completed events)
+  // Phase 2 — attendances (зависит от completedEventIds).
   const playerExpected = new Map<string, { name: string; expected: number }>();
   if (completedEventIds.length > 0) {
     const { data: rawAtt } = await supabase
@@ -67,12 +77,6 @@ export async function GET(
       playerExpected.set(att.user_id, prev);
     }
   }
-
-  // Paid per player (all transactions)
-  const { data: rawTx } = await supabase
-    .from("financial_transactions")
-    .select("player_id, amount, users!financial_transactions_player_id_fkey(id, name)")
-    .eq("team_id", teamId);
 
   const playerPaid = new Map<string, { name: string; paid: number }>();
   for (const tx of rawTx ?? []) {

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 
 type Props = {
   id: string;
@@ -10,7 +11,7 @@ type Props = {
   district?: string | null;
 };
 
-export function VenueListRow({ id, name, address, city, district }: Props) {
+function VenueListRowImpl({ id, name, address, city, district }: Props) {
   const subtitle = [address, district || null].filter(Boolean).join(" · ");
 
   return (
@@ -54,6 +55,8 @@ export function VenueListRow({ id, name, address, city, district }: Props) {
     </Link>
   );
 }
+
+export const VenueListRow = memo(VenueListRowImpl);
 
 function PinIcon() {
   return (

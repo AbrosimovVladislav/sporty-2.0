@@ -10,12 +10,13 @@ import { useTeamUI } from "./team-ui-context";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { Button } from "@/components/ui/Button";
 import { BottomActionBar } from "@/components/ui/BottomActionBar";
-import { TeamPlayerSheet } from "@/components/team/TeamPlayerSheet";
+import { TeamPlayerSheet } from "@/components/team/lazy";
 import {
   formatCountdown,
   formatCountdownLabel,
   formatPrice,
   formatMoney,
+  pluralize,
 } from "@/lib/format";
 
 type Insights = {
@@ -796,12 +797,7 @@ function firstName(name: string): string {
 }
 
 function requestsLabel(n: number): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return `${n} новая заявка`;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14))
-    return `${n} новые заявки`;
-  return `${n} новых заявок`;
+  return `${n} ${pluralize(n, ["новая заявка", "новые заявки", "новых заявок"])}`;
 }
 
 /* ─── Icons ────────────────────────────────────────────────── */

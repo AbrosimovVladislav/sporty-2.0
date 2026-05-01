@@ -1,5 +1,7 @@
 "use client";
 
+import { pluralize } from "@/lib/format";
+
 type Props = {
   total: number;
   byTeam: { team_id: string; team_name: string; count: number }[];
@@ -29,7 +31,7 @@ export function RequestsCard({ total, byTeam, onClick }: Props) {
       </div>
       <div className="flex-1 min-w-0 text-left">
         <div className="text-[14px] font-semibold" style={{ color: "var(--text-primary)" }}>
-          {total} {pluralize(total, "заявка", "заявки", "заявок")} во вступление
+          {total} {pluralize(total, ["заявка", "заявки", "заявок"])} во вступление
         </div>
         <div className="text-[12px] truncate mt-px" style={{ color: "var(--text-secondary)" }}>
           {summary}
@@ -54,12 +56,4 @@ function UserPlusIcon() {
       <line x1="23" y1="11" x2="17" y2="11" />
     </svg>
   );
-}
-
-function pluralize(n: number, one: string, few: string, many: string): string {
-  const mod10 = n % 10;
-  const mod100 = n % 100;
-  if (mod10 === 1 && mod100 !== 11) return one;
-  if (mod10 >= 2 && mod10 <= 4 && (mod100 < 10 || mod100 >= 20)) return few;
-  return many;
 }

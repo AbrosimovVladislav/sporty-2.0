@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 
 const DEFAULT_CITY = "Алматы";
@@ -32,28 +32,29 @@ export function CityProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth();
   const [activeCity, _setActiveCity] = useState<string>(DEFAULT_CITY);
 
+  const userId = auth.status === "authenticated" ? auth.user.id : null;
+  const userCity = auth.status === "authenticated" ? auth.user.city : null;
+
   useEffect(() => {
-    if (auth.status === "authenticated" && auth.user.city) {
-      _setActiveCity(auth.user.city);
-    }
-  }, [auth.status]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (userCity) _setActiveCity(userCity);
+  }, [userCity]);
 
   const setActiveCity = useCallback((city: string) => {
     _setActiveCity(city);
-    if (auth.status === "authenticated") {
-      fetch(`/api/users/${auth.user.id}/profile`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ city, district_id: null }),
-      }).catch(() => {});
-    }
-  }, [auth]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (!userId) return;
+    fetch(`/api/users/${userId}/profile`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ city, district_id: null }),
+    }).catch(() => {});
+  }, [userId]);
 
-  return (
-    <CityContext.Provider value={{ activeCity, setActiveCity }}>
-      {children}
-    </CityContext.Provider>
+  const value = useMemo(
+    () => ({ activeCity, setActiveCity }),
+    [activeCity, setActiveCity],
   );
+
+  return <CityContext.Provider value={value}>{children}</CityContext.Provider>;
 }
 
 export function useCity() {

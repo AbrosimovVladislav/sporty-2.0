@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useAuth } from "@/lib/auth-context";
 import type { Team } from "@/types/database";
 
@@ -28,37 +28,47 @@ export type TeamStats = {
   totalPlayersDebt: number | null;
 };
 
+type ReadyTeamData = {
+  team: Team;
+  members: TeamMember[];
+  role: TeamRole;
+  joinRequestStatus: JoinRequestStatus;
+  joinRequestId: string | null;
+  joinRequestCooldownUntil: string | null;
+  pendingRequestsCount: number;
+  teamStats: TeamStats;
+};
+
 export type TeamState =
   | { status: "loading" }
   | { status: "not_found" }
   | { status: "error"; message: string }
-  | {
-      status: "ready";
-      team: Team;
-      members: TeamMember[];
-      role: TeamRole;
-      joinRequestStatus: JoinRequestStatus;
-      joinRequestId: string | null;
-      joinRequestCooldownUntil: string | null;
-      pendingRequestsCount: number;
-      teamStats: TeamStats;
-      reload: () => void;
-    };
+  | (ReadyTeamData & { status: "ready"; reload: () => void });
 
 const TeamContext = createContext<TeamState>({ status: "loading" });
 
+const cacheKey = (teamId: string, userId: string | null) => `${teamId}::${userId ?? "guest"}`;
+const teamCache = new Map<string, ReadyTeamData>();
+
 export function TeamProvider({ teamId, children }: { teamId: string; children: ReactNode }) {
   const auth = useAuth();
-  const [state, setState] = useState<TeamState>({ status: "loading" });
-  const [version, setVersion] = useState(0);
-
   const userId = auth.status === "authenticated" ? auth.user.id : null;
+
+  const [state, setState] = useState<TeamState>(() => {
+    const cached = teamCache.get(cacheKey(teamId, userId));
+    if (cached) {
+      return { status: "ready", ...cached, reload: () => {} };
+    }
+    return { status: "loading" };
+  });
+  const [version, setVersion] = useState(0);
 
   const reload = useCallback(() => setVersion((v) => v + 1), []);
 
   useEffect(() => {
     if (auth.status === "loading") return;
 
+    const key = cacheKey(teamId, userId);
     let cancelled = false;
 
     async function load() {
@@ -68,16 +78,18 @@ export function TeamProvider({ teamId, children }: { teamId: string; children: R
         if (cancelled) return;
 
         if (res.status === 404) {
+          teamCache.delete(key);
           setState({ status: "not_found" });
           return;
         }
         if (!res.ok) {
-          setState({ status: "error", message: "Не удалось загрузить команду" });
+          setState((prev) => prev.status === "ready"
+            ? prev
+            : { status: "error", message: "Не удалось загрузить команду" });
           return;
         }
         const data = await res.json();
-        setState({
-          status: "ready",
+        const next: ReadyTeamData = {
           team: data.team,
           members: data.members ?? [],
           role: data.currentRole,
@@ -86,10 +98,14 @@ export function TeamProvider({ teamId, children }: { teamId: string; children: R
           joinRequestCooldownUntil: data.joinRequestCooldownUntil ?? null,
           pendingRequestsCount: data.pendingRequestsCount ?? 0,
           teamStats: data.teamStats ?? { completedEvents: 0, plannedEvents: 0, totalPlayersDebt: null },
-          reload,
-        });
+        };
+        teamCache.set(key, next);
+        setState({ status: "ready", ...next, reload });
       } catch {
-        if (!cancelled) setState({ status: "error", message: "Сеть недоступна" });
+        if (cancelled) return;
+        setState((prev) => prev.status === "ready"
+          ? prev
+          : { status: "error", message: "Сеть недоступна" });
       }
     }
 
@@ -99,7 +115,12 @@ export function TeamProvider({ teamId, children }: { teamId: string; children: R
     };
   }, [teamId, userId, auth.status, version, reload]);
 
-  return <TeamContext.Provider value={state}>{children}</TeamContext.Provider>;
+  const value = useMemo<TeamState>(() => {
+    if (state.status === "ready") return { ...state, reload };
+    return state;
+  }, [state, reload]);
+
+  return <TeamContext.Provider value={value}>{children}</TeamContext.Provider>;
 }
 
 export function useTeam() {

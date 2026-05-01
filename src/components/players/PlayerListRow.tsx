@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { memo } from "react";
 import { Avatar, MiniBar } from "@/components/ui";
 import { PositionChipList } from "@/components/PositionChip";
 import { SKILL_LEVELS } from "@/lib/catalogs";
@@ -21,7 +22,7 @@ type Props = {
   roleBadge?: string;
 };
 
-export function PlayerListRow({
+function PlayerListRowImpl({
   id,
   name,
   avatarUrl,
@@ -105,6 +106,8 @@ export function PlayerListRow({
     </Link>
   );
 }
+
+export const PlayerListRow = memo(PlayerListRowImpl);
 
 function SeekingBadge() {
   return (
