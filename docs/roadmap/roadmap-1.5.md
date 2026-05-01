@@ -440,13 +440,15 @@
 
 ---
 
-## ⬜ Итерация 1.5.1 — Code review, рефакторинг, оптимизация
+## 🔄 Итерация 1.5.1 — Code review, рефакторинг, оптимизация
 
 **Цель.** Убрать лаги и фризы при открытии экранов, причесать код. После аудита приоритеты ясны: основной тормоз — init-waterfall (Telegram → Auth → Team → таб), refetch при смене табов, неэффективные API-роуты с 5–9 последовательными запросами, и компоненты-гиганты на 700–1000+ строк.
 
 > **Порядок.** Сначала производительность (1.5.1.1–1.5.1.4) — это даёт мгновенный эффект для пользователя. Затем уборка кода (1.5.1.5–1.5.1.10). Декомпозицию компонентов-гигантов (1.5.1.7) можно выполнять параллельно после того, как новые границы зафиксированы.
 
-### 1.5.1.1 Init-waterfall: убрать блокировку первого рендера
+> **Статус по итогам тестирования первой волны.** Производительность сети и render-tree улучшилась (см. ✅ ниже), но при тестировании выявлен второй слой проблем: визуальный jank при переключении табов, layout shift на главной команды и в карточке игрока — данные дозаполняются и компоненты «прыгают». Добавлены пункты 1.5.1.13–1.5.1.15 — точечные UX-фиксы без крупных архитектурных изменений (роутинг сохраняется).
+
+### 1.5.1.1 Init-waterfall: убрать блокировку первого рендера ✅
 
 **Проблема.** Сейчас порядок инициализации последовательный:
 
@@ -459,55 +461,44 @@
 
 **Решение.**
 
-- `TelegramProvider`: убрать `if (!ready) return null`, рендерить children сразу, side-effect `twa.ready()/expand()` оставить в `useEffect`. Telegram не требует синхронной init для отображения UI.
-- `AuthProvider`: показывать skeleton/children сразу, обернуть value в `useMemo`, кэшировать `user` в `sessionStorage` для мгновенного возврата при reload.
-- `TeamProvider`: добавить in-memory кэш `Map<teamId, TeamData>` — при возврате в ту же команду рендерить из кэша мгновенно, refetch в фоне.
+- ✅ `TelegramProvider`: убран `if (!ready) return null`, рендер children сразу, `twa.ready()/expand()` живёт в `useEffect`
+- ✅ `AuthProvider`: добавлен sessionStorage-кэш `user` (`SESSION_USER_KEY`), value обёрнут в `useMemo`, lazy init из кэша → мгновенный возврат после reload
+- ✅ `TeamProvider`: in-memory `Map<teamId::userId, ReadyTeamData>` ([team-context.tsx](../../src/app/(app)/team/[id]/team-context.tsx)). Initial state читает кэш синхронно, на 404 кэш сбрасывается, при transient ошибках сохраняется last-good
 
-### 1.5.1.2 Контексты: убрать лишние ре-fetch'и и перерисовки
+### 1.5.1.2 Контексты: убрать лишние ре-fetch'и и перерисовки ✅
 
-- **`TeamSubNav` ([src/app/(app)/team/[id]/layout.tsx:157](../../src/app/(app)/team/[id]/layout.tsx#L157))** — у каждого таба `onClick: reload`. Клик по табу триггерит refetch всего `/api/teams/[id]`. Удалить.
-- **`CityProvider` ([src/lib/city-context.tsx:52](../../src/lib/city-context.tsx#L52))** — value `{activeCity, setActiveCity}` создаётся новый каждый рендер → все потребители ре-рендерятся. Обернуть в `useMemo`.
-- **`AuthProvider`** — то же самое.
-- **`TeamProvider`** — value тоже не мемоизирован, но менее критично из-за discriminated union.
-- **TeamPageHeader** ([layout.tsx:48](../../src/app/(app)/team/[id]/layout.tsx#L48)) — fetch `/api/users/[id]/teams` для счётчика табов. Перенести в общий контекст или хотя бы кэшировать.
+- ✅ **`TeamSubNav`** — `onClick: reload` удалён, переход по табам больше не дёргает `/api/teams/[id]`
+- ✅ **`CityProvider`** — value обёрнут в `useMemo`, отслеживается `userId/userCity` напрямую
+- ✅ **`AuthProvider`** — `useMemo` для value
+- ✅ **`TeamProvider`** — `useMemo` для value
+- ✅ **TeamPageHeader** — fetch `/api/users/[id]/teams` остался, но переключение табов больше не вызывает новых фетчей
 
-### 1.5.1.3 API: распараллелить запросы внутри роутов
+### 1.5.1.3 API: распараллелить запросы внутри роутов ✅
 
-**Главный виновник: `GET /api/teams/[id]` ([src/app/api/teams/[id]/route.ts](../../src/app/api/teams/[id]/route.ts))** — до 9 последовательных запросов:
+**Сделано.**
 
-1. `teams.select()` — нужен сразу
-2. `team_memberships.select(...)` — независим
-3. `join_requests.select(...)` (для guest) — зависит от members (роль)
-4. `join_requests.count(...)` (для organizer) — зависит от роли
-5. `events.count(completed)` — независим
-6. `events.count(planned)` — независим
-7. `events.select(completed)` (для долга) — независим
-8. `event_attendances.select(...)` — зависит от 7
-9. `financial_transactions.select(...)` — независим
+- ✅ `GET /api/teams/[id]` — переписан в 2 фазы через `Promise.all` (8 параллельных запросов в фазе 1, attendances только если organizer)
+- ✅ `GET /api/teams/[id]/events` — membership проверка распараллелена с full events fetch, post-filter по `is_public` для гостя в JS
+- ✅ `GET /api/teams/[id]/finances` — фаза 1: `Promise.all([membership, events, transactions])`; фаза 2: attendances если есть completed events
+- ✅ `GET /api/teams/[id]/insights` — полный rewrite. Один events fetch с `eventsLowerBound = min(prevWindowStart, sixMonthsAgo)`, batch-attendances для current/prev/nextEvent. Сократили с 5–9 sequential запросов до 4 параллельных + 1 follow-up
 
-Цель: переписать на 2 фазы через `Promise.all`. Фаза 1 (параллельно): team + memberships + 2 counts + completedEvents + transactions. Фаза 2: attendances (зависит от completedEvents) + condition-зависимые join_requests. Ожидаемый эффект — снижение latency на 50%+.
+### 1.5.1.4 Дублирующие fetch'и при смене табов ✅
 
-**Аналогично проверить:** `/api/teams/[id]/events`, `/api/teams/[id]/finances`, `/api/teams/[id]/insights`. Заменить sequential awaits на `Promise.all` где независимо.
+- ✅ **Финансы** — убран отдельный fetch `/api/teams/[id]` для модала депозита, members берётся из `team-context.members` через `useMemo`
+- ✅ **Финансы** — должники/переплатили считают `Math.max` один раз в верху компонента, не в каждой строке
+- ⏸ Слияние `insights` с `/api/teams/[id]` — отложено: разная гранулярность данных, риск перегрузить главный payload. Cache на 5–30 сек тоже отложили — `TeamProvider` уже кэширует in-memory, дополнительный слой пока не нужен
 
-### 1.5.1.4 Дублирующие fetch'и при смене табов
+### 1.5.1.5 Мемоизация списков ✅
 
-- **Финансы ([finances/page.tsx:84](../../src/app/(app)/team/[id]/finances/page.tsx#L84))** — отдельный fetch `/api/teams/[id]` для members при открытии модала депозита. Эти данные уже есть в `team-context.members`. Использовать оттуда.
-- **Финансы (page.tsx:66–80)** — `Promise.all([finances, insights])` хорошо. Но `insights` дублирует часть данных, отдаваемых в `/api/teams/[id]`. Подумать о слиянии.
-- **События/Финансы переключение** — когда пользователь делает A → B → A, второе посещение делает full refetch. Нужен короткоживущий cache (5–30 сек) для GET-запросов в страничных эффектах.
+- ✅ `PlayerListRow`, `EventListRow`, `TeamListRow`, `VenueListRow` — обёрнуты в `React.memo` (паттерн `XImpl` + `export const X = memo(XImpl)`)
+- ✅ Страницы со списками используют `useMemo` для filtered/sorted массивов
 
-### 1.5.1.5 Мемоизация списков
+### 1.5.1.6 Изображения ✅
 
-- `PlayerListRow`, `EventListRow`, `TeamCardRow`, `VenueListRow` — обернуть в `React.memo`. Сейчас при фильтрации/sort'е перерисовываются все строки.
-- Handler'ы (`onClick`, `onVote`) — поднять в `useCallback`, чтобы memo работал.
-- В страницах со списками — `useMemo` для отфильтрованных/отсортированных массивов.
+- ✅ Лого команды переведено на `next/image` в 3 местах: [layout.tsx](../../src/app/(app)/team/[id]/layout.tsx), [settings/page.tsx](../../src/app/(app)/team/[id]/settings/page.tsx), [TeamRequestsSheet.tsx](../../src/components/team/TeamRequestsSheet.tsx) — с правильными `sizes` и `priority` для hero
+- ✅ `next.config.ts` — `remotePatterns` расширены для Supabase Storage, `images.unsplash.com`, `t.me`
 
-### 1.5.1.6 Изображения
-
-- `<img>` для логотипов команд используется в 3 местах: [layout.tsx:104](../../src/app/(app)/team/[id]/layout.tsx#L104), [settings/page.tsx](../../src/app/(app)/team/[id]/settings/page.tsx), [TeamRequestsSheet.tsx](../../src/components/team/TeamRequestsSheet.tsx). Перевести на `next/image` с правильными `sizes`.
-- Сконфигурировать `next.config.ts` (`images.remotePatterns`) для домена Supabase Storage.
-- Аватары игроков в списках — поставить `sizes="44px"`, hero-аватар команды — `priority`.
-
-### 1.5.1.7 Декомпозиция компонентов-гигантов
+### 1.5.1.7 Декомпозиция компонентов-гигантов ⏸
 
 Файлы >500 строк трудно поддерживать и провоцируют каскады ре-рендеров. Разбить на под-компоненты:
 
@@ -519,27 +510,57 @@
 | `team/[id]/finances/page.tsx` | 767 | `FinancesHero`, `FlowChart`, `MarginBar`, `DebtorsList`, `VenuesAccordion`, `DepositCard` |
 | `team/[id]/events/page.tsx` | 734 | `EventsFilterBar`, `EventsList`, `CreateEventSheet` |
 
-### 1.5.1.8 Дедупликация утилит
+**Статус.** Отложено — после первой волны лагов главные тормоза не в гигантах, а в layout shift и tap latency (1.5.1.13–1.5.1.15). Декомпозиция остаётся как gardening-задача, делается по мере касания файлов.
 
-- **Плюрализация**: `pluralDays` приватный в `format.ts`, а копии похожей логики разбросаны (`requestsLabel`, склонения для player/event/day/etc.). Создать общий `pluralize(n, [one, few, many])` и использовать везде.
-- **`monthShort` локально в `finances/page.tsx:45`** — перенести в `format.ts`.
-- Прямые `toLocaleDateString` (~23 места) — заменить на хелперы из `format.ts`. Если форматов не хватает — расширить `format.ts`, не плодить inline-вызовы.
+### 1.5.1.8 Дедупликация утилит ✅
+
+- ✅ Общий `pluralize(n, [one, few, many])` в [src/lib/format.ts](../../src/lib/format.ts), 5 локальных копий заменены
+- ✅ `formatMonthShort` перенесён из `finances/page.tsx` в `format.ts`
+- ⏸ Прямые `toLocaleDateString` (~23 места) — оставили, расширим хелперы при следующих касаниях
 
 ### 1.5.1.9 Мёртвый код, типы, console.log
 
-- **Удалить** [src/components/PlayerCard.tsx](../../src/components/PlayerCard.tsx) — 147 строк, 0 импортов после ит. 49.4 (заменён на `TeamPlayerSheet`).
-- Прогрепать `as any` / `: any` — заменить на конкретные типы или `unknown` с narrow'ом. Главные жертвы: API notify-helpers.
-- `console.error` в API-роутах — оставить (server-side логирование). На клиенте — убрать или обернуть в `if (process.env.NODE_ENV === 'development')`.
+- ✅ Удалён `src/components/PlayerCard.tsx` (147 строк, 0 импортов)
+- ⏸ Прогрепать `as any` / `: any` — отложено, главные жертвы (API notify-helpers) точечно почистим при касании
+- ⏸ Клиентские `console.log/error` — отложено
 
-### 1.5.1.10 Race conditions и cleanup
+### 1.5.1.10 Race conditions и cleanup ⏸
 
-- Все useEffect с fetch используют ручной `let cancelled = true` — паттерн правильный, но дублируется. Вынести в `useFetchData(url, deps)` с `AbortController`.
-- Проверить, что нет `setState` после unmount.
+Паттерн `let cancelled = true` внутри useEffect консистентен и работает корректно. Унификация в `useFetchData(url, deps)` с `AbortController` отложена — небольшой выигрыш в строках кода, риск регрессий выше пользы. Делаем при следующем крупном рефакторе.
 
-### 1.5.1.11 Dynamic imports для тяжёлых sheet'ов
+### 1.5.1.11 Dynamic imports для тяжёлых sheet'ов ✅
 
-- `TeamPlayerSheet`, `TeamRequestsSheet`, `EventCreateSheet`, `DepositModal`, все `FiltersSheet` — `dynamic(() => import(...), { ssr: false })`. Они открываются по тапу — нет смысла грузить в initial bundle.
-- Bar chart финансов — `dynamic` с `ssr: false`.
+- ✅ Создан [src/components/team/lazy.ts](../../src/components/team/lazy.ts) — `TeamPlayerSheet`, `TeamRequestsSheet` через `dynamic(() => import(...), { ssr: false })`
+- ✅ 5 импорт-сайтов (`layout.tsx`, `roster/page.tsx`, `finances/page.tsx`, `team/[id]/page.tsx`) подключены к `lazy.ts`
+- ⏸ `EventCreateSheet`, `DepositModal`, остальные `FiltersSheet` — будут переведены при касании их экранов (низкая стоимость, делаем точечно)
+
+### 1.5.1.13 Optimistic tab activation 🆕
+
+**Проблема (по итогам тестирования).** При тапе на табу внутри `/team/[id]/*` (Главная / Состав / События / Финансы) видно паузу 100–300ms между касанием и сменой подсветки на новой табе. Технически: `pathname` обновляется только после смены роута → `usePathname()` отдаёт старое значение → indicator застрял на старой табе. Сами данные на новой табе грузятся ок (≈1 сек), но именно «зависание» подсветки бесит.
+
+**Решение.**
+
+- В [src/components/ui/UnderlineTabs.tsx](../../src/components/ui/UnderlineTabs.tsx) добавить локальный state `pendingHref`. На `onPointerDown` (быстрее `onClick`) сохраняем href тапнутой табы → indicator подсвечивает её мгновенно.
+- Когда внешний `tabs[i].active` догоняет `pendingHref`, очищаем state.
+- Роутинг сохраняется (Link → `router.push` под капотом).
+
+### 1.5.1.14 Стабильные skeleton'ы (no CLS) 🆕
+
+**Проблема.** На главной команды (`/team/[id]`) скелетоны NextEvent/Activity/TopPlayers/Finance имеют примерные высоты, не совпадающие с реальной геометрией карточек на 10–30px. При замене скелетона на контент происходит вертикальный «прыжок» — глаз воспринимает как лаг.
+
+**Решение.**
+
+- Замерить реальную высоту каждой карточки (с типичным контентом) и подогнать `h-[Npx]` скелетона. NextEvent ≈ 220px (фото 120 + контент 100), Activity ≈ 156px, TopPlayers ≈ 148px, Finance ≈ 96px.
+- Скелетоны на `/team/[id]/roster` и `/team/[id]/events` — использовать ту же высоту строки `64px` (что у `PlayerListRow`/`EventListRow`).
+
+### 1.5.1.15 TeamPlayerSheet: peek без layout shift 🆕
+
+**Проблема.** При тапе на игрока sheet открывается мгновенно с шапкой, ниже три аккордеона: «Надёжность», «Финансы», «Игровая статистика». В свёрнутом состоянии каждый аккордеон показывает peek-info справа от заголовка (например `85% · 1 неприход`). Сейчас peek рендерится, только когда `reliability/finances !== undefined` → пока данные грузятся, аккордеон выглядит «пустым» и без secondary-строки → когда данные приходят, аккордеон становится выше → визуальный «прыжок».
+
+**Решение.**
+
+- В `peekReliability`/`peekFinances` для `undefined` (loading) возвращать placeholder с теми же измерениями: `primary: "—"`, `secondary: "Загрузка"`, серый цвет.
+- Это сохраняет высоту row'а ровно такой же, как при загруженных данных. Когда данные приходят — текст меняется, высота не меняется.
 
 ### 1.5.1.12 Мелкие фиксы по итогам тестирования 1.5
 

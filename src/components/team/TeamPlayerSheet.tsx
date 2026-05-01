@@ -89,7 +89,10 @@ export function TeamPlayerSheet({
 
   // Pre-fetch reliability/finances summary so peek-info shows without expanding
   useEffect(() => {
-    if (!currentUserId) return;
+    if (!currentUserId) {
+      setReliability(null);
+      return;
+    }
     fetch(`/api/teams/${teamId}/members/${member.user.id}/reliability?userId=${currentUserId}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => setReliability(d))
@@ -417,7 +420,13 @@ type PeekContent = {
 };
 
 function peekReliability(d: ReliabilityData | null | undefined): PeekContent | null {
-  if (d === undefined) return null;
+  if (d === undefined) {
+    return {
+      primary: "—",
+      primaryColor: "var(--text-tertiary)",
+      secondary: "Загрузка",
+    };
+  }
   if (!d || d.totals.votedYes + d.totals.cancelled === 0) {
     return { primary: "—", secondary: "Нет данных" };
   }
@@ -439,7 +448,13 @@ function peekReliability(d: ReliabilityData | null | undefined): PeekContent | n
 }
 
 function peekFinances(d: FinancesData | null | undefined): PeekContent | null {
-  if (d === undefined) return null;
+  if (d === undefined) {
+    return {
+      primary: "—",
+      primaryColor: "var(--text-tertiary)",
+      secondary: "Загрузка",
+    };
+  }
   if (!d) return null;
   const { expected, paid, balance } = d.totals;
   const positiveBalance = balance >= 0;

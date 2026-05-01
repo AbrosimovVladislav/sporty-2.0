@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export type UnderlineTab = {
   /** If `href` is provided, tab renders as Next Link; otherwise as a button. */
@@ -17,6 +18,22 @@ export function UnderlineTabs({
   tabs: UnderlineTab[];
   className?: string;
 }) {
+  // Optimistic activation: when user taps a Link tab we highlight it
+  // instantly, before Next.js finishes the route change. Once the parent
+  // observes the new pathname (active = true on that tab), we clear it.
+  const [pendingHref, setPendingHref] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!pendingHref) return;
+    const matched = tabs.some((t) => t.href === pendingHref && t.active);
+    if (matched) setPendingHref(null);
+  }, [tabs, pendingHref]);
+
+  const isActive = (t: UnderlineTab): boolean => {
+    if (pendingHref && t.href) return t.href === pendingHref;
+    return t.active;
+  };
+
   return (
     <nav
       className={className}
@@ -24,13 +41,14 @@ export function UnderlineTabs({
     >
       <div className="flex">
         {tabs.map((t, i) => {
+          const active = isActive(t);
           const cls =
             "relative flex-1 text-center pt-2 pb-2.5 text-[14px] transition-colors whitespace-nowrap";
           const style = {
-            color: t.active ? "var(--green-700)" : "var(--text-secondary)",
-            fontWeight: t.active ? 700 : 500,
+            color: active ? "var(--green-700)" : "var(--text-secondary)",
+            fontWeight: active ? 700 : 500,
           } as const;
-          const indicator = t.active ? (
+          const indicator = active ? (
             <span
               className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[2.5px] rounded-full"
               style={{ background: "var(--green-500)", width: "calc(100% - 16px)" }}
@@ -38,10 +56,14 @@ export function UnderlineTabs({
           ) : null;
 
           if (t.href) {
+            const href = t.href;
             return (
               <Link
-                key={t.href}
-                href={t.href}
+                key={href}
+                href={href}
+                onPointerDown={() => {
+                  if (!t.active) setPendingHref(href);
+                }}
                 onClick={t.onClick}
                 className={cls}
                 style={style}

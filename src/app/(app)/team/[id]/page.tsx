@@ -185,7 +185,7 @@ function NextEventCard({
   if (insights === undefined) {
     return (
       <div
-        className="rounded-[20px] h-[200px] animate-pulse"
+        className="rounded-[20px] h-[224px] animate-pulse"
         style={{ background: "var(--bg-card)" }}
       />
     );
@@ -326,7 +326,7 @@ function ActivityCard({ insights }: { insights: Insights | null | undefined }) {
   if (insights === undefined) {
     return (
       <div
-        className="rounded-[16px] h-[140px] animate-pulse"
+        className="rounded-[16px] h-[156px] animate-pulse"
         style={{ background: "var(--bg-card)" }}
       />
     );
@@ -414,7 +414,7 @@ function TopPlayersCard({
   if (insights === undefined) {
     return (
       <div
-        className="rounded-[16px] h-[120px] animate-pulse"
+        className="rounded-[16px] h-[148px] animate-pulse"
         style={{ background: "var(--bg-card)" }}
       />
     );
@@ -502,7 +502,7 @@ function FinanceCard({
   if (insights === undefined) {
     return (
       <div
-        className="rounded-[16px] h-[110px] animate-pulse"
+        className="rounded-[16px] h-[120px] animate-pulse"
         style={{ background: "var(--bg-card)" }}
       />
     );
@@ -740,15 +740,15 @@ function SkeletonHome() {
   return (
     <>
       <div
-        className="rounded-[20px] h-[200px] animate-pulse"
+        className="rounded-[20px] h-[224px] animate-pulse"
         style={{ background: "var(--bg-card)" }}
       />
       <div
-        className="rounded-[16px] h-[140px] animate-pulse"
+        className="rounded-[16px] h-[156px] animate-pulse"
         style={{ background: "var(--bg-card)" }}
       />
       <div
-        className="rounded-[16px] h-[120px] animate-pulse"
+        className="rounded-[16px] h-[148px] animate-pulse"
         style={{ background: "var(--bg-card)" }}
       />
     </>
