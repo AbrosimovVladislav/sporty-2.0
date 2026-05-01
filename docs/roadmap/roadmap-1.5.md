@@ -498,19 +498,21 @@
 - ✅ Лого команды переведено на `next/image` в 3 местах: [layout.tsx](../../src/app/(app)/team/[id]/layout.tsx), [settings/page.tsx](../../src/app/(app)/team/[id]/settings/page.tsx), [TeamRequestsSheet.tsx](../../src/components/team/TeamRequestsSheet.tsx) — с правильными `sizes` и `priority` для hero
 - ✅ `next.config.ts` — `remotePatterns` расширены для Supabase Storage, `images.unsplash.com`, `t.me`
 
-### 1.5.1.7 Декомпозиция компонентов-гигантов ⏸
+### 1.5.1.7 Декомпозиция компонентов-гигантов 🔄
 
 Файлы >500 строк трудно поддерживать и провоцируют каскады ре-рендеров. Разбить на под-компоненты:
 
-| Файл | Строк | Разбить на |
-|------|-------|-----------|
-| `profile/page.tsx` | 1082 | `ProfileHeader`, `ProfileTabs`, `AboutTab`, `ResultsTab`, `ReliabilityTab`, `AchievementsTab` |
-| `TeamPlayerSheet.tsx` | 925 | `SheetHeader`, `ReliabilityAccordion`, `FinancesAccordion`, `StatsAccordion`, `PlayerActions` |
-| `team/[id]/page.tsx` | 879 | `TeamMainHeader`, `LeadersSection`, `NextEventCard`, `RecentEventsList`, `RequestsCard` |
-| `team/[id]/finances/page.tsx` | 767 | `FinancesHero`, `FlowChart`, `MarginBar`, `DebtorsList`, `VenuesAccordion`, `DepositCard` |
-| `team/[id]/events/page.tsx` | 734 | `EventsFilterBar`, `EventsList`, `CreateEventSheet` |
+| Файл | Строк | Разбить на | Статус |
+|------|-------|-----------|--------|
+| `profile/page.tsx` | 1082 → 273 | `_components/{AboutTab, ResultsTab, ReliabilityTab, AchievementsTab, MyJoinRequests, atoms, types}` | ✅ |
+| `TeamPlayerSheet.tsx` | 925 | `SheetHeader`, `ReliabilityAccordion`, `FinancesAccordion`, `StatsAccordion`, `PlayerActions` | ⏸ следующий |
+| `team/[id]/page.tsx` | 879 | `TeamMainHeader`, `LeadersSection`, `NextEventCard`, `RecentEventsList`, `RequestsCard` | ⏸ |
+| `team/[id]/finances/page.tsx` | 767 | `FinancesHero`, `FlowChart`, `MarginBar`, `DebtorsList`, `VenuesAccordion`, `DepositCard` | ⏸ |
+| `team/[id]/events/page.tsx` | 734 | `EventsFilterBar`, `EventsList`, `CreateEventSheet` | ⏸ |
 
-**Статус.** Отложено — после первой волны лагов главные тормоза не в гигантах, а в layout shift и tap latency (1.5.1.13–1.5.1.15). Декомпозиция остаётся как gardening-задача, делается по мере касания файлов.
+**Подход.** Файлы режем по очереди (не пакетом), без изменения поведения — только move/extract. После каждого — `npm run build` для контроля. `_components/` (с underscore) — Next.js не делает роутом, это идиоматичное место для приватных компонентов страницы.
+
+**Профиль (✅).** В `page.tsx` остался shell: `ProfilePage` (auth gate) + `ProfileContent` (header c аватаром, tabs state, fetch'и `/users/[id]`, `/users/[id]/stats`, `/users/[id]/teams`). 4 таба + `MyJoinRequests` + атомы (`Eyebrow`, `StatTile`, `SkeletonBlock`) вынесены в `_components/`. Поведение не менялось.
 
 ### 1.5.1.8 Дедупликация утилит ✅
 
@@ -534,7 +536,7 @@
 - ✅ 5 импорт-сайтов (`layout.tsx`, `roster/page.tsx`, `finances/page.tsx`, `team/[id]/page.tsx`) подключены к `lazy.ts`
 - ⏸ `EventCreateSheet`, `DepositModal`, остальные `FiltersSheet` — будут переведены при касании их экранов (низкая стоимость, делаем точечно)
 
-### 1.5.1.13 Optimistic tab activation 🆕
+### 1.5.1.13 Optimistic tab activation ✅
 
 **Проблема (по итогам тестирования).** При тапе на табу внутри `/team/[id]/*` (Главная / Состав / События / Финансы) видно паузу 100–300ms между касанием и сменой подсветки на новой табе. Технически: `pathname` обновляется только после смены роута → `usePathname()` отдаёт старое значение → indicator застрял на старой табе. Сами данные на новой табе грузятся ок (≈1 сек), но именно «зависание» подсветки бесит.
 
@@ -544,7 +546,7 @@
 - Когда внешний `tabs[i].active` догоняет `pendingHref`, очищаем state.
 - Роутинг сохраняется (Link → `router.push` под капотом).
 
-### 1.5.1.14 Стабильные skeleton'ы (no CLS) 🆕
+### 1.5.1.14 Стабильные skeleton'ы (no CLS) ✅
 
 **Проблема.** На главной команды (`/team/[id]`) скелетоны NextEvent/Activity/TopPlayers/Finance имеют примерные высоты, не совпадающие с реальной геометрией карточек на 10–30px. При замене скелетона на контент происходит вертикальный «прыжок» — глаз воспринимает как лаг.
 
@@ -553,7 +555,7 @@
 - Замерить реальную высоту каждой карточки (с типичным контентом) и подогнать `h-[Npx]` скелетона. NextEvent ≈ 220px (фото 120 + контент 100), Activity ≈ 156px, TopPlayers ≈ 148px, Finance ≈ 96px.
 - Скелетоны на `/team/[id]/roster` и `/team/[id]/events` — использовать ту же высоту строки `64px` (что у `PlayerListRow`/`EventListRow`).
 
-### 1.5.1.15 TeamPlayerSheet: peek без layout shift 🆕
+### 1.5.1.15 TeamPlayerSheet: peek без layout shift ✅
 
 **Проблема.** При тапе на игрока sheet открывается мгновенно с шапкой, ниже три аккордеона: «Надёжность», «Финансы», «Игровая статистика». В свёрнутом состоянии каждый аккордеон показывает peek-info справа от заголовка (например `85% · 1 неприход`). Сейчас peek рендерится, только когда `reliability/finances !== undefined` → пока данные грузятся, аккордеон выглядит «пустым» и без secondary-строки → когда данные приходят, аккордеон становится выше → визуальный «прыжок».
 
