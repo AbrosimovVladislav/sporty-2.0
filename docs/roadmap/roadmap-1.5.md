@@ -505,14 +505,16 @@
 | Файл | Строк | Разбить на | Статус |
 |------|-------|-----------|--------|
 | `profile/page.tsx` | 1082 → 273 | `_components/{AboutTab, ResultsTab, ReliabilityTab, AchievementsTab, MyJoinRequests, atoms, types}` | ✅ |
-| `TeamPlayerSheet.tsx` | 925 | `SheetHeader`, `ReliabilityAccordion`, `FinancesAccordion`, `StatsAccordion`, `PlayerActions` | ⏸ следующий |
-| `team/[id]/page.tsx` | 879 | `TeamMainHeader`, `LeadersSection`, `NextEventCard`, `RecentEventsList`, `RequestsCard` | ⏸ |
+| `TeamPlayerSheet.tsx` | 929 → 322 | `team-player-sheet/{types, icons, atoms, Accordion, ReliabilityBody, FinancesBody, SheetHeader}` | ✅ |
+| `team/[id]/page.tsx` | 879 | `TeamMainHeader`, `LeadersSection`, `NextEventCard`, `RecentEventsList`, `RequestsCard` | ⏸ следующий |
 | `team/[id]/finances/page.tsx` | 767 | `FinancesHero`, `FlowChart`, `MarginBar`, `DebtorsList`, `VenuesAccordion`, `DepositCard` | ⏸ |
 | `team/[id]/events/page.tsx` | 734 | `EventsFilterBar`, `EventsList`, `CreateEventSheet` | ⏸ |
 
 **Подход.** Файлы режем по очереди (не пакетом), без изменения поведения — только move/extract. После каждого — `npm run build` для контроля. `_components/` (с underscore) — Next.js не делает роутом, это идиоматичное место для приватных компонентов страницы.
 
 **Профиль (✅).** В `page.tsx` остался shell: `ProfilePage` (auth gate) + `ProfileContent` (header c аватаром, tabs state, fetch'и `/users/[id]`, `/users/[id]/stats`, `/users/[id]/teams`). 4 таба + `MyJoinRequests` + атомы (`Eyebrow`, `StatTile`, `SkeletonBlock`) вынесены в `_components/`. Поведение не менялось.
+
+**TeamPlayerSheet (✅).** В `TeamPlayerSheet.tsx` остался shell: state (openSection, busy, reliability/finances), 2 useEffect-фетча (reliability/finances), 3 handler'а (promote/remove/leave), layout с тремя Accordion'ами и блоками действий. Вынесено в `team-player-sheet/`: типы (`ReliabilityData`, `FinancesData`, `PeekContent`, `TeamPlayerSheetMember`), 5 иконок, атомы (`SkillBadge`, `MiniStat`, `Empty`, `SkeletonRow` + `skillToNum`), `Accordion`, `SheetHeader`, `ReliabilityBody` (+ `peekReliability`), `FinancesBody` (+ `peekFinances`). `lazy.ts` не менялся — путь к компоненту прежний.
 
 ### 1.5.1.8 Дедупликация утилит ✅
 
