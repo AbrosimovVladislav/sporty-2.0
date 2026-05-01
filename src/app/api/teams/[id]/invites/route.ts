@@ -78,8 +78,11 @@ export async function POST(
   return NextResponse.json({ invite }, { status: 201 });
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function notifyPlayer(supabase: any, teamId: string, userId: string) {
+async function notifyPlayer(
+  supabase: ReturnType<typeof getServiceClient>,
+  teamId: string,
+  userId: string,
+) {
   const [{ data: user }, { data: team }] = await Promise.all([
     supabase.from("users").select("telegram_id").eq("id", userId).single(),
     supabase.from("teams").select("name").eq("id", teamId).single(),

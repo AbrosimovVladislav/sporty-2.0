@@ -383,7 +383,7 @@
 - Каждый таб `flex-1` — равная ширина, чтобы 4 таба нормально умещались на узких экранах
 - Если 4 таба всё равно не влезают — уменьшить горизонтальный padding или сократить названия («Достижения» → «Награды»)
 
-### 52.3 «Обо мне»: redesign в компонентах дизайн-системы 
+### 52.3 «Обо мне»: redesign в компонентах дизайн-системы
 
 **Проблема.** Сейчас контент таба — старые `Card`/`MiniStatCard`/`SectionEyebrow` обёртки или инлайн-вёрстка с прежними цветами. Раздел не редизайнили со старого MVP. Контент сам по себе ок (био, 2×2 stat «Уровень / Возраст», позиции, время тренировок), но визуально выглядит дёшево.
 
@@ -467,10 +467,10 @@
 
 ### 1.5.1.2 Контексты: убрать лишние ре-fetch'и и перерисовки ✅
 
-- ✅ **`TeamSubNav`** — `onClick: reload` удалён, переход по табам больше не дёргает `/api/teams/[id]`
-- ✅ **`CityProvider`** — value обёрнут в `useMemo`, отслеживается `userId/userCity` напрямую
-- ✅ **`AuthProvider`** — `useMemo` для value
-- ✅ **`TeamProvider`** — `useMemo` для value
+- ✅ `**TeamSubNav`** — `onClick: reload` удалён, переход по табам больше не дёргает `/api/teams/[id]`
+- ✅ `**CityProvider**` — value обёрнут в `useMemo`, отслеживается `userId/userCity` напрямую
+- ✅ `**AuthProvider**` — `useMemo` для value
+- ✅ `**TeamProvider**` — `useMemo` для value
 - ✅ **TeamPageHeader** — fetch `/api/users/[id]/teams` остался, но переключение табов больше не вызывает новых фетчей
 
 ### 1.5.1.3 API: распараллелить запросы внутри роутов ✅
@@ -486,7 +486,6 @@
 
 - ✅ **Финансы** — убран отдельный fetch `/api/teams/[id]` для модала депозита, members берётся из `team-context.members` через `useMemo`
 - ✅ **Финансы** — должники/переплатили считают `Math.max` один раз в верху компонента, не в каждой строке
-- ⏸ Слияние `insights` с `/api/teams/[id]` — отложено: разная гранулярность данных, риск перегрузить главный payload. Cache на 5–30 сек тоже отложили — `TeamProvider` уже кэширует in-memory, дополнительный слой пока не нужен
 
 ### 1.5.1.5 Мемоизация списков ✅
 
@@ -498,17 +497,19 @@
 - ✅ Лого команды переведено на `next/image` в 3 местах: [layout.tsx](../../src/app/(app)/team/[id]/layout.tsx), [settings/page.tsx](../../src/app/(app)/team/[id]/settings/page.tsx), [TeamRequestsSheet.tsx](../../src/components/team/TeamRequestsSheet.tsx) — с правильными `sizes` и `priority` для hero
 - ✅ `next.config.ts` — `remotePatterns` расширены для Supabase Storage, `images.unsplash.com`, `t.me`
 
-### 1.5.1.7 Декомпозиция компонентов-гигантов 🔄
+### 1.5.1.7 Декомпозиция компонентов-гигантов ✅
 
 Файлы >500 строк трудно поддерживать и провоцируют каскады ре-рендеров. Разбить на под-компоненты:
 
-| Файл | Строк | Разбить на | Статус |
-|------|-------|-----------|--------|
-| `profile/page.tsx` | 1082 → 273 | `_components/{AboutTab, ResultsTab, ReliabilityTab, AchievementsTab, MyJoinRequests, atoms, types}` | ✅ |
-| `TeamPlayerSheet.tsx` | 929 → 322 | `team-player-sheet/{types, icons, atoms, Accordion, ReliabilityBody, FinancesBody, SheetHeader}` | ✅ |
-| `team/[id]/page.tsx` | 876 → 109 | `_components/{NextEventCard, ActivityCard, TopPlayersCard, FinanceCard, RequestsCounter, GuestJoinBar, EmptyTeamHome, SkeletonHome, atoms, icons, types}` | ✅ |
-| `team/[id]/finances/page.tsx` | 749 → 157 | `_components/{FinancesHero, MetricsBreakdown, FlowChart, MarginBar, DebtorsList, VenuesAccordion, DepositCard, DepositModal, types}` | ✅ |
-| `team/[id]/events/page.tsx` | 734 | `EventsFilterBar`, `EventsList`, `CreateEventSheet` | ⏸ следующий |
+
+| Файл                          | Строк      | Разбить на                                                                                                                                                | Статус |
+| ----------------------------- | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- | ------ |
+| `profile/page.tsx`            | 1082 → 273 | `_components/{AboutTab, ResultsTab, ReliabilityTab, AchievementsTab, MyJoinRequests, atoms, types}`                                                       | ✅      |
+| `TeamPlayerSheet.tsx`         | 929 → 322  | `team-player-sheet/{types, icons, atoms, Accordion, ReliabilityBody, FinancesBody, SheetHeader}`                                                          | ✅      |
+| `team/[id]/page.tsx`          | 876 → 109  | `_components/{NextEventCard, ActivityCard, TopPlayersCard, FinanceCard, RequestsCounter, GuestJoinBar, EmptyTeamHome, SkeletonHome, atoms, icons, types}` | ✅      |
+| `team/[id]/finances/page.tsx` | 749 → 157  | `_components/{FinancesHero, MetricsBreakdown, FlowChart, MarginBar, DebtorsList, VenuesAccordion, DepositCard, DepositModal, types}`                      | ✅      |
+| `team/[id]/events/page.tsx`   | 735 → 122  | `_components/{EventsListSkeleton, EventsSection, EventCreateSheet, NativeDateTimeFields, icons, constants, types}`                                        | ✅      |
+
 
 **Подход.** Файлы режем по очереди (не пакетом), без изменения поведения — только move/extract. После каждого — `npm run build` для контроля. `_components/` (с underscore) — Next.js не делает роутом, это идиоматичное место для приватных компонентов страницы.
 
@@ -520,17 +521,19 @@
 
 **Финансы команды (✅).** В `finances/page.tsx` остался shell: `TeamFinancesPage` (state data/insights/openMember/showDeposit/error, `load()` с двумя параллельными fetch'ами, useEffect, координация `TeamPlayerSheet`/`DepositModal`, `openPlayer` handler). 8 секционных компонентов вынесены в `_components/`: `FinancesHero` (чёрный hero с realBalance + 3 сегмента в кассе/долгах, локальный `HeroSegment`), `MetricsBreakdown` (сводка с локальным `MetricCell`), `FlowChart` (SVG bar chart за 6 месяцев + локальный `compactNum`), `MarginBar`, `DebtorsList` (объединил блоки «Должны»/«Переплатили» через проп `variant: "debtor" | "creditor"`, локальный `DebtorRow`), `VenuesAccordion` (с локальным `ChevronDownIcon`), `DepositCard`, `DepositModal`. Типы `FinancesData`/`FlowMonth`/`InsightsFinance`/`Member` — в `types.ts`.
 
+**События команды (✅).** В `events/page.tsx` остался shell: `EventsPage` (state events/typeFilter/showCreate, `loadEvents`, useEffect, фильтрация и сортировка `planned`/`past`, FAB и интеграция `EventCreateSheet`). Вынесено в `_components/`: `EventsListSkeleton` (фильтр + 4 строки), `EventsSection` (унифицировал две секции через проп `muted` для прошедших, инлайн `Eyebrow` склеен с заголовком), `EventCreateSheet` (большой sheet со всеми полями: тип, дата/время, цена, мин-игроки, город, площадка, описание, public toggle), `NativeDateTimeFields` (`NativeDateField`/`NativeTimeField` + локальный `formatDateLabel` с RU-таблицами недели и месяцев), 4 иконки (`PlusIcon`/`CloseIcon`/`CalendarIcon`/`ClockIcon`). Типы и константы — отдельные файлы.
+
 ### 1.5.1.8 Дедупликация утилит ✅
 
 - ✅ Общий `pluralize(n, [one, few, many])` в [src/lib/format.ts](../../src/lib/format.ts), 5 локальных копий заменены
 - ✅ `formatMonthShort` перенесён из `finances/page.tsx` в `format.ts`
 - ⏸ Прямые `toLocaleDateString` (~23 места) — оставили, расширим хелперы при следующих касаниях
 
-### 1.5.1.9 Мёртвый код, типы, console.log
+### 1.5.1.9 Мёртвый код, типы, console.log ✅
 
 - ✅ Удалён `src/components/PlayerCard.tsx` (147 строк, 0 импортов)
-- ⏸ Прогрепать `as any` / `: any` — отложено, главные жертвы (API notify-helpers) точечно почистим при касании
-- ⏸ Клиентские `console.log/error` — отложено
+- ✅ Прогрепаны и удалены все `as any` / `: any`. Жертвы — два notify-helper'а в API: `notifyMembers` ([events/route.ts](../../src/app/api/teams/[id]/events/route.ts)) и `notifyPlayer` ([invites/route.ts](../../src/app/api/teams/[id]/invites/route.ts)). Заменили `supabase: any` на `ReturnType<typeof getServiceClient>`, `event: any` — на узкий `NotifyEvent { id, type, date, venue_id }`. После этого Supabase-types вскрыли отсутствующую relation между `team_memberships` и `users` — переписали блок выборки telegram_id на двухэтапный pipeline (`map → filter` с type predicate) и cast `as unknown as MemberWithTelegram[]` (тот же паттерн, что для `EventWithVenue` в этом же файле). Ноль `: any` в `src/`
+- ✅ Клиентские `console.log/error` — нет в коде. Все 41 вхождение `console.error` живут в API роутах (`src/app/api/*` + `src/lib/telegram-bot.ts`) — это server-side логирование для Vercel logs, оставляем как есть
 
 ### 1.5.1.10 Race conditions и cleanup ⏸
 
@@ -544,7 +547,7 @@
 
 ### 1.5.1.13 Optimistic tab activation ✅
 
-**Проблема (по итогам тестирования).** При тапе на табу внутри `/team/[id]/*` (Главная / Состав / События / Финансы) видно паузу 100–300ms между касанием и сменой подсветки на новой табе. Технически: `pathname` обновляется только после смены роута → `usePathname()` отдаёт старое значение → indicator застрял на старой табе. Сами данные на новой табе грузятся ок (≈1 сек), но именно «зависание» подсветки бесит.
+**Проблема (по итогам тестирования).** При тапе на табу внутри `/team/[id]/`* (Главная / Состав / События / Финансы) видно паузу 100–300ms между касанием и сменой подсветки на новой табе. Технически: `pathname` обновляется только после смены роута → `usePathname()` отдаёт старое значение → indicator застрял на старой табе. Сами данные на новой табе грузятся ок (≈1 сек), но именно «зависание» подсветки бесит.
 
 **Решение.**
 
@@ -569,10 +572,6 @@
 
 - В `peekReliability`/`peekFinances` для `undefined` (loading) возвращать placeholder с теми же измерениями: `primary: "—"`, `secondary: "Загрузка"`, серый цвет.
 - Это сохраняет высоту row'а ровно такой же, как при загруженных данных. Когда данные приходят — текст меняется, высота не меняется.
-
-### 1.5.1.12 Мелкие фиксы по итогам тестирования 1.5
-
-Резерв под баги/UX-косяки, которые всплывут при тестировании итераций 43–52.
 
 ### Не входит
 

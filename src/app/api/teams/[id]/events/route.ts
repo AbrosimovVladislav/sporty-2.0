@@ -33,9 +33,24 @@ type TransactionRow = {
   amount: number;
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-async function notifyMembers(supabase: any, teamId: string, event: any) {
-  const [{ data: members }, { data: team }] = await Promise.all([
+type NotifyEvent = {
+  id: string;
+  type: string;
+  date: string;
+  venue_id: string | null;
+};
+
+type MemberWithTelegram = {
+  user_id: string;
+  users: { telegram_id: number | null } | null;
+};
+
+async function notifyMembers(
+  supabase: ReturnType<typeof getServiceClient>,
+  teamId: string,
+  event: NotifyEvent,
+) {
+  const [{ data: rawMembers }, { data: team }] = await Promise.all([
     supabase
       .from("team_memberships")
       .select("user_id, users(telegram_id)")
@@ -43,7 +58,8 @@ async function notifyMembers(supabase: any, teamId: string, event: any) {
     supabase.from("teams").select("name").eq("id", teamId).single(),
   ]);
 
-  if (!members?.length) return;
+  const members = (rawMembers ?? []) as unknown as MemberWithTelegram[];
+  if (!members.length) return;
 
   let venueName: string | null = null;
   if (event.venue_id) {
@@ -76,10 +92,9 @@ async function notifyMembers(supabase: any, teamId: string, event: any) {
 
   await Promise.allSettled(
     members
-      .filter((m: { users: { telegram_id: number } | null }) => m.users?.telegram_id)
-      .map((m: { users: { telegram_id: number } }) =>
-        sendMessage(m.users.telegram_id, text, { reply_markup: replyMarkup })
-      )
+      .map((m) => m.users?.telegram_id)
+      .filter((id): id is number => typeof id === "number")
+      .map((id) => sendMessage(id, text, { reply_markup: replyMarkup })),
   );
 }
 
