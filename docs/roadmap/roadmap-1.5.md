@@ -506,8 +506,8 @@
 |------|-------|-----------|--------|
 | `profile/page.tsx` | 1082 → 273 | `_components/{AboutTab, ResultsTab, ReliabilityTab, AchievementsTab, MyJoinRequests, atoms, types}` | ✅ |
 | `TeamPlayerSheet.tsx` | 929 → 322 | `team-player-sheet/{types, icons, atoms, Accordion, ReliabilityBody, FinancesBody, SheetHeader}` | ✅ |
-| `team/[id]/page.tsx` | 879 | `TeamMainHeader`, `LeadersSection`, `NextEventCard`, `RecentEventsList`, `RequestsCard` | ⏸ следующий |
-| `team/[id]/finances/page.tsx` | 767 | `FinancesHero`, `FlowChart`, `MarginBar`, `DebtorsList`, `VenuesAccordion`, `DepositCard` | ⏸ |
+| `team/[id]/page.tsx` | 876 → 109 | `_components/{NextEventCard, ActivityCard, TopPlayersCard, FinanceCard, RequestsCounter, GuestJoinBar, EmptyTeamHome, SkeletonHome, atoms, icons, types}` | ✅ |
+| `team/[id]/finances/page.tsx` | 767 | `FinancesHero`, `FlowChart`, `MarginBar`, `DebtorsList`, `VenuesAccordion`, `DepositCard` | ⏸ следующий |
 | `team/[id]/events/page.tsx` | 734 | `EventsFilterBar`, `EventsList`, `CreateEventSheet` | ⏸ |
 
 **Подход.** Файлы режем по очереди (не пакетом), без изменения поведения — только move/extract. После каждого — `npm run build` для контроля. `_components/` (с underscore) — Next.js не делает роутом, это идиоматичное место для приватных компонентов страницы.
@@ -515,6 +515,8 @@
 **Профиль (✅).** В `page.tsx` остался shell: `ProfilePage` (auth gate) + `ProfileContent` (header c аватаром, tabs state, fetch'и `/users/[id]`, `/users/[id]/stats`, `/users/[id]/teams`). 4 таба + `MyJoinRequests` + атомы (`Eyebrow`, `StatTile`, `SkeletonBlock`) вынесены в `_components/`. Поведение не менялось.
 
 **TeamPlayerSheet (✅).** В `TeamPlayerSheet.tsx` остался shell: state (openSection, busy, reliability/finances), 2 useEffect-фетча (reliability/finances), 3 handler'а (promote/remove/leave), layout с тремя Accordion'ами и блоками действий. Вынесено в `team-player-sheet/`: типы (`ReliabilityData`, `FinancesData`, `PeekContent`, `TeamPlayerSheetMember`), 5 иконок, атомы (`SkillBadge`, `MiniStat`, `Empty`, `SkeletonRow` + `skillToNum`), `Accordion`, `SheetHeader`, `ReliabilityBody` (+ `peekReliability`), `FinancesBody` (+ `peekFinances`). `lazy.ts` не менялся — путь к компоненту прежний.
+
+**Главная команды (✅).** В `team/[id]/page.tsx` остался shell: `TeamHomePage` (insights state + fetch, activePlayer state, dispatch на skeleton/empty/main, координация `TeamPlayerSheet` через `handleLeaderClick`). 8 секционных карточек вынесены в `_components/`: `NextEventCard` (hero с фоном венью), `ActivityCard` (счётчик событий + bars + явка), `TopPlayersCard` (3 лидера), `FinanceCard` (organizer-only Δ-блок), `RequestsCounter` (зелёный pill с pending count), `GuestJoinBar` (BottomActionBar для гостя со всеми режимами заявки), `EmptyTeamHome`, `SkeletonHome`. Атомы (`Eyebrow`, `TrendChip` + `initial`/`firstName`/`requestsLabel`), 4 иконки, тип `Insights` — отдельные файлы.
 
 ### 1.5.1.8 Дедупликация утилит ✅
 
