@@ -26,6 +26,7 @@ type Venue = {
   city: string;
   district_id: string | null;
   district: { id: string; name: string } | null;
+  photo_url: string | null;
 };
 
 const EMPTY_FILTERS: VenueFilters = { city: "", districtId: "" };
@@ -175,6 +176,7 @@ export default function SearchVenuesPage() {
                     address={v.address}
                     city={v.city}
                     district={v.district?.name ?? null}
+                    photoUrl={v.photo_url}
                   />
                 </li>
               ))}

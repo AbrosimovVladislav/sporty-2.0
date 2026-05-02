@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { memo } from "react";
 
@@ -9,9 +10,10 @@ type Props = {
   address: string;
   city: string;
   district?: string | null;
+  photoUrl?: string | null;
 };
 
-function VenueListRowImpl({ id, name, address, city, district }: Props) {
+function VenueListRowImpl({ id, name, address, city, district, photoUrl }: Props) {
   const subtitle = [address, district || null].filter(Boolean).join(" · ");
 
   return (
@@ -21,14 +23,24 @@ function VenueListRowImpl({ id, name, address, city, district }: Props) {
       style={{ borderBottom: "1px solid var(--gray-100)" }}
     >
       <div
-        className="w-11 h-11 rounded-[12px] flex items-center justify-center shrink-0"
+        className="w-11 h-11 rounded-[12px] overflow-hidden flex items-center justify-center shrink-0"
         style={{
           background: "var(--bg-card)",
           border: "1.5px solid var(--gray-200)",
           color: "var(--text-tertiary)",
         }}
       >
-        <PinIcon />
+        {photoUrl ? (
+          <Image
+            src={photoUrl}
+            alt=""
+            width={44}
+            height={44}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <PinIcon />
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p
