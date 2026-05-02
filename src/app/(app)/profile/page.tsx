@@ -87,8 +87,8 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
-    if (file.size > 2 * 1024 * 1024) {
-      setUploadError("Файл слишком большой. Максимум 2 МБ");
+    if (file.size > 10 * 1024 * 1024) {
+      setUploadError("Файл слишком большой. Максимум 10 МБ");
       e.target.value = "";
       return;
     }

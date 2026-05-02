@@ -83,7 +83,7 @@ export function PageHeader({
           <div className={`flex-1 min-w-0${hasTopRight ? " pr-12" : ""}`}>
             {titleSlot ?? (
               <h1
-                className="font-display font-bold uppercase text-white text-[30px] leading-none truncate"
+                className="font-display font-bold uppercase text-white text-[30px] leading-tight break-words"
                 style={{ letterSpacing: "0.02em" }}
               >
                 {title}

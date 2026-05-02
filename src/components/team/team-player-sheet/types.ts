@@ -8,6 +8,7 @@ export type TeamPlayerSheetMember = {
     position: string[] | null;
     skill_level: string | null;
     avatar_url: string | null;
+    rating: number | null;
   };
 };
 

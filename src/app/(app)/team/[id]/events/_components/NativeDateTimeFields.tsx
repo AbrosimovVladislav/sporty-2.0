@@ -71,27 +71,23 @@ export function NativeTimeField({
   value: string;
   onChange: (v: string) => void;
 }) {
-  const display = value || "Выбери время";
   return (
-    <label className={`${FIELD_CLASS} relative cursor-pointer`} style={FIELD_STYLE}>
-      <span
-        className="tabular-nums"
-        style={{
-          color: value ? "var(--text-primary)" : "var(--text-tertiary)",
-        }}
-      >
-        {display}
-      </span>
-      <ClockIcon />
+    <div className={`${FIELD_CLASS} relative`} style={FIELD_STYLE}>
       <input
         type="time"
         value={value}
         onChange={(e) => onChange(e.target.value)}
         required
         aria-label="Время"
-        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-        style={{ colorScheme: "light" }}
+        className="absolute inset-0 w-full h-full px-4 bg-transparent text-[14px] outline-none border-none cursor-pointer"
+        style={{
+          colorScheme: "light",
+          color: value ? "var(--text-primary)" : "var(--text-tertiary)",
+        }}
       />
-    </label>
+      <span className="pointer-events-none ml-auto">
+        <ClockIcon />
+      </span>
+    </div>
   );
 }

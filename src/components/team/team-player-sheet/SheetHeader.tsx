@@ -2,6 +2,7 @@ import { Avatar } from "@/components/ui";
 import { PositionChipList } from "@/components/PositionChip";
 import { SkillBadge } from "./atoms";
 import { PinIcon } from "./icons";
+import { ratingColor } from "@/lib/ratingColor";
 import type { TeamPlayerSheetMember } from "./types";
 
 export function SheetHeader({
@@ -29,6 +30,14 @@ export function SheetHeader({
             >
               {member.user.name}
             </p>
+            {member.user.rating != null && (
+              <span
+                className="text-[18px] font-black tabular-nums leading-tight"
+                style={{ color: ratingColor(member.user.rating) }}
+              >
+                {member.user.rating}
+              </span>
+            )}
             {isTargetOrganizer && (
               <span
                 className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
