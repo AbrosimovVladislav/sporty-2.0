@@ -14,6 +14,7 @@ type MembershipWithUser = {
     position: string[] | null;
     skill_level: string | null;
     avatar_url: string | null;
+    rating: number | null;
   } | null;
 };
 
@@ -46,7 +47,7 @@ export async function GET(
     supabase.from("teams").select().eq("id", id).maybeSingle(),
     supabase
       .from("team_memberships")
-      .select("id, user_id, role, joined_at, users(id, name, city, sport, position, skill_level, avatar_url)")
+      .select("id, user_id, role, joined_at, users(id, name, city, sport, position, skill_level, avatar_url, rating)")
       .eq("team_id", id)
       .order("joined_at", { ascending: true }),
     supabase

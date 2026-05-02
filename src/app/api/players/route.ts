@@ -10,6 +10,7 @@ type PlayerRow = {
   skill_level: string | null;
   looking_for_team: boolean;
   district_id: string | null;
+  rating: number | null;
   districts: { id: string; name: string } | null;
 };
 
@@ -39,7 +40,7 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from("users")
     .select(
-      "id, name, avatar_url, city, position, skill_level, looking_for_team, district_id, districts(id, name)",
+      "id, name, avatar_url, city, position, skill_level, looking_for_team, district_id, rating, districts(id, name)",
       { count: "exact" },
     )
     .eq("onboarding_completed", true);
@@ -110,6 +111,7 @@ export async function GET(req: NextRequest) {
       skill_level: p.skill_level,
       looking_for_team: p.looking_for_team,
       district_id: p.district_id,
+      rating: p.rating,
       district: p.districts ?? null,
       reliability: stats.reliability,
       played: stats.played,

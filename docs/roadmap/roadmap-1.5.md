@@ -575,10 +575,8 @@
 
 ### Не входит
 
-- Серверные оптимизации Supabase (RLS, индексы) — отдельная задача с замерами
-- Перевод на React Query / SWR — большое архитектурное решение, не делаем без отдельного обсуждения
+- Пагинация, server-side агрегаты, индексы БД, React Query, виртуализация — вынесены в итерацию 1.5.3 (готовность к нагрузке)
 - Telegram CDN / hosting — деплоится через Vercel, на 1.5 не трогаем
-- Виртуализация списков (react-window) — пока списки <100 элементов, не нужна; вернуться при росте
 
 ---
 
@@ -682,4 +680,109 @@
 - Seed для футбольных данных — только хоккей (по запросу пользователя). Если позже понадобится — отдельная задача
 - Тестовые сценарии типа «Telegram-юзер X = organizer team A» — пользователь подключается к seed-данным как новый пользователь через свой Telegram-аккаунт
 - Backup/restore prod-БД — это отдельная инфраструктурная задача
+
+---
+
+## ⬜ Итерация 1.5.3 — Готовность к нагрузке (пагинация, индексы, агрегаты)
+
+**Цель.** Подготовить приложение к росту: 400 игроков в первый месяц, тысячи событий, десятки-сотни команд. Перевести растущие списки на cursor-пагинацию + infinite scroll, навесить индексы на горячие запросы, унести подсчёт агрегатов в Postgres. Делается **после** итерации 1.5.2 — на seed-данных удобно проверять корректность пагинации и сравнивать EXPLAIN ANALYZE до/после индексов.
+
+**Зависит от.** Итерация 1.5.2 (seed-данные с реалистичным объёмом — минимум 100 событий в одной команде, 50+ игроков, 5+ команд) — нужна для тестирования пагинации и измерения эффекта индексов.
+
+**Ключевые решения.**
+
+- **Cursor-пагинация, не offset.** На быстрорастущих списках offset даёт плывущий курсор (вставка/удаление между запросами рушит порядок). Cursor стабилен, индексируется, корректно работает с infinite scroll. Курсор = `(date, id)` для событий, `(created_at, id)` для команд/игроков
+- **Server-side агрегаты для events list.** `yesCount`/`noCount`/`expectedCollected`/`actualCollected` сейчас считаем на клиенте после батча attendances + transactions. Уносим в Postgres view или RPC — отдаём готовые числа. Минус 2 дополнительных запроса и заметное снижение payload'а
+- **Lazy event details.** Полные attendances/transactions нужны только при открытии конкретного события. На странице events отдаём только summary
+- **Индексы — обязательное условие.** Без них `ORDER BY date DESC LIMIT 20` всё равно сканирует таблицу. Пагинация без индексов не спасает, индексы без пагинации тоже
+
+### 1.5.3.1 Cursor-пагинация: события команды
+
+**API.** `GET /api/teams/[id]/events`:
+
+- Параметры: `limit=20`, `cursor=<base64({date, id})>`, `direction=upcoming|past`
+- Default: `upcoming` — `date >= now()` отсортированы `date ASC`
+- Past block — `direction=past`, `date < now()` отсортированы `date DESC`
+- Ответ: `{ events: [...], nextCursor: string | null }`
+
+**UI.** На `/team/[id]/events`:
+
+- Initial load: все upcoming + первые 20 past
+- Под past — `IntersectionObserver` sentinel, при попадании в viewport → fetch следующих 20
+- Спиннер `EventsListSkeleton` для подгрузки
+
+### 1.5.3.2 Cursor-пагинация: публичные события
+
+**API.** `GET /api/events/public` — те же параметры. Все фильтры (`type`, `from`, `to`, `price_max`, `has_spots`) применяются до пагинации в Postgres (`has_spots` — отдельная задача, нужен серверный счётчик yes_count).
+
+**UI.** `/search/events` — infinite scroll вместо одиночного fetch'а.
+
+### 1.5.3.3 Cursor-пагинация: команды и игроки
+
+**API.**
+
+- `GET /api/teams` — `cursor`, `limit=20`. Сортировки `created_desc`/`name_asc` остаются
+- `GET /api/players` — `cursor`, `limit=20`. Сортировки `skill`/`name_asc`/`recent` остаются
+
+**UI.** `/search/teams`, `/search/players` — infinite scroll.
+
+### 1.5.3.4 Server-side aggregates для events list
+
+**Решение.** Postgres-функция:
+
+```sql
+CREATE OR REPLACE FUNCTION get_team_events_with_stats(
+  p_team_id uuid,
+  p_direction text,
+  p_cursor_date timestamptz,
+  p_cursor_id uuid,
+  p_limit int
+)
+RETURNS TABLE (
+  -- все поля events +
+  yes_count int,
+  no_count int,
+  expected_collected numeric,
+  actual_collected numeric
+) AS $$ ... $$;
+```
+
+Агрегаты считаются через `LEFT JOIN LATERAL` на `event_attendances` и `financial_transactions` с фильтром `type = 'event_payment'`.
+
+**Backend.** `/api/teams/[id]/events` использует RPC вместо отдельных fetch'ей. Старая логика `byEvent.map`/`txByEvent.map` удаляется.
+
+**Миграция.** Через Supabase MCP (`apply_migration`).
+
+### 1.5.3.5 Lazy event details
+
+**Решение.** На `/team/[id]/events` отдаём только агрегаты (см. 1.5.3.4), без сырых attendances/transactions. Полные данные грузятся в `EventDetail` при открытии события (отдельный endpoint `/api/events/[id]`, проверить — может уже есть).
+
+### 1.5.3.6 Аудит индексов БД
+
+**Что проверить EXPLAIN ANALYZE на seed-данных (после 1.5.2).**
+
+- `events(team_id, date DESC)` — пагинация событий команды
+- `events(date)` WHERE `is_public = true` — публичный поиск
+- `event_attendances(event_id)` — батч и LATERAL JOIN
+- `financial_transactions(event_id, type)` — батч и LATERAL JOIN
+- `team_memberships(team_id)`, `team_memberships(user_id)` — membership-пробы и состав
+- `teams(city, created_at DESC)`, `teams(city, name)` — discovery с фильтром по городу
+- `users(city, skill DESC)`, `users(city, created_at DESC)` — discovery игроков
+- `users(is_looking_for_team) WHERE is_looking_for_team = true` (partial index) — фильтр «ищут команду»
+
+**Имплементация.** Миграция `perf_indexes` через Supabase MCP. До и после — снять EXPLAIN ANALYZE на seed-данных, зафиксировать в `docs/tech/perf-baseline.md` (создать).
+
+### 1.5.3.7 Перевод на React Query / SWR — отложено
+
+С пагинацией кэш-инвалидация и infinite scroll становятся болезненными в чистом `useEffect`. React Query даёт это из коробки: `useInfiniteQuery`, оптимистичные апдейты, dedup запросов. Миграция data layer — отдельная итерация (~1 неделя), требует переписать ~30 fetch-сайтов. Делается отдельно, после стабилизации пагинации (1.5.3.1–1.5.3.5).
+
+### 1.5.3.8 Виртуализация списков — отложено
+
+С infinite scroll и `limit=20` единовременно в DOM ~50–100 строк. Виртуализация (react-window) пока не нужна. Возвращаемся к вопросу, если профайлер покажет проблемы рендера на конкретном экране (>200 нод одновременно).
+
+### Не входит
+
+- Server-side rendering (SSR) для search-страниц — Telegram Mini App работает в WebView, smooth client-side hydration важнее SSR
+- Кэш на Vercel Edge для публичных endpoint'ов — оставляем на 2.0
+- Денормализация (members_count, last_event_at и т.п.) — добавляем точечно по запросу, не превентивно
 

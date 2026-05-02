@@ -20,6 +20,7 @@
 | preferred_time | text? | Предпочтительное время тренировок |
 | looking_for_team | boolean | Ищет команду (default false) |
 | avatar_url | text? | URL фото профиля (Supabase Storage) |
+| rating | smallint? | Рейтинг игрока (ELO-подобная шкала 100–2500, хранится явно, в будущем будет пересчитываться) |
 
 ---
 

@@ -33,8 +33,7 @@ type Player = {
   skill_level: string | null;
   looking_for_team: boolean;
   district: { id: string; name: string } | null;
-  reliability: number | null;
-  played: number;
+  rating: number | null;
 };
 
 type Stats = {
@@ -285,8 +284,7 @@ export default function SearchPlayersPage() {
                     district={p.district?.name ?? null}
                     skillLevel={p.skill_level}
                     lookingForTeam={p.looking_for_team}
-                    reliability={p.reliability}
-                    played={p.played}
+                    rating={p.rating}
                   />
                 </li>
               ))}

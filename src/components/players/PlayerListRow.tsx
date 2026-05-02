@@ -2,10 +2,9 @@
 
 import Link from "next/link";
 import { memo } from "react";
-import { Avatar, MiniBar } from "@/components/ui";
+import { Avatar } from "@/components/ui";
 import { PositionChipList } from "@/components/PositionChip";
 import { SKILL_LEVELS } from "@/lib/catalogs";
-import { reliabilityToBars } from "./reliabilityToBars";
 
 type Props = {
   id: string;
@@ -16,8 +15,7 @@ type Props = {
   district?: string | null;
   skillLevel?: string | null;
   lookingForTeam?: boolean;
-  reliability?: number | null;
-  played?: number;
+  rating?: number | null;
   onClick?: () => void;
   roleBadge?: string;
 };
@@ -31,13 +29,11 @@ function PlayerListRowImpl({
   district,
   skillLevel,
   lookingForTeam,
-  reliability,
-  played = 0,
+  rating,
   onClick,
   roleBadge,
 }: Props) {
   const subtitle = !skillLevel ? district || city || null : null;
-  const bars = reliabilityToBars(reliability ?? null, played);
 
   const sharedClass =
     "flex items-center gap-3.5 py-3 last:border-b-0 transition-colors active:bg-bg-secondary";
@@ -70,23 +66,21 @@ function PlayerListRowImpl({
           )}
         </div>
       </div>
-      <div
-        className="shrink-0"
-        aria-label={
-          bars === 0
-            ? "Надёжность: нет данных"
-            : `Надёжность ${reliability ?? 0}%`
-        }
-      >
-        {bars === 0 ? (
+      <div className="shrink-0 text-right">
+        {rating != null ? (
+          <span
+            className="text-[14px] font-bold tabular-nums"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {rating}
+          </span>
+        ) : (
           <span
             className="text-[13px] font-semibold"
             style={{ color: "var(--text-tertiary)" }}
           >
             —
           </span>
-        ) : (
-          <MiniBar value={bars} max={5} />
         )}
       </div>
     </>

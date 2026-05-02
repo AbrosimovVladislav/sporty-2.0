@@ -142,6 +142,7 @@ export default function RosterPage() {
                 avatarUrl={m.user.avatar_url}
                 position={m.user.position}
                 city={m.user.city}
+                rating={m.user.rating}
                 roleBadge={m.role === "organizer" ? "Организатор" : undefined}
                 onClick={() => setActivePlayer(m)}
               />
