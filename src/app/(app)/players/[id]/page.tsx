@@ -14,6 +14,7 @@ import {
   SectionEyebrow,
   BottomActionBar,
 } from "@/components/ui";
+import { ratingColor } from "@/lib/ratingColor";
 
 type Player = {
   id: string;
@@ -25,6 +26,7 @@ type Player = {
   bio: string | null;
   birth_date: string | null;
   looking_for_team: boolean;
+  rating: number | null;
 };
 
 type Stats = {
@@ -153,6 +155,17 @@ export default function PlayerProfilePage() {
             <p className="text-[13px] text-foreground-secondary text-center mt-1">
               {locationParts.join(" · ")}
             </p>
+          )}
+
+          {player.rating != null && (
+            <div className="flex justify-center mt-3">
+              <span
+                className="text-[32px] font-black tabular-nums leading-none"
+                style={{ color: ratingColor(player.rating) }}
+              >
+                {player.rating}
+              </span>
+            </div>
           )}
 
           {player.looking_for_team && (

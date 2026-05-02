@@ -217,6 +217,9 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
           <HeaderStat value={stats?.playedCount ?? 0} label="Сыграно" />
           <HeaderStat value={reliabilityValue} label="Надёжность" />
           <HeaderStat value={teamsCount ?? 0} label="Команд" />
+          {user.rating != null && (
+            <HeaderStat value={user.rating} label="Рейтинг" />
+          )}
         </HeaderStatGroup>
       </PageHeader>
 

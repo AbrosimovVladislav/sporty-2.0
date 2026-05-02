@@ -5,6 +5,7 @@ import { memo } from "react";
 import { Avatar } from "@/components/ui";
 import { PositionChipList } from "@/components/PositionChip";
 import { SKILL_LEVELS } from "@/lib/catalogs";
+import { ratingColor } from "@/lib/ratingColor";
 
 type Props = {
   id: string;
@@ -70,7 +71,7 @@ function PlayerListRowImpl({
         {rating != null ? (
           <span
             className="text-[14px] font-bold tabular-nums"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: ratingColor(rating) }}
           >
             {rating}
           </span>

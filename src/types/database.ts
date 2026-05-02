@@ -40,6 +40,7 @@ export type Database = {
           looking_for_team: boolean;
           avatar_url: string | null;
           district_id: string | null;
+          rating: number | null;
         };
         Insert: {
           id?: string;
@@ -57,6 +58,7 @@ export type Database = {
           looking_for_team?: boolean;
           avatar_url?: string | null;
           district_id?: string | null;
+          rating?: number | null;
         };
         Update: {
           name?: string;
@@ -71,6 +73,7 @@ export type Database = {
           looking_for_team?: boolean;
           avatar_url?: string | null;
           district_id?: string | null;
+          rating?: number | null;
         };
         Relationships: [];
       };
