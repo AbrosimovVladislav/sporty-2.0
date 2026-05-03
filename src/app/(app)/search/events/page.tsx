@@ -1,9 +1,9 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
@@ -204,7 +204,7 @@ function SearchEventsInner() {
     return { from: filters.dateFrom, to: filters.dateTo };
   }, [filters.datePreset, filters.dateFrom, filters.dateTo]);
 
-  const buildParams = useCallback(() => {
+  const queryParams = useMemo(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (filters.city) params.set("city", filters.city);
@@ -215,7 +215,8 @@ function SearchEventsInner() {
     if (filters.priceMax) params.set("price_max", filters.priceMax);
     if (filters.hasSpots) params.set("has_spots", "true");
     if (venueId) params.set("venue", venueId);
-    return params;
+    params.set("sort", sort);
+    return params.toString();
   }, [
     debouncedSearch,
     filters.city,
@@ -226,48 +227,32 @@ function SearchEventsInner() {
     filters.priceMax,
     filters.hasSpots,
     venueId,
+    sort,
   ]);
 
-  const fetcher = useCallback(
-    (offset: number) => {
-      const params = buildParams();
-      params.set("sort", sort);
-      params.set("offset", String(offset));
-      return fetch(`/api/events/public?${params}`)
-        .then((r) => r.json())
-        .then((d) => ({
-          items: (d.events ?? []) as PublicEvent[],
-          nextOffset: d.nextOffset as number | null,
-          total: d.total as number | null,
-        }));
+  const eventsQuery = useInfiniteQuery({
+    queryKey: ["public-events", queryParams],
+    queryFn: async ({ pageParam }) => {
+      const url = pageParam
+        ? `/api/events/public?${queryParams}&cursor=${encodeURIComponent(pageParam)}`
+        : `/api/events/public?${queryParams}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("public events fetch failed");
+      return r.json() as Promise<{
+        events: PublicEvent[];
+        nextCursor: string | null;
+      }>;
     },
-    [buildParams, sort],
-  );
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+  });
 
-  const { items: events, loading, loadMore, hasMore, reset } =
-    usePaginatedList<PublicEvent>(fetcher);
-  const [resultsTotal, setResultsTotal] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = buildParams();
-    params.set("sort", sort);
-    params.set("limit", "1");
-    fetch(`/api/events/public?${params}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled)
-          setResultsTotal(typeof d.total === "number" ? d.total : null);
-      })
-      .catch(() => {
-        if (!cancelled) setResultsTotal(null);
-      });
-    reset();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [buildParams, sort]);
+  const events = eventsQuery.data?.pages.flatMap((p) => p.events) ?? [];
+  const loading = eventsQuery.isPending || eventsQuery.isFetchingNextPage;
+  const hasMore = eventsQuery.hasNextPage;
+  const loadMore = () => {
+    if (!eventsQuery.isFetchingNextPage) eventsQuery.fetchNextPage();
+  };
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
@@ -332,8 +317,12 @@ function SearchEventsInner() {
     (filters.priceMax ? 1 : 0) +
     (filters.hasSpots ? 1 : 0);
 
-  const showSkeleton = events.length === 0 && loading;
+  const showSkeleton = events.length === 0 && eventsQuery.isPending;
   const showEmpty = !loading && events.length === 0;
+  const resultsLabel =
+    events.length > 0
+      ? `${events.length}${hasMore ? "+" : ""}`
+      : null;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -393,7 +382,7 @@ function SearchEventsInner() {
           </div>
         ) : (
           <>
-            {resultsTotal !== null && resultsTotal > 0 && (
+            {resultsLabel && (
               <p
                 className="text-[11px] font-semibold uppercase mb-1"
                 style={{
@@ -401,7 +390,7 @@ function SearchEventsInner() {
                   color: "var(--text-tertiary)",
                 }}
               >
-                Результаты · {resultsTotal}
+                Результаты · {resultsLabel}
               </p>
             )}
             <ul className="flex flex-col">

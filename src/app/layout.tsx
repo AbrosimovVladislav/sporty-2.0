@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Oswald } from "next/font/google";
 import { TelegramProvider } from "@/components/TelegramProvider";
 import { AuthProvider } from "@/lib/auth-context";
+import { QueryProvider } from "@/lib/query-client";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -47,7 +48,9 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col">
         <TelegramProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <QueryProvider>{children}</QueryProvider>
+          </AuthProvider>
         </TelegramProvider>
       </body>
     </html>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
@@ -127,40 +127,7 @@ export default function SearchTeamsPage() {
     };
   }, [userId]);
 
-  const fetcher = useCallback(
-    (offset: number) => {
-      const params = new URLSearchParams();
-      if (debouncedSearch) params.set("q", debouncedSearch);
-      if (filters.city) params.set("city", filters.city);
-      if (filters.districtId) params.set("district_id", filters.districtId);
-      if (filters.sport) params.set("sport", filters.sport);
-      if (filters.lookingForPlayers) params.set("looking_for_players", "true");
-      params.set("sort", sort);
-      params.set("offset", String(offset));
-      return fetch(`/api/teams?${params}`)
-        .then((r) => r.json())
-        .then((d) => ({
-          items: (d.teams ?? []) as Team[],
-          nextOffset: d.nextOffset as number | null,
-          total: d.total as number | null,
-        }));
-    },
-    [
-      debouncedSearch,
-      filters.city,
-      filters.districtId,
-      filters.sport,
-      filters.lookingForPlayers,
-      sort,
-    ],
-  );
-
-  const { items: teams, loading, loadMore, hasMore, reset } =
-    usePaginatedList<Team>(fetcher);
-  const [resultsTotal, setResultsTotal] = useState<number | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
+  const queryString = useMemo(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (filters.city) params.set("city", filters.city);
@@ -168,21 +135,7 @@ export default function SearchTeamsPage() {
     if (filters.sport) params.set("sport", filters.sport);
     if (filters.lookingForPlayers) params.set("looking_for_players", "true");
     params.set("sort", sort);
-    params.set("limit", "1");
-    fetch(`/api/teams?${params}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled)
-          setResultsTotal(typeof d.total === "number" ? d.total : null);
-      })
-      .catch(() => {
-        if (!cancelled) setResultsTotal(null);
-      });
-    reset();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return params.toString();
   }, [
     debouncedSearch,
     filters.city,
@@ -191,6 +144,27 @@ export default function SearchTeamsPage() {
     filters.lookingForPlayers,
     sort,
   ]);
+
+  const teamsQuery = useInfiniteQuery({
+    queryKey: ["teams-search", queryString],
+    queryFn: async ({ pageParam }) => {
+      const url = pageParam
+        ? `/api/teams?${queryString}&cursor=${encodeURIComponent(pageParam)}`
+        : `/api/teams?${queryString}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("teams fetch failed");
+      return r.json() as Promise<{ teams: Team[]; nextCursor: string | null }>;
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+  });
+
+  const teams = teamsQuery.data?.pages.flatMap((p) => p.teams) ?? [];
+  const loading = teamsQuery.isPending || teamsQuery.isFetchingNextPage;
+  const hasMore = teamsQuery.hasNextPage;
+  const loadMore = () => {
+    if (!teamsQuery.isFetchingNextPage) teamsQuery.fetchNextPage();
+  };
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
@@ -226,8 +200,10 @@ export default function SearchTeamsPage() {
     (filters.sport ? 1 : 0) +
     (filters.lookingForPlayers ? 1 : 0);
 
-  const showSkeleton = teams.length === 0 && loading;
+  const showSkeleton = teams.length === 0 && teamsQuery.isPending;
   const showEmpty = !loading && teams.length === 0;
+  const resultsLabel =
+    teams.length > 0 ? `${teams.length}${hasMore ? "+" : ""}` : null;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -283,7 +259,7 @@ export default function SearchTeamsPage() {
           </div>
         ) : (
           <>
-            {resultsTotal !== null && resultsTotal > 0 && (
+            {resultsLabel && (
               <p
                 className="text-[11px] font-semibold uppercase mb-1"
                 style={{
@@ -291,7 +267,7 @@ export default function SearchTeamsPage() {
                   color: "var(--text-tertiary)",
                 }}
               >
-                Результаты · {resultsTotal}
+                Результаты · {resultsLabel}
               </p>
             )}
             <ul className="flex flex-col">

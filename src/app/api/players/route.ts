@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { decodeCursor, encodeCursor, keysetClause } from "@/lib/cursor";
 
 type PlayerRow = {
   id: string;
@@ -8,6 +9,8 @@ type PlayerRow = {
   city: string | null;
   position: string[] | null;
   skill_level: string | null;
+  skill_rank: number | null;
+  created_at: string;
   looking_for_team: boolean;
   district_id: string | null;
   rating: number | null;
@@ -32,16 +35,18 @@ export async function GET(req: NextRequest) {
   const sortRaw = searchParams.get("sort");
   const sort: SortMode =
     sortRaw === "recent" ? "recent" : sortRaw === "name_asc" ? "name_asc" : "skill";
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
-  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const limit = Math.min(
+    Math.max(parseInt(searchParams.get("limit") ?? "20", 10) || 20, 1),
+    50,
+  );
+  const cursor = decodeCursor(searchParams.get("cursor"));
 
   const supabase = getServiceClient();
 
   let query = supabase
     .from("users")
     .select(
-      "id, name, avatar_url, city, position, skill_level, looking_for_team, district_id, rating, districts(id, name)",
-      { count: "exact" },
+      "id, name, avatar_url, city, position, skill_level, skill_rank, created_at, looking_for_team, district_id, rating, districts(id, name)",
     )
     .eq("onboarding_completed", true);
 
@@ -51,24 +56,36 @@ export async function GET(req: NextRequest) {
   if (position) query = query.contains("position", [position]);
   if (district_id) query = query.eq("district_id", district_id);
 
+  // Sort + cursor. For skill sort the cursor is on skill_rank with a tie-break on id.
+  // NULL skill_rank rows come last; cursor.v = "" sentinel for them so we can keep paging.
   if (sort === "skill") {
     query = query
       .order("skill_rank", { ascending: false, nullsFirst: false })
-      .order("created_at", { ascending: false });
+      .order("id", { ascending: false });
+    if (cursor) query = query.or(keysetClause("skill_rank", cursor, "desc"));
   } else if (sort === "name_asc") {
-    query = query.order("name", { ascending: true });
+    query = query
+      .order("name", { ascending: true })
+      .order("id", { ascending: true });
+    if (cursor) query = query.or(keysetClause("name", cursor, "asc"));
   } else {
-    query = query.order("created_at", { ascending: false });
+    query = query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (cursor) query = query.or(keysetClause("created_at", cursor, "desc"));
   }
 
-  query = query.range(offset, offset + limit - 1);
+  query = query.limit(limit + 1);
 
-  const { data, error, count } = await query;
+  const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  const baseRows = (data ?? []) as unknown as PlayerRow[];
-  const ids = baseRows.map((p) => p.id);
+  const rows = (data ?? []) as unknown as PlayerRow[];
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+  const ids = pageRows.map((p) => p.id);
 
+  // Reliability batch — only for the current page.
   const reliabilityMap = new Map<
     string,
     { reliability: number | null; played: number }
@@ -100,7 +117,7 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  const players = baseRows.map((p) => {
+  const players = pageRows.map((p) => {
     const stats = reliabilityMap.get(p.id) ?? { reliability: null, played: 0 };
     return {
       id: p.id,
@@ -118,6 +135,19 @@ export async function GET(req: NextRequest) {
     };
   });
 
-  const nextOffset = players.length === limit ? offset + limit : null;
-  return NextResponse.json({ players, nextOffset, total: count ?? null });
+  const last = pageRows[pageRows.length - 1];
+  let nextCursor: string | null = null;
+  if (hasMore && last) {
+    let v: string;
+    if (sort === "skill") {
+      v = last.skill_rank == null ? "" : String(last.skill_rank);
+    } else if (sort === "name_asc") {
+      v = last.name;
+    } else {
+      v = last.created_at;
+    }
+    nextCursor = encodeCursor({ v, id: last.id });
+  }
+
+  return NextResponse.json({ players, nextCursor });
 }

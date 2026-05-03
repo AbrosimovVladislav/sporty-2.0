@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { decodeCursor, encodeCursor, keysetClause } from "@/lib/cursor";
 
 type PublicEventRow = {
   id: string;
@@ -21,6 +22,8 @@ type PublicEventRow = {
   teams: { id: string; name: string; city: string } | null;
 };
 
+type SortMode = "date_asc" | "date_desc" | "price_asc";
+
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const q = searchParams.get("q")?.trim() ?? null;
@@ -34,14 +37,17 @@ export async function GET(req: NextRequest) {
   const priceMax = priceMaxRaw !== null ? Number(priceMaxRaw) : null;
   const hasSpots = searchParams.get("has_spots") === "true";
   const sortRaw = searchParams.get("sort");
-  const sort: "date_asc" | "date_desc" | "price_asc" =
+  const sort: SortMode =
     sortRaw === "date_desc"
       ? "date_desc"
       : sortRaw === "price_asc"
       ? "price_asc"
       : "date_asc";
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
-  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const limit = Math.min(
+    Math.max(parseInt(searchParams.get("limit") ?? "20", 10) || 20, 1),
+    50,
+  );
+  const cursor = decodeCursor(searchParams.get("cursor"));
 
   const supabase = getServiceClient();
   const now = new Date().toISOString();
@@ -50,16 +56,15 @@ export async function GET(req: NextRequest) {
   // Never expose past events: a date-range "from" in the past gets clamped to now.
   const effectiveFrom = fromIso && fromIso > now ? fromIso : now;
 
-  // When filtering by has_spots we over-fetch and trim in memory because
-  // yes_count is computed from event_attendances (no DB column).
-  const dbLimit = hasSpots ? Math.min(limit * 4, 200) : limit;
-  const dbOffset = hasSpots ? 0 : offset;
+  // has_spots requires per-event yes_count, which doesn't live in events.
+  // Over-fetch and trim in JS — accepted MVP compromise. A denormalised
+  // events.yes_count is a separate task (see roadmap 1.5.3).
+  const dbLimit = hasSpots ? limit * 4 : limit + 1;
 
   let query = supabase
     .from("events")
     .select(
       "id, team_id, type, date, price_per_player, min_players, description, venue_id, venues!inner(id, name, address, city, district_id, districts(id, name)), teams!inner(id, name, city)",
-      { count: "exact" },
     )
     .eq("is_public", true)
     .eq("status", "planned")
@@ -67,14 +72,22 @@ export async function GET(req: NextRequest) {
 
   if (toIso) query = query.lte("date", toIso);
 
+  // Apply ordering & cursor (keyset). Tie-break by id to keep page stable.
   if (sort === "date_desc") {
-    query = query.order("date", { ascending: false });
+    query = query
+      .order("date", { ascending: false })
+      .order("id", { ascending: false });
+    if (cursor) query = query.or(keysetClause("date", cursor, "desc"));
   } else if (sort === "price_asc") {
     query = query
       .order("price_per_player", { ascending: true })
-      .order("date", { ascending: true });
+      .order("id", { ascending: true });
+    if (cursor) query = query.or(keysetClause("price_per_player", cursor, "asc"));
   } else {
-    query = query.order("date", { ascending: true });
+    query = query
+      .order("date", { ascending: true })
+      .order("id", { ascending: true });
+    if (cursor) query = query.or(keysetClause("date", cursor, "asc"));
   }
 
   if (city) query = query.eq("venues.city", city);
@@ -86,7 +99,9 @@ export async function GET(req: NextRequest) {
   }
   if (q) query = query.or(`name.ilike.%${q}%`, { foreignTable: "teams" });
 
-  const { data, error, count } = await query.range(dbOffset, dbOffset + dbLimit - 1);
+  query = query.limit(dbLimit);
+
+  const { data, error } = await query;
 
   if (error) {
     console.error("Public events fetch error:", error);
@@ -95,6 +110,7 @@ export async function GET(req: NextRequest) {
 
   let items = (data ?? []) as unknown as PublicEventRow[];
 
+  // Always need yes_count for the row UI. If has_spots is on, also use it to filter.
   const eventIds = items.map((e) => e.id);
   const { data: attRaw } = eventIds.length
     ? await supabase
@@ -110,20 +126,21 @@ export async function GET(req: NextRequest) {
   }
 
   if (hasSpots) {
-    items = items.filter(
-      (e) => (countMap.get(e.id) ?? 0) < e.min_players,
-    );
+    items = items.filter((e) => (countMap.get(e.id) ?? 0) < e.min_players);
   }
 
-  const sliced = hasSpots ? items.slice(offset, offset + limit) : items;
-  const nextOffset = hasSpots
-    ? items.length > offset + limit
-      ? offset + limit
-      : null
-    : sliced.length === limit
-    ? offset + limit
-    : null;
-  const total = hasSpots ? items.length : count ?? null;
+  const hasMore = !hasSpots
+    ? items.length > limit
+    : items.length >= limit;
+  const sliced = items.slice(0, limit);
+
+  const last = sliced[sliced.length - 1];
+  let nextCursor: string | null = null;
+  if (hasMore && last) {
+    const v =
+      sort === "price_asc" ? String(last.price_per_player) : last.date;
+    nextCursor = encodeCursor({ v, id: last.id });
+  }
 
   const result = sliced.map((e) => ({
     id: e.id,
@@ -144,5 +161,5 @@ export async function GET(req: NextRequest) {
     yes_count: countMap.get(e.id) ?? 0,
   }));
 
-  return NextResponse.json({ events: result, nextOffset, total });
+  return NextResponse.json({ events: result, nextCursor });
 }

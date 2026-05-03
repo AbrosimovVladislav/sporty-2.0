@@ -683,18 +683,26 @@
 
 ---
 
-## ⬜ Итерация 1.5.3 — Готовность к нагрузке (пагинация, индексы, агрегаты)
+## 🔄 Итерация 1.5.3 — Готовность к нагрузке (пагинация, индексы, агрегаты)
 
-**Цель.** Подготовить приложение к росту: 400 игроков в первый месяц, тысячи событий, десятки-сотни команд. Перевести растущие списки на cursor-пагинацию + infinite scroll, навесить индексы на горячие запросы, унести подсчёт агрегатов в Postgres. Делается **после** итерации 1.5.2 — на seed-данных удобно проверять корректность пагинации и сравнивать EXPLAIN ANALYZE до/после индексов.
+**Цель.** Подготовить приложение к нагрузке первых 3–6 месяцев: 1000–2000 игроков, 1000–5000 событий, десятки команд. Без индексов и пагинации на этой нагрузке `/search/players` отдаёт ~1MB JSON, события команды грузят сотни attendance-строк, sequential scan упирается в десятки мс. Решаем тремя пластами: индексы → серверные агрегаты → cursor-пагинация через TanStack Query.
 
-**Зависит от.** Итерация 1.5.2 (seed-данные с реалистичным объёмом — минимум 100 событий в одной команде, 50+ игроков, 5+ команд) — нужна для тестирования пагинации и измерения эффекта индексов.
+**Зависит от.** Итерация 1.5.2 (seed-данные) — желательно, но не блокирующее: без seed индексы и пагинация делаются «вслепую», без EXPLAIN ANALYZE на реалистичном объёме. При наличии живых данных можно начинать с индексов.
 
 **Ключевые решения.**
 
-- **Cursor-пагинация, не offset.** На быстрорастущих списках offset даёт плывущий курсор (вставка/удаление между запросами рушит порядок). Cursor стабилен, индексируется, корректно работает с infinite scroll. Курсор = `(date, id)` для событий, `(created_at, id)` для команд/игроков
-- **Server-side агрегаты для events list.** `yesCount`/`noCount`/`expectedCollected`/`actualCollected` сейчас считаем на клиенте после батча attendances + transactions. Уносим в Postgres view или RPC — отдаём готовые числа. Минус 2 дополнительных запроса и заметное снижение payload'а
-- **Lazy event details.** Полные attendances/transactions нужны только при открытии конкретного события. На странице events отдаём только summary
-- **Индексы — обязательное условие.** Без них `ORDER BY date DESC LIMIT 20` всё равно сканирует таблицу. Пагинация без индексов не спасает, индексы без пагинации тоже
+- **Индексы — первое и обязательное.** Без них `ORDER BY date DESC LIMIT 20` всё равно сканирует таблицу. Пагинация без индексов не спасает, индексы без пагинации тоже
+- **Cursor-пагинация, не offset.** На быстрорастущих списках offset плывёт (вставка между запросами рушит порядок) и деградирует на больших страницах. Cursor стабилен, индексируется, корректно работает с infinite scroll. Курсор = `(date, id)` для событий, `(created_at, id)` для команд/игроков
+- **Server-side агрегаты.** `yesCount`/`noCount`/`expectedCollected`/`actualCollected` считаем агрегатным SQL в роуте (`COUNT FILTER`, `SUM FILTER`, `LEFT JOIN LATERAL`). RPC-функция — только если запрос дублируется в 2-3 местах
+- **Lazy event details.** Полные attendances/transactions нужны только при открытии конкретного события. В listing отдаём только summary
+- **TanStack Query для пагинации.** Точечно на 4 пагинированных экранах — `useInfiniteQuery` решает накопление страниц, dedup, инвалидацию. Остальные ~25 fetch-сайтов на `useEffect` остаются как есть
+
+**Порядок работы.**
+
+1. **1.5.3.6** — индексы первым, до всего остального
+2. **1.5.3.4 + 1.5.3.5** — серверные агрегаты в роутах + убрать сырые массивы из listing
+3. **1.5.3.7 + 1.5.3.1 / 1.5.3.2 / 1.5.3.3** — поставить TanStack Query, переписать 4 экрана на cursor + `useInfiniteQuery`
+4. **1.5.3.8** — виртуализация откладывается, возвращаемся при подтверждённой проблеме рендера
 
 ### 1.5.3.1 Cursor-пагинация: события команды
 
@@ -728,30 +736,11 @@
 
 ### 1.5.3.4 Server-side aggregates для events list
 
-**Решение.** Postgres-функция:
+**Решение.** Агрегатный SQL в роуте `/api/teams/[id]/events`: один запрос с `LEFT JOIN LATERAL` (или scalar subqueries) на `event_attendances` и `financial_transactions` с фильтром `type = 'event_payment'`. Возвращаем `yes_count`, `no_count`, `expected_collected`, `actual_collected` готовыми числами рядом с полями события.
 
-```sql
-CREATE OR REPLACE FUNCTION get_team_events_with_stats(
-  p_team_id uuid,
-  p_direction text,
-  p_cursor_date timestamptz,
-  p_cursor_id uuid,
-  p_limit int
-)
-RETURNS TABLE (
-  -- все поля events +
-  yes_count int,
-  no_count int,
-  expected_collected numeric,
-  actual_collected numeric
-) AS $$ ... $$;
-```
+RPC-функцию (`get_team_events_with_stats`) выносим **только если** этот же агрегат потребуется в 2-3 местах — пока он нужен только тут.
 
-Агрегаты считаются через `LEFT JOIN LATERAL` на `event_attendances` и `financial_transactions` с фильтром `type = 'event_payment'`.
-
-**Backend.** `/api/teams/[id]/events` использует RPC вместо отдельных fetch'ей. Старая логика `byEvent.map`/`txByEvent.map` удаляется.
-
-**Миграция.** Через Supabase MCP (`apply_migration`).
+**Backend.** Старая логика `byEvent.map` / `txByEvent.map` в роуте удаляется. Сырые массивы attendances и transactions из ответа уходят (см. 1.5.3.5).
 
 ### 1.5.3.5 Lazy event details
 
@@ -772,9 +761,20 @@ RETURNS TABLE (
 
 **Имплементация.** Миграция `perf_indexes` через Supabase MCP. До и после — снять EXPLAIN ANALYZE на seed-данных, зафиксировать в `docs/tech/perf-baseline.md` (создать).
 
-### 1.5.3.7 Перевод на React Query / SWR — отложено
+### 1.5.3.7 TanStack Query — точечно для пагинированных списков
 
-С пагинацией кэш-инвалидация и infinite scroll становятся болезненными в чистом `useEffect`. React Query даёт это из коробки: `useInfiniteQuery`, оптимистичные апдейты, dedup запросов. Миграция data layer — отдельная итерация (~1 неделя), требует переписать ~30 fetch-сайтов. Делается отдельно, после стабилизации пагинации (1.5.3.1–1.5.3.5).
+**Скоуп.** Только 4 пагинированных экрана:
+
+- `/team/[id]/events`
+- `/search/events`
+- `/search/teams`
+- `/search/players`
+
+**Зачем.** Cursor + infinite scroll + кэш-инвалидация (новое событие создалось → лист команды должен обновиться) на ручном `useEffect` болезненны: накопление страниц, скролл-позиция, race conditions при быстрой смене фильтров. `useInfiniteQuery` из `@tanstack/react-query` решает это в одну строку.
+
+**Не входит.** Остальные ~25 fetch-сайтов остаются на `useEffect` — они не пагинированы и работают корректно. Big-bang миграции data layer не делаем.
+
+**Реализация.** `QueryClientProvider` оборачивает `(app)` layout. На 4 экранах — `useInfiniteQuery({ queryKey, queryFn: ({ pageParam }) => fetch(...), getNextPageParam })`. Инвалидация `queryClient.invalidateQueries({ queryKey })` на мутациях (создание события, заявки).
 
 ### 1.5.3.8 Виртуализация списков — отложено
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { decodeCursor, encodeCursor, keysetClause } from "@/lib/cursor";
 
 type TeamRow = {
   id: string;
@@ -29,24 +30,30 @@ export async function GET(req: NextRequest) {
   const sortRaw = searchParams.get("sort");
   const sort: "name_asc" | "created_desc" =
     sortRaw === "name_asc" ? "name_asc" : "created_desc";
-  const limit = Math.min(parseInt(searchParams.get("limit") ?? "20", 10), 100);
-  const offset = parseInt(searchParams.get("offset") ?? "0", 10);
+  const limit = Math.min(
+    Math.max(parseInt(searchParams.get("limit") ?? "20", 10) || 20, 1),
+    50,
+  );
+  const cursor = decodeCursor(searchParams.get("cursor"));
 
   const supabase = getServiceClient();
   let query = supabase
     .from("teams")
     .select(
       "id, name, sport, city, description, created_at, looking_for_players, district_id, logo_url, districts(id, name), team_memberships(count)",
-      { count: "exact" },
     );
 
   if (sort === "name_asc") {
-    query = query.order("name", { ascending: true });
+    query = query
+      .order("name", { ascending: true })
+      .order("id", { ascending: true });
+    if (cursor) query = query.or(keysetClause("name", cursor, "asc"));
   } else {
-    query = query.order("created_at", { ascending: false });
+    query = query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
+    if (cursor) query = query.or(keysetClause("created_at", cursor, "desc"));
   }
-
-  query = query.range(offset, offset + limit - 1);
 
   if (q) query = query.ilike("name", `%${q}%`);
   if (city) query = query.ilike("city", `%${city}%`);
@@ -55,13 +62,20 @@ export async function GET(req: NextRequest) {
   if (district_id) query = query.eq("district_id", district_id);
   if (excludeIds.length > 0) query = query.not("id", "in", `(${excludeIds.join(",")})`);
 
-  const { data, error, count } = await query;
+  // Over-fetch by 1 to detect "has next page".
+  query = query.limit(limit + 1);
+
+  const { data, error } = await query;
   if (error) {
     console.error("Teams list error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  const teams = ((data ?? []) as unknown as TeamRow[]).map((t) => ({
+  const rows = (data ?? []) as unknown as TeamRow[];
+  const hasMore = rows.length > limit;
+  const pageRows = hasMore ? rows.slice(0, limit) : rows;
+
+  const teams = pageRows.map((t) => ({
     id: t.id,
     name: t.name,
     sport: t.sport,
@@ -77,8 +91,14 @@ export async function GET(req: NextRequest) {
       : 0,
   }));
 
-  const nextOffset = teams.length === limit ? offset + limit : null;
-  return NextResponse.json({ teams, nextOffset, total: count ?? null });
+  const last = pageRows[pageRows.length - 1];
+  let nextCursor: string | null = null;
+  if (hasMore && last) {
+    const v = sort === "name_asc" ? last.name : last.created_at;
+    nextCursor = encodeCursor({ v, id: last.id });
+  }
+
+  return NextResponse.json({ teams, nextCursor });
 }
 
 export async function POST(req: NextRequest) {

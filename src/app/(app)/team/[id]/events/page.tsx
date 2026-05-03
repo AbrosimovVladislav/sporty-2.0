@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useInfiniteQuery, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
 import { FilterPills } from "@/components/ui/FilterPills";
+import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { TYPE_PILLS } from "./_components/constants";
 import { EventCreateSheet } from "./_components/EventCreateSheet";
 import { EventsListSkeleton } from "./_components/EventsListSkeleton";
@@ -11,11 +13,27 @@ import { EventsSection } from "./_components/EventsSection";
 import { PlusIcon } from "./_components/icons";
 import type { EventItem } from "./_components/types";
 
+type EventsPage = { events: EventItem[]; nextCursor: string | null };
+
+async function fetchEventsPage(
+  teamId: string,
+  userId: string | null,
+  direction: "upcoming" | "past",
+  cursor: string | null,
+): Promise<EventsPage> {
+  const params = new URLSearchParams({ direction, limit: "20" });
+  if (userId) params.set("userId", userId);
+  if (cursor) params.set("cursor", cursor);
+  const r = await fetch(`/api/teams/${teamId}/events?${params}`);
+  if (!r.ok) throw new Error("events fetch failed");
+  return r.json();
+}
+
 export default function EventsPage() {
   const team = useTeam();
   const auth = useAuth();
+  const queryClient = useQueryClient();
 
-  const [events, setEvents] = useState<EventItem[] | null>(null);
   const [typeFilter, setTypeFilter] = useState("");
   const [showCreate, setShowCreate] = useState(false);
 
@@ -24,36 +42,37 @@ export default function EventsPage() {
   const teamName = team.status === "ready" ? team.team.name : null;
   const isOrganizer = team.status === "ready" && team.role === "organizer";
 
-  const loadEvents = () => {
-    if (!teamId) return;
-    const params = userId ? `?userId=${userId}` : "";
-    fetch(`/api/teams/${teamId}/events${params}`)
-      .then((r) => r.json())
-      .then((d) => setEvents(d.events ?? []))
-      .catch(() => setEvents([]));
-  };
+  const upcoming = useInfiniteQuery({
+    queryKey: ["team-events", teamId, userId, "upcoming"],
+    queryFn: ({ pageParam }) =>
+      fetchEventsPage(teamId!, userId, "upcoming", pageParam ?? null),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled: !!teamId,
+  });
 
-  useEffect(() => {
-    loadEvents();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [teamId, userId]);
+  const past = useInfiniteQuery({
+    queryKey: ["team-events", teamId, userId, "past"],
+    queryFn: ({ pageParam }) =>
+      fetchEventsPage(teamId!, userId, "past", pageParam ?? null),
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+    enabled: !!teamId,
+  });
 
-  if (team.status === "loading" || events === null) {
+  if (team.status === "loading" || upcoming.isPending || past.isPending) {
     return <EventsListSkeleton />;
   }
 
   if (team.status !== "ready") return null;
 
-  const filtered = typeFilter
-    ? events.filter((e) => e.type === typeFilter)
-    : events;
+  const upcomingItems = upcoming.data?.pages.flatMap((p) => p.events) ?? [];
+  const pastItems = past.data?.pages.flatMap((p) => p.events) ?? [];
 
-  const planned = filtered
-    .filter((e) => e.status === "planned")
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-  const past = filtered
-    .filter((e) => e.status !== "planned")
-    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+  const filterFn = (e: EventItem) => !typeFilter || e.type === typeFilter;
+  const plannedFiltered = upcomingItems.filter(filterFn);
+  const pastFiltered = pastItems.filter(filterFn);
+  const isEmpty = plannedFiltered.length === 0 && pastFiltered.length === 0;
 
   return (
     <>
@@ -65,7 +84,7 @@ export default function EventsPage() {
         />
       </div>
 
-      {filtered.length === 0 ? (
+      {isEmpty ? (
         <div className="flex flex-col items-center justify-center pt-10">
           <p className="text-[14px]" style={{ color: "var(--text-tertiary)" }}>
             {typeFilter ? "Нет событий этого типа" : "Событий пока нет"}
@@ -73,19 +92,37 @@ export default function EventsPage() {
         </div>
       ) : (
         <>
-          <EventsSection
-            title="ПРЕДСТОЯЩИЕ"
-            events={planned}
-            teamId={teamId!}
-            teamName={teamName}
-          />
-          <EventsSection
-            title="ПРОШЕДШИЕ"
-            events={past}
-            teamId={teamId!}
-            teamName={teamName}
-            muted
-          />
+          {plannedFiltered.length > 0 && (
+            <EventsSection
+              title="ПРЕДСТОЯЩИЕ"
+              events={plannedFiltered}
+              teamId={teamId!}
+              teamName={teamName}
+            />
+          )}
+          {upcoming.hasNextPage && (
+            <InfiniteScrollSentinel
+              onVisible={() => {
+                if (!upcoming.isFetchingNextPage) upcoming.fetchNextPage();
+              }}
+            />
+          )}
+          {pastFiltered.length > 0 && (
+            <EventsSection
+              title="ПРОШЕДШИЕ"
+              events={pastFiltered}
+              teamId={teamId!}
+              teamName={teamName}
+              muted
+            />
+          )}
+          {past.hasNextPage && (
+            <InfiniteScrollSentinel
+              onVisible={() => {
+                if (!past.isFetchingNextPage) past.fetchNextPage();
+              }}
+            />
+          )}
         </>
       )}
 
@@ -112,7 +149,7 @@ export default function EventsPage() {
           teamCity={team.team.city}
           onCreated={() => {
             setShowCreate(false);
-            loadEvents();
+            queryClient.invalidateQueries({ queryKey: ["team-events", teamId] });
           }}
           onClose={() => setShowCreate(false)}
         />

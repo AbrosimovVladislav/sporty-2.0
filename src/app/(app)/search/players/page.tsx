@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useInfiniteQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth-context";
-import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
@@ -89,37 +89,44 @@ export default function SearchPlayersPage() {
 
   const effectivePosition = positionPill;
 
-  const fetcher = useCallback(
-    (offset: number) => {
-      const params = new URLSearchParams();
-      if (debouncedSearch) params.set("q", debouncedSearch);
-      if (filters.city) params.set("city", filters.city);
-      if (filters.districtId) params.set("district_id", filters.districtId);
-      if (filters.lookingForTeam) params.set("looking_for_team", "true");
-      if (effectivePosition) params.set("position", effectivePosition);
-      params.set("sort", sort);
-      params.set("offset", String(offset));
-      return fetch(`/api/players?${params}`)
-        .then((r) => r.json())
-        .then((d) => ({
-          items: (d.players ?? []) as Player[],
-          nextOffset: d.nextOffset as number | null,
-          total: d.total as number | null,
-        }));
-    },
-    [
-      debouncedSearch,
-      filters.city,
-      filters.districtId,
-      filters.lookingForTeam,
-      effectivePosition,
-      sort,
-    ],
-  );
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams();
+    if (debouncedSearch) params.set("q", debouncedSearch);
+    if (filters.city) params.set("city", filters.city);
+    if (filters.districtId) params.set("district_id", filters.districtId);
+    if (filters.lookingForTeam) params.set("looking_for_team", "true");
+    if (effectivePosition) params.set("position", effectivePosition);
+    params.set("sort", sort);
+    return params.toString();
+  }, [
+    debouncedSearch,
+    filters.city,
+    filters.districtId,
+    filters.lookingForTeam,
+    effectivePosition,
+    sort,
+  ]);
 
-  const { items: players, loading, loadMore, hasMore, reset } =
-    usePaginatedList<Player>(fetcher);
-  const [resultsTotal, setResultsTotal] = useState<number | null>(null);
+  const playersQuery = useInfiniteQuery({
+    queryKey: ["players-search", queryString],
+    queryFn: async ({ pageParam }) => {
+      const url = pageParam
+        ? `/api/players?${queryString}&cursor=${encodeURIComponent(pageParam)}`
+        : `/api/players?${queryString}`;
+      const r = await fetch(url);
+      if (!r.ok) throw new Error("players fetch failed");
+      return r.json() as Promise<{ players: Player[]; nextCursor: string | null }>;
+    },
+    initialPageParam: null as string | null,
+    getNextPageParam: (last) => last.nextCursor,
+  });
+
+  const players = playersQuery.data?.pages.flatMap((p) => p.players) ?? [];
+  const loading = playersQuery.isPending || playersQuery.isFetchingNextPage;
+  const hasMore = playersQuery.hasNextPage;
+  const loadMore = () => {
+    if (!playersQuery.isFetchingNextPage) playersQuery.fetchNextPage();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -138,39 +145,6 @@ export default function SearchPlayersPage() {
       cancelled = true;
     };
   }, [userId, filters.city]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams();
-    if (debouncedSearch) params.set("q", debouncedSearch);
-    if (filters.city) params.set("city", filters.city);
-    if (filters.districtId) params.set("district_id", filters.districtId);
-    if (filters.lookingForTeam) params.set("looking_for_team", "true");
-    if (effectivePosition) params.set("position", effectivePosition);
-    params.set("sort", sort);
-    params.set("limit", "1");
-    fetch(`/api/players?${params}`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled)
-          setResultsTotal(typeof d.total === "number" ? d.total : null);
-      })
-      .catch(() => {
-        if (!cancelled) setResultsTotal(null);
-      });
-    reset();
-    return () => {
-      cancelled = true;
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    debouncedSearch,
-    filters.city,
-    filters.districtId,
-    filters.lookingForTeam,
-    effectivePosition,
-    sort,
-  ]);
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
@@ -197,8 +171,10 @@ export default function SearchPlayersPage() {
     (filters.districtId ? 1 : 0) +
     (filters.lookingForTeam ? 1 : 0);
 
-  const showSkeleton = players.length === 0 && loading;
+  const showSkeleton = players.length === 0 && playersQuery.isPending;
   const showEmpty = !loading && players.length === 0;
+  const resultsLabel =
+    players.length > 0 ? `${players.length}${hasMore ? "+" : ""}` : null;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -261,7 +237,7 @@ export default function SearchPlayersPage() {
           </div>
         ) : (
           <>
-            {resultsTotal !== null && resultsTotal > 0 && (
+            {resultsLabel && (
               <p
                 className="text-[11px] font-semibold uppercase mb-1"
                 style={{
@@ -269,7 +245,7 @@ export default function SearchPlayersPage() {
                   color: "var(--text-tertiary)",
                 }}
               >
-                Результаты · {resultsTotal}
+                Результаты · {resultsLabel}
               </p>
             )}
             <ul className="flex flex-col">

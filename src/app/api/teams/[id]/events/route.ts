@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
-import { getExpectedAmount } from "@/lib/finances";
 import { sendMessage, buildEventUrl } from "@/lib/telegram-bot";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
+import { decodeCursor, encodeCursor, keysetClause } from "@/lib/cursor";
 
 type EventWithVenue = {
   id: string;
@@ -98,7 +98,9 @@ async function notifyMembers(
   );
 }
 
-// GET — list team events
+// GET — list team events with cursor pagination.
+// Params: userId, direction=upcoming|past, limit (default 20, max 50), cursor.
+// Server returns aggregates (yes/no counts, collected) — never raw attendances/transactions.
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -106,38 +108,70 @@ export async function GET(
   const { id: teamId } = await params;
   const { searchParams } = new URL(req.url);
   const userId = searchParams.get("userId");
+  const direction =
+    searchParams.get("direction") === "past" ? "past" : "upcoming";
+  const limit = Math.min(
+    Math.max(parseInt(searchParams.get("limit") ?? "20", 10) || 20, 1),
+    50,
+  );
+  const cursor = decodeCursor(searchParams.get("cursor"));
 
   const supabase = getServiceClient();
+  const now = new Date().toISOString();
 
-  // Параллельно — фуллстэк событий + membership-проба. Не-членов отфильтруем после.
+  // Membership probe runs in parallel with the page query.
+  const membershipPromise = userId
+    ? supabase
+        .from("team_memberships")
+        .select("role")
+        .eq("user_id", userId)
+        .eq("team_id", teamId)
+        .maybeSingle()
+    : Promise.resolve({ data: null });
+
+  let pageQuery = supabase
+    .from("events")
+    .select(
+      "id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address)",
+    )
+    .eq("team_id", teamId);
+
+  if (direction === "upcoming") {
+    pageQuery = pageQuery
+      .gte("date", now)
+      .order("date", { ascending: true })
+      .order("id", { ascending: true });
+    if (cursor) pageQuery = pageQuery.or(keysetClause("date", cursor, "asc"));
+  } else {
+    pageQuery = pageQuery
+      .lt("date", now)
+      .order("date", { ascending: false })
+      .order("id", { ascending: false });
+    if (cursor) pageQuery = pageQuery.or(keysetClause("date", cursor, "desc"));
+  }
+
+  // Over-fetch by 1 to detect "has next page" without an extra round-trip.
+  pageQuery = pageQuery.limit(limit + 1);
+
   const [{ data: membership }, { data, error }] = await Promise.all([
-    userId
-      ? supabase
-          .from("team_memberships")
-          .select("role")
-          .eq("user_id", userId)
-          .eq("team_id", teamId)
-          .maybeSingle()
-      : Promise.resolve({ data: null }),
-    supabase
-      .from("events")
-      .select("id, team_id, type, date, price_per_player, min_players, description, status, venue_cost, venue_paid, is_public, created_by, created_at, venues(id, name, address)")
-      .eq("team_id", teamId)
-      .order("date", { ascending: false }),
+    membershipPromise,
+    pageQuery,
   ]);
-
-  const isGuestAccess = !membership;
 
   if (error) {
     console.error("Events fetch error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  const allEvents = (data ?? []) as unknown as EventWithVenue[];
-  const events = isGuestAccess ? allEvents.filter((e) => e.is_public) : allEvents;
-  const eventIds = events.map((e) => e.id);
+  const isGuestAccess = !membership;
+  const rows = (data ?? []) as unknown as EventWithVenue[];
+  const visible = isGuestAccess ? rows.filter((e) => e.is_public) : rows;
 
-  // Batch fetch attendances and transactions for all events
+  const hasMore = visible.length > limit;
+  const pageEvents = hasMore ? visible.slice(0, limit) : visible;
+  const eventIds = pageEvents.map((e) => e.id);
+
+  // Aggregate attendances and transactions for the current page only.
   const [{ data: attRaw }, { data: txRaw }] = await Promise.all([
     eventIds.length
       ? supabase
@@ -154,12 +188,23 @@ export async function GET(
       : Promise.resolve({ data: [] as TransactionRow[] }),
   ]);
 
-  const attendances = (attRaw ?? []) as unknown as AttendanceRow[];
-  const byEvent = new Map<string, AttendanceRow[]>();
-  for (const a of attendances) {
-    const list = byEvent.get(a.event_id) ?? [];
-    list.push(a);
-    byEvent.set(a.event_id, list);
+  type AggBucket = {
+    yes: number;
+    no: number;
+    attended: number;
+    myVote: "yes" | "no" | null;
+  };
+  const agg = new Map<string, AggBucket>();
+  for (const e of pageEvents) {
+    agg.set(e.id, { yes: 0, no: 0, attended: 0, myVote: null });
+  }
+  for (const a of (attRaw ?? []) as unknown as AttendanceRow[]) {
+    const b = agg.get(a.event_id);
+    if (!b) continue;
+    if (a.vote === "yes") b.yes++;
+    if (a.vote === "no") b.no++;
+    if (a.attended === true) b.attended++;
+    if (userId && a.user_id === userId) b.myVote = a.vote;
   }
 
   const txByEvent = new Map<string, number>();
@@ -167,20 +212,8 @@ export async function GET(
     txByEvent.set(tx.event_id, (txByEvent.get(tx.event_id) ?? 0) + tx.amount);
   }
 
-  const enriched = events.map((e) => {
-    const list = byEvent.get(e.id) ?? [];
-    const yesCount = list.filter((a) => a.vote === "yes").length;
-    const noCount = list.filter((a) => a.vote === "no").length;
-    const myVote = userId
-      ? (list.find((a) => a.user_id === userId)?.vote ?? null)
-      : null;
-
-    const expectedCollected = list.reduce(
-      (sum, a) => sum + getExpectedAmount(a, e.price_per_player),
-      0,
-    );
-    const actualCollected = txByEvent.get(e.id) ?? 0;
-
+  const enriched = pageEvents.map((e) => {
+    const b = agg.get(e.id) ?? { yes: 0, no: 0, attended: 0, myVote: null };
     return {
       id: e.id,
       type: e.type,
@@ -193,15 +226,19 @@ export async function GET(
       venue_paid: e.venue_paid,
       is_public: e.is_public,
       venue: e.venues,
-      yesCount,
-      noCount,
-      myVote,
-      expectedCollected,
-      actualCollected,
+      yesCount: b.yes,
+      noCount: b.no,
+      myVote: b.myVote,
+      expectedCollected: b.attended * Number(e.price_per_player ?? 0),
+      actualCollected: txByEvent.get(e.id) ?? 0,
     };
   });
 
-  return NextResponse.json({ events: enriched });
+  const last = pageEvents[pageEvents.length - 1];
+  const nextCursor =
+    hasMore && last ? encodeCursor({ v: last.date, id: last.id }) : null;
+
+  return NextResponse.json({ events: enriched, nextCursor });
 }
 
 // POST — create event (organizer only)
