@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Профиль — Sporty</title>
+<link rel="stylesheet" href="colors_and_type.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: var(--gray-200); display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; }
+  #root { width: 100%; max-width: 430px; min-height: 100vh; position: relative; background: var(--bg-secondary); display: flex; flex-direction: column; }
+
+  .pos-badge { display: inline-flex; align-items: center; height: 30px; }
+  .pos-hex { width: 26px; height: 30px; position: relative; flex-shrink: 0; display: grid; place-items: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 2; }
+  .pos-hex .hex-inner { position: absolute; inset: 2px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .pos-hex img { position: relative; z-index: 1; display: block; }
+  .pos-pill { display: flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 0 999px 999px 0; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; border: 1.5px solid; }
+  .pos-nap .pos-hex { background: oklch(0.45 0.21 25); }
+  .pos-nap .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.66 0.22 25), oklch(0.52 0.21 25)); }
+  .pos-nap .pos-pill { background: oklch(0.97 0.018 25); color: oklch(0.55 0.22 25); border-color: oklch(0.86 0.10 25); }
+  .pos-pzsh .pos-hex { background: oklch(0.62 0.16 85); }
+  .pos-pzsh .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.86 0.18 85), oklch(0.72 0.18 85)); }
+  .pos-pzsh .pos-pill { background: oklch(0.97 0.04 85); color: oklch(0.62 0.16 85); border-color: oklch(0.84 0.13 85); }
+  .pos-zash .pos-hex { background: oklch(0.42 0.14 145); }
+  .pos-zash .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.58 0.16 145), oklch(0.46 0.16 145)); }
+  .pos-zash .pos-pill { background: oklch(0.97 0.02 145); color: oklch(0.48 0.16 145); border-color: oklch(0.84 0.10 145); }
+  .pos-vrt .pos-hex { background: oklch(0.55 0.13 240); }
+  .pos-vrt .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.78 0.12 240), oklch(0.64 0.14 240)); }
+  .pos-vrt .pos-pill { background: oklch(0.98 0.018 240); color: oklch(0.56 0.16 240); border-color: oklch(0.85 0.08 240); }
+
+  .lvl-hex-svg { width: 30px; height: 34px; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .lvl-hex-svg .hex-border { position: absolute; inset: 0; }
+  .lvl-hex-svg .hex-fill { position: absolute; inset: 2.5px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .lvl-hex-svg .hex-letter { position: relative; z-index: 1; font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.15); line-height: 1; }
+  .lvl-hex-svg .hex-letter-sm { font-size: 12px; }
+  .lvl-aplus .hex-border { background: oklch(0.35 0.22 280); }
+  .lvl-aplus .hex-fill { background: linear-gradient(160deg, oklch(0.72 0.18 220), oklch(0.58 0.22 270), oklch(0.50 0.22 310)); }
+  .lvl-a .hex-border { background: oklch(0.55 0.16 85); }
+  .lvl-a .hex-fill { background: linear-gradient(160deg, oklch(0.92 0.16 95), oklch(0.84 0.18 85), oklch(0.78 0.16 80)); }
+  .lvl-b .hex-border { background: oklch(0.62 0.01 250); }
+  .lvl-b .hex-fill { background: linear-gradient(160deg, oklch(0.90 0.01 250), oklch(0.82 0.01 250), oklch(0.78 0.01 250)); }
+  .lvl-c .hex-border { background: oklch(0.50 0.10 55); }
+  .lvl-c .hex-fill { background: linear-gradient(160deg, oklch(0.78 0.08 60), oklch(0.68 0.10 55), oklch(0.62 0.10 50)); }
+  .lvl-d .hex-border { background: oklch(0.25 0.01 80); }
+  .lvl-d .hex-fill { background: linear-gradient(160deg, oklch(0.48 0.01 80), oklch(0.38 0.01 80), oklch(0.30 0.01 80)); }
+
+  .rating-circle { position: relative; flex-shrink: 0; }
+  .rating-circle svg { display: block; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke-width: 4; }
+  .ring-fg { fill: none; stroke-width: 4; stroke-linecap: round; }
+  .rating-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  .minibar { display: flex; gap: 2px; align-items: center; }
+  .bar { width: 4px; height: 14px; border-radius: 2px; }
+  .bar-on { background: var(--primary); }
+  .bar-off { background: var(--border); }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel">
+
+const RATING_COLORS = {
+  aplus: { ring: 'oklch(0.55 0.22 280)', bg: 'oklch(0.90 0.08 280)', num: 'oklch(0.45 0.22 280)' },
+  a:     { ring: 'oklch(0.78 0.18 85)',  bg: 'oklch(0.93 0.10 85)',  num: 'oklch(0.62 0.18 85)' },
+  b:     { ring: 'oklch(0.65 0.02 250)', bg: 'oklch(0.90 0.01 250)', num: 'oklch(0.55 0.02 250)' },
+  c:     { ring: 'oklch(0.62 0.12 55)',  bg: 'oklch(0.90 0.04 55)',  num: 'oklch(0.52 0.12 55)' },
+  d:     { ring: 'oklch(0.35 0.02 80)',  bg: 'oklch(0.80 0.01 80)',  num: 'oklch(0.32 0.02 80)' },
+};
+
+const LEVEL_NAMES = {
+  aplus: 'Элитный', a: 'Продвинутый', b: 'Уверенный', c: 'Средний', d: 'Начинающий'
+};
+
+const USER = {
+  name: 'Владислав Абросимов',
+  photo: 'https://i.pravatar.cc/150?img=12',
+  city: 'Алматы',
+  district: 'Алмалинский',
+  age: 31,
+  lvl: 'b',
+  lvlLetter: 'B',
+  rating: 66,
+  gamesPlayed: 1,
+  reliability: 100,
+  teamsCount: 1,
+  positions: [
+    { pos: 'pzsh', label: 'ПЗЩ', icon: 'target-icon.png' },
+    { pos: 'nap', label: 'НАП', icon: 'boot-icon.png' },
+  ],
+  teams: [{ name: 'Динамо Алматы', color: 'oklch(0.35 0.15 250)', letter: 'Д' }],
+};
+
+function RatingCircle({ rating, lvl, size = 64 }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - rating / 100);
+  const c = RATING_COLORS[lvl];
+  return (
+    <div className="rating-circle" style={{ width: size, height: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} style={{ width: size, height: size }}>
+        <circle className="ring-bg" cx={size/2} cy={size/2} r={r} style={{ stroke: c.bg }} />
+        <circle className="ring-fg" cx={size/2} cy={size/2} r={r} stroke={c.ring} strokeDasharray={circ} strokeDashoffset={offset} />
+      </svg>
+      <div className="rating-num" style={{ fontSize: size * 0.38, color: c.num }}>{rating}</div>
+    </div>
+  );
+}
+
+function LevelHex({ lvl, letter, size = 'normal' }) {
+  const s = size === 'large' ? { w: 38, h: 44, fs: 20, fsSm: 14, inset: 3 } : { w: 30, h: 34, fs: 16, fsSm: 12, inset: 2.5 };
+  return (
+    <div className={`lvl-hex-svg lvl-${lvl}`} style={{ width: s.w, height: s.h }}>
+      <div className="hex-border"></div>
+      <div className="hex-fill" style={{ inset: s.inset }}></div>
+      <span className={`hex-letter${letter.length > 1 ? ' hex-letter-sm' : ''}`} style={{ fontSize: letter.length > 1 ? s.fsSm : s.fs }}>{letter}</span>
+    </div>
+  );
+}
+
+function PosBadge({ pos, label, icon }) {
+  return (
+    <div className={`pos-badge pos-${pos}`}>
+      <div className="pos-hex"><div className="hex-inner"></div>
+        <img src={icon} style={{ height: 15, width: 'auto', display: 'block' }} alt="" />
+      </div>
+      <div className="pos-pill">{label}</div>
+    </div>
+  );
+}
+
+function MiniBar({ value, max = 5 }) {
+  return (
+    <div className="minibar">
+      {Array.from({ length: max }, (_, i) => (
+        <div key={i} className={`bar ${i < value ? 'bar-on' : 'bar-off'}`}></div>
+      ))}
+    </div>
+  );
+}
+
+function GearIcon() {
+  return (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.8)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  );
+}
+
+function CameraIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="white" stroke="none">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4" fill="none" stroke="white" strokeWidth="2"/>
+    </svg>
+  );
+}
+
+/* Bottom nav icons */
+function HomeIcon({ active }) {
+  const c = active ? 'var(--green-600)' : 'var(--text-tertiary)';
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>;
+}
+function TeamIcon({ active }) {
+  const c = active ? 'var(--green-600)' : 'var(--text-tertiary)';
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20.42 4.58a5.4 5.4 0 0 0-7.65 0l-.77.78-.77-.78a5.4 5.4 0 0 0-7.65 7.65l.78.77L12 20.65l7.65-7.65.77-.78a5.4 5.4 0 0 0 0-7.64z"/></svg>;
+}
+function SearchIcon({ active }) {
+  const c = active ? 'var(--green-600)' : 'var(--text-tertiary)';
+  return <svg width="24" height="24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>;
+}
+function ProfileIcon({ active }) {
+  const c = active ? 'var(--green-600)' : 'var(--text-tertiary)';
+  return <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={c} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>;
+}
+
+function AboutTab({ user: u }) {
+  return (
+    <React.Fragment>
+      {/* Rating + Level row */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ flex: 1, background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: 16, boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <RatingCircle rating={u.rating} lvl={u.lvl} size={56} />
+          <div>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)' }}>Рейтинг</div>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.1 }}>{u.rating}</div>
+          </div>
+        </div>
+        <div style={{ flex: 1, background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: 16, boxShadow: 'var(--shadow-sm)', display: 'flex', alignItems: 'center', gap: 14 }}>
+          <LevelHex lvl={u.lvl} letter={u.lvlLetter} size="large" />
+          <div>
+            <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)' }}>Уровень</div>
+            <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.2 }}>{LEVEL_NAMES[u.lvl]}</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats row */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        {[
+          { val: u.gamesPlayed, label: 'Сыграно', color: 'var(--text-primary)' },
+          { val: u.reliability + '%', label: 'Надёжность', color: 'var(--primary)' },
+          { val: u.teamsCount, label: 'Команд', color: 'var(--text-primary)' },
+        ].map((s, i) => (
+          <div key={i} style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)', textAlign: 'center' }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, color: s.color }}>{s.val}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-secondary)', marginTop: 2 }}>{s.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Positions */}
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: 16, boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 10 }}>На поле</div>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+          {u.positions.map((p, i) => <PosBadge key={i} pos={p.pos} label={p.label} icon={p.icon} />)}
+        </div>
+      </div>
+
+      {/* Info */}
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: 0, boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+        {[
+          { label: 'Возраст', value: `${u.age} лет` },
+          { label: 'Город', value: u.city },
+          { label: 'Район', value: u.district },
+        ].map((row, i, arr) => (
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '13px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--gray-100)' : 'none' }}>
+            <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{row.label}</span>
+            <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{row.value}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Team */}
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', padding: '14px 16px 6px' }}>Команда</div>
+        {u.teams.map((t, i) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px 14px' }}>
+            <div style={{ width: 40, height: 40, borderRadius: 12, background: t.color, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, fontWeight: 800, color: '#fff' }}>{t.letter}</div>
+            <div style={{ flex: 1 }}><div style={{ fontSize: 15, fontWeight: 600 }}>{t.name}</div></div>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </div>
+        ))}
+      </div>
+    </React.Fragment>
+  );
+}
+
+function ReliabilityCircle({ percent, size = 72 }) {
+  const r = (size - 8) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - percent / 100);
+  return (
+    <div className="rating-circle" style={{ width: size, height: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} style={{ width: size, height: size }}>
+        <circle cx={size/2} cy={size/2} r={r} fill="none" strokeWidth="5" style={{ stroke: 'var(--green-100)' }} />
+        <circle cx={size/2} cy={size/2} r={r} fill="none" strokeWidth="5" stroke="var(--green-600)" strokeLinecap="round" strokeDasharray={circ} strokeDashoffset={offset} style={{ transform: 'rotate(-90deg)', transformOrigin: 'center' }} />
+      </svg>
+    </div>
+  );
+}
+
+function ReliabilityTab({ user: u }) {
+  const attended = u.gamesPlayed;
+  const total = u.gamesPlayed;
+  const pct = total > 0 ? Math.round((attended / total) * 100) : 0;
+  const noShows = 0;
+  const cancellations = '0%';
+
+  const events = [
+    { date: '5 мая', type: 'Игра', typeColor: 'var(--green-100)', typeTextColor: 'var(--green-700)', status: 'Был', statusColor: 'var(--green-600)' },
+  ];
+
+  return (
+    <React.Fragment>
+      {/* Reliability index */}
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: 20, boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 12 }}>Индекс надёжности</div>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: 4 }}>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{u.reliability}</span>
+              <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700, color: 'var(--text-secondary)' }}>%</span>
+            </div>
+            <div style={{ fontSize: 14, color: 'var(--text-secondary)', marginTop: 4 }}>Стабильный игрок</div>
+          </div>
+          <ReliabilityCircle percent={u.reliability} size={80} />
+        </div>
+      </div>
+
+      {/* No-shows + cancellations */}
+      <div style={{ display: 'flex', gap: 12 }}>
+        <div style={{ flex: 1, background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 6 }}>Неприходы</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, color: 'var(--primary)' }}>{noShows}</div>
+        </div>
+        <div style={{ flex: 1, background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: '14px 16px', boxShadow: 'var(--shadow-sm)' }}>
+          <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 6 }}>Отмены</div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 32, fontWeight: 700, color: 'var(--primary)' }}>{cancellations}</div>
+        </div>
+      </div>
+
+      {/* Attendance */}
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: '16px', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 10 }}>Посещаемость</div>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <span style={{ fontSize: 14, color: 'var(--text-secondary)' }}>из записанных событий</span>
+          <span style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 700 }}>{attended} / {total}</span>
+        </div>
+        <div style={{ height: 8, background: 'var(--green-100)', borderRadius: 9999, overflow: 'hidden' }}>
+          <div style={{ height: '100%', width: pct + '%', background: 'var(--green-600)', borderRadius: 9999 }}></div>
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--text-secondary)', marginTop: 6 }}>{pct}%</div>
+      </div>
+
+      {/* Recent events */}
+      <div style={{ marginTop: 4 }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 10 }}>Последние события</div>
+        <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-sm)', overflow: 'hidden' }}>
+          {events.map((e, i, arr) => (
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '14px 16px', borderBottom: i < arr.length - 1 ? '1px solid var(--gray-100)' : 'none' }}>
+              <div style={{ width: 10, height: 10, borderRadius: 9999, background: e.statusColor, flexShrink: 0 }}></div>
+              <div style={{ flex: 1, fontSize: 15 }}>
+                <span style={{ color: 'var(--text-primary)' }}>{e.date}</span>
+                <span style={{ color: 'var(--text-tertiary)' }}> · </span>
+                <span style={{ color: 'var(--text-primary)' }}>{e.type}</span>
+              </div>
+              <span style={{ fontSize: 14, fontWeight: 600, color: e.statusColor }}>{e.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+function ResultsTab({ user: u }) {
+  return (
+    <React.Fragment>
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: '16px 16px 20px', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.06em', fontWeight: 600, color: 'var(--text-tertiary)', marginBottom: 8 }}>Сыграно матчей</div>
+        <div style={{ fontFamily: 'var(--font-display)', fontSize: 48, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>{u.gamesPlayed}</div>
+      </div>
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: 24, boxShadow: 'var(--shadow-sm)', textAlign: 'center' }}>
+        <div style={{ fontSize: 36, marginBottom: 8 }}>🏗️</div>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Игровая статистика — в разработке</div>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>Скоро ты сможешь видеть свои голы, передачи, MVP-награды и другие показатели за каждый матч.</div>
+      </div>
+    </React.Fragment>
+  );
+}
+
+function AwardsTab() {
+  const awards = [
+    { icon: '🥇', label: 'Первый матч' },
+    { icon: '🔥', label: '5 матчей подряд' },
+    { icon: '🏅', label: 'Капитан' },
+    { icon: '⭐', label: 'MVP события' },
+    { icon: '☑️', label: '100% явка' },
+    { icon: '🏆', label: '50 матчей' },
+  ];
+  return (
+    <React.Fragment>
+      <div style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: '24px 20px', boxShadow: 'var(--shadow-sm)', textAlign: 'center' }}>
+        <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>Достижения копятся с каждым матчем</div>
+        <div style={{ fontSize: 14, color: 'var(--text-secondary)', lineHeight: 1.5 }}>Скоро появятся первые значки за активность и стабильность</div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+        {awards.map((a, i) => (
+          <div key={i} style={{ background: 'var(--bg-primary)', borderRadius: 'var(--radius-lg)', padding: '18px 8px 14px', boxShadow: 'var(--shadow-sm)', textAlign: 'center', opacity: 0.45 }}>
+            <div style={{ fontSize: 32, marginBottom: 8, filter: 'grayscale(1)' }}>{a.icon}</div>
+            <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', lineHeight: 1.3 }}>{a.label}</div>
+            <div style={{ fontSize: 11, color: 'var(--text-tertiary)', marginTop: 4 }}>скоро</div>
+          </div>
+        ))}
+      </div>
+    </React.Fragment>
+  );
+}
+
+function ProfilePage() {
+  const [activeTab, setActiveTab] = React.useState(0);
+  const u = USER;
+  const tabs = ['Обо мне', 'Результаты', 'Надёжность', 'Награды'];
+  const navItems = [
+    { label: 'Главная', icon: HomeIcon },
+    { label: 'Моя команда', icon: TeamIcon },
+    { label: 'Поиск', icon: SearchIcon },
+    { label: 'Профиль', icon: ProfileIcon },
+  ];
+
+  return (
+    <div style={{ background: 'var(--bg-secondary)', flex: 1, display: 'flex', flexDirection: 'column' }}>
+
+      {/* ── Compact header: avatar + name only ── */}
+      <div style={{ background: 'var(--green-600)', padding: '20px 20px 24px', borderRadius: '0 0 28px 28px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.06, backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 12px)' }}></div>
+        <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Avatar */}
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{ width: 72, height: 72, borderRadius: 9999, overflow: 'hidden', border: '3px solid rgba(255,255,255,0.3)', boxShadow: '0 4px 12px rgba(0,0,0,0.2)' }}>
+              <img src={u.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+            </div>
+            <div style={{ position: 'absolute', bottom: -2, right: -2, width: 28, height: 28, borderRadius: 9999, background: 'rgba(0,0,0,0.4)', backdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '2px solid rgba(255,255,255,0.2)', cursor: 'pointer' }}>
+              <CameraIcon />
+            </div>
+          </div>
+          {/* Name + location */}
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontSize: 22, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', color: '#fff', lineHeight: 1.15 }}>{u.name}</div>
+            <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginTop: 4 }}>{u.city} · {u.district}</div>
+          </div>
+          {/* Settings */}
+          <div style={{ width: 40, height: 40, borderRadius: 9999, background: 'rgba(255,255,255,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', flexShrink: 0 }}>
+            <GearIcon />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Tabs ── */}
+      <div style={{ display: 'flex', background: 'var(--bg-primary)', borderBottom: '1px solid var(--gray-100)' }}>
+        {tabs.map((tab, i) => (
+          <div key={tab} onClick={() => setActiveTab(i)} style={{
+            flex: 1, textAlign: 'center', padding: '12px 0', fontSize: 13, fontWeight: activeTab===i ? 700 : 500,
+            color: activeTab===i ? 'var(--green-700)' : 'var(--text-secondary)',
+            borderBottom: activeTab===i ? '2.5px solid var(--green-700)' : '1px solid transparent',
+            cursor: 'pointer',
+          }}>{tab}</div>
+        ))}
+      </div>
+
+      {/* ── Body ── */}
+      <div style={{ flex: 1, padding: '16px 16px 16px', display: 'flex', flexDirection: 'column', gap: 12 }}>
+
+        {activeTab === 0 && <AboutTab user={u} />}
+        {activeTab === 1 && <ResultsTab user={u} />}
+        {activeTab === 2 && <ReliabilityTab user={u} />}
+        {activeTab === 3 && <AwardsTab />}
+
+      </div>
+
+      {/* ── Bottom Nav ── */}
+      <div style={{ marginTop: 'auto', background: 'var(--bg-primary)', borderTop: '1px solid var(--border)', display: 'flex', padding: '8px 0 20px', zIndex: 100 }}>
+        {navItems.map((item, i) => {
+          const active = i === 3;
+          const Icon = item.icon;
+          return (
+            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2, cursor: 'pointer' }}>
+              <Icon active={active} />
+              <span style={{ fontSize: 10, fontWeight: active ? 600 : 500, color: active ? 'var(--green-600)' : 'var(--text-tertiary)' }}>{item.label}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<ProfilePage />);
+</script>
+</body></html>

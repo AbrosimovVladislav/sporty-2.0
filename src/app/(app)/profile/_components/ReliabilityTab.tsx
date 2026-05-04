@@ -1,23 +1,18 @@
 "use client";
 
-import { CircularProgress } from "@/components/CircularProgress";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import type { Stats } from "./types";
-import { Eyebrow, SkeletonBlock, StatTile } from "./atoms";
+import { Card, Eyebrow, SkeletonBlock } from "./atoms";
 
 export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
   if (stats === undefined) return <SkeletonBlock />;
 
   const reliability = stats?.reliability ?? null;
   const hasData = !!stats && stats.votedYesCount > 0;
-  const missed = hasData ? stats!.votedYesCount - stats!.attendedCount : 0;
-  const missRate =
+  const noShows = hasData ? stats!.votedYesCount - stats!.attendedCount : 0;
+  const cancellationsPct =
     hasData && stats!.votedYesCount > 0
-      ? Math.round(
-          ((stats!.votedYesCount - stats!.attendedCount) /
-            stats!.votedYesCount) *
-            100,
-        )
+      ? Math.round((noShows / stats!.votedYesCount) * 100)
       : 0;
   const attendedPct =
     hasData && stats!.votedYesCount > 0
@@ -25,121 +20,114 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
       : 0;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div
-        className="rounded-[16px] p-5"
-        style={{ background: "var(--bg-primary)" }}
-      >
-        <Eyebrow>Индекс надёжности</Eyebrow>
+    <>
+      <Card className="p-5">
+        <Eyebrow className="mb-3">Индекс надёжности</Eyebrow>
         {!hasData ? (
           <p
-            className="text-[15px] mt-2"
+            className="text-[15px]"
             style={{ color: "var(--text-secondary)" }}
           >
             Появится после первых завершённых событий
           </p>
         ) : (
-          <div className="flex items-center justify-between mt-2">
+          <div className="flex items-center justify-between">
             <div>
-              <p
-                className="font-display text-[40px] leading-none font-bold tabular-nums"
-                style={{ color: "var(--text-primary)" }}
-              >
-                {reliability !== null ? reliability : "—"}
+              <div className="flex items-baseline gap-1">
                 <span
-                  className="text-[20px] ml-1"
+                  className="font-display text-[48px] font-bold leading-none tabular-nums"
+                  style={{ color: "var(--text-primary)" }}
+                >
+                  {reliability ?? 0}
+                </span>
+                <span
+                  className="font-display text-[24px] font-bold"
                   style={{ color: "var(--text-secondary)" }}
                 >
                   %
                 </span>
+              </div>
+              <p
+                className="text-[14px] mt-1"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                {reliabilityLabel(reliability ?? 0)}
               </p>
-              {reliability !== null && (
-                <p
-                  className="text-[13px] mt-1"
-                  style={{ color: "var(--text-secondary)" }}
-                >
-                  {reliabilityLabel(reliability)}
-                </p>
-              )}
             </div>
-            <div className="shrink-0">
-              <CircularProgress
-                value={reliability ?? 0}
-                size={72}
-                strokeWidth={7}
-              />
-            </div>
+            <ReliabilityCircle percent={reliability ?? 0} />
           </div>
         )}
-      </div>
+      </Card>
 
       {hasData && (
         <>
-          <div className="grid grid-cols-2 gap-3">
-            <StatTile
-              label="Неприходы"
-              value={missed}
-              tone={missed === 0 ? "good" : "default"}
-            />
-            <StatTile
-              label="Отмены"
-              value={`${missRate}%`}
-              tone={missRate === 0 ? "good" : "default"}
-            />
+          <div className="flex gap-3">
+            <Card className="flex-1 px-4 py-3.5">
+              <Eyebrow className="mb-1.5">Неприходы</Eyebrow>
+              <p
+                className="font-display text-[32px] font-bold leading-none tabular-nums"
+                style={{ color: "var(--primary)" }}
+              >
+                {noShows}
+              </p>
+            </Card>
+            <Card className="flex-1 px-4 py-3.5">
+              <Eyebrow className="mb-1.5">Отмены</Eyebrow>
+              <p
+                className="font-display text-[32px] font-bold leading-none tabular-nums"
+                style={{ color: "var(--primary)" }}
+              >
+                {cancellationsPct}%
+              </p>
+            </Card>
           </div>
 
-          <div
-            className="rounded-[16px] p-4"
-            style={{ background: "var(--bg-primary)" }}
-          >
-            <Eyebrow>Посещаемость</Eyebrow>
-            <div className="flex items-center justify-between mt-2 mb-2">
+          <Card className="p-4">
+            <Eyebrow className="mb-2.5">Посещаемость</Eyebrow>
+            <div className="flex items-center justify-between mb-2">
               <span
-                className="text-[13px]"
+                className="text-[14px]"
                 style={{ color: "var(--text-secondary)" }}
               >
                 из записанных событий
               </span>
               <span
-                className="text-[15px] font-semibold tabular-nums"
+                className="font-display text-[24px] font-bold tabular-nums"
                 style={{ color: "var(--text-primary)" }}
               >
                 {stats!.attendedCount} / {stats!.votedYesCount}
               </span>
             </div>
             <div
-              className="h-1.5 rounded-full overflow-hidden"
-              style={{ background: "var(--bg-card)" }}
+              className="h-2 rounded-full overflow-hidden"
+              style={{ background: "var(--green-100)" }}
             >
               <div
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${attendedPct}%`,
-                  background: "var(--green-500)",
+                  background: "var(--green-600)",
                 }}
               />
             </div>
             <p
-              className="text-[13px] mt-1"
+              className="text-[13px] mt-1.5"
               style={{ color: "var(--text-secondary)" }}
             >
               {attendedPct}%
             </p>
-          </div>
+          </Card>
         </>
       )}
 
       {stats && stats.recentEvents.length > 0 && (
-        <div>
-          <Eyebrow>Последние события</Eyebrow>
-          <ul
-            className="mt-2 rounded-[16px] overflow-hidden"
-            style={{ background: "var(--bg-primary)" }}
-          >
-            {stats.recentEvents.map((e, i) => {
+        <div className="mt-1">
+          <Eyebrow className="mb-2.5">Последние события</Eyebrow>
+          <Card className="overflow-hidden">
+            {stats.recentEvents.map((e, i, arr) => {
               const dotColor =
                 e.attended === true
-                  ? "var(--green-500)"
+                  ? "var(--green-600)"
                   : e.attended === false
                     ? "var(--danger)"
                     : "var(--text-tertiary)";
@@ -150,49 +138,84 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
                     ? "Не был"
                     : "Не голосовал";
               const typeLabel = EVENT_TYPE_LABEL[e.type] ?? e.type;
+              const isLast = i === arr.length - 1;
               return (
-                <li
+                <div
                   key={e.event_id}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  className="flex items-center gap-2.5 px-4 py-3.5"
                   style={{
-                    borderTop:
-                      i === 0 ? undefined : "1px solid var(--gray-100)",
+                    borderBottom: isLast
+                      ? undefined
+                      : "1px solid var(--gray-100)",
                   }}
                 >
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span
-                      className="w-2.5 h-2.5 rounded-full shrink-0"
-                      style={{ background: dotColor }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p
-                        className="text-[15px] truncate"
-                        style={{ color: "var(--text-primary)" }}
-                      >
-                        {formatAbsoluteDate(e.date)} · {typeLabel}
-                      </p>
-                    </div>
-                  </div>
                   <span
-                    className="text-[13px] font-semibold shrink-0"
-                    style={{
-                      color:
-                        e.attended === true
-                          ? "var(--green-600)"
-                          : e.attended === false
-                            ? "var(--danger)"
-                            : "var(--text-tertiary)",
-                    }}
+                    className="w-2.5 h-2.5 rounded-full shrink-0"
+                    style={{ background: dotColor }}
+                  />
+                  <p className="flex-1 text-[15px] truncate">
+                    <span style={{ color: "var(--text-primary)" }}>
+                      {formatAbsoluteDate(e.date)}
+                    </span>
+                    <span style={{ color: "var(--text-tertiary)" }}> · </span>
+                    <span style={{ color: "var(--text-primary)" }}>
+                      {typeLabel}
+                    </span>
+                  </p>
+                  <span
+                    className="text-[14px] font-semibold shrink-0"
+                    style={{ color: dotColor }}
                   >
                     {statusLabel}
                   </span>
-                </li>
+                </div>
               );
             })}
-          </ul>
+          </Card>
         </div>
       )}
-    </div>
+    </>
+  );
+}
+
+function ReliabilityCircle({ percent }: { percent: number }) {
+  const size = 80;
+  const stroke = 5;
+  const r = (size - stroke - 3) / 2;
+  const cx = size / 2;
+  const cy = size / 2;
+  const circ = 2 * Math.PI * r;
+  const value = Math.max(0, Math.min(100, percent));
+  const offset = circ - (value / 100) * circ;
+
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox={`0 0 ${size} ${size}`}
+      style={{ transform: "rotate(-90deg)" }}
+      className="shrink-0"
+    >
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke="var(--green-100)"
+        strokeWidth={stroke}
+      />
+      <circle
+        cx={cx}
+        cy={cy}
+        r={r}
+        fill="none"
+        stroke="var(--green-600)"
+        strokeWidth={stroke}
+        strokeLinecap="round"
+        strokeDasharray={circ}
+        strokeDashoffset={offset}
+      />
+    </svg>
   );
 }
 

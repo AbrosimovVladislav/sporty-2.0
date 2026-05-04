@@ -1,44 +1,39 @@
 "use client";
 
 import type { Stats } from "./types";
-import { Eyebrow, SkeletonBlock } from "./atoms";
+import { Card, Eyebrow, SkeletonBlock } from "./atoms";
 
 export function ResultsTab({ stats }: { stats: Stats | null | undefined }) {
   if (stats === undefined) return <SkeletonBlock />;
 
   return (
-    <div className="flex flex-col gap-3">
-      <div
-        className="rounded-[16px] p-5"
-        style={{ background: "var(--bg-primary)" }}
-      >
-        <Eyebrow>Сыграно матчей</Eyebrow>
+    <>
+      <Card className="px-4 pt-4 pb-5">
+        <Eyebrow className="mb-2">Сыграно матчей</Eyebrow>
         <p
-          className="font-display text-[40px] leading-none font-bold tabular-nums mt-2"
+          className="font-display text-[48px] font-bold leading-none tabular-nums"
           style={{ color: "var(--text-primary)" }}
         >
           {stats?.playedCount ?? 0}
         </p>
-      </div>
+      </Card>
 
-      <div
-        className="rounded-[16px] p-5"
-        style={{ background: "var(--bg-primary)" }}
-      >
+      <Card className="p-6 text-center">
+        <p className="text-[36px] mb-2 leading-none">🏗️</p>
         <p
-          className="text-[15px] font-semibold"
+          className="text-[17px] font-bold mb-1.5"
           style={{ color: "var(--text-primary)" }}
         >
-          🏗 Игровая статистика — в разработке
+          Игровая статистика — в разработке
         </p>
         <p
-          className="text-[13px] mt-1.5 leading-relaxed"
+          className="text-[14px] leading-normal"
           style={{ color: "var(--text-secondary)" }}
         >
           Скоро ты сможешь видеть свои голы, передачи, MVP-награды и другие
           показатели за каждый матч.
         </p>
-      </div>
-    </div>
+      </Card>
+    </>
   );
 }

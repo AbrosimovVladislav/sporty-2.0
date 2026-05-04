@@ -4,15 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
-import {
-  PageHeader,
-  HeaderStatGroup,
-  HeaderStat,
-} from "@/components/ui/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { UnderlineTabs, type UnderlineTab } from "@/components/ui/UnderlineTabs";
-import { useCity } from "@/lib/city-context";
 import type { User } from "@/types/database";
-import type { Stats, Tab } from "./_components/types";
+import type { ProfileTeam, Stats, Tab } from "./_components/types";
 import { AboutTab } from "./_components/AboutTab";
 import { ResultsTab } from "./_components/ResultsTab";
 import { ReliabilityTab } from "./_components/ReliabilityTab";
@@ -27,7 +22,10 @@ export default function ProfilePage() {
       <div className="flex flex-1 items-center justify-center">
         <div
           className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
-          style={{ borderColor: "var(--green-500)", borderTopColor: "transparent" }}
+          style={{
+            borderColor: "var(--green-500)",
+            borderTopColor: "transparent",
+          }}
         />
       </div>
     );
@@ -45,9 +43,8 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [stats, setStats] = useState<Stats | null | undefined>(undefined);
-  const [teamsCount, setTeamsCount] = useState<number | null>(null);
+  const [teams, setTeams] = useState<ProfileTeam[] | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { activeCity } = useCity();
 
   useEffect(() => {
     fetch(`/api/users/${initialUser.id}`)
@@ -73,11 +70,11 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
       });
     fetch(`/api/users/${initialUser.id}/teams`)
       .then((r) => (r.ok ? r.json() : { teams: [] }))
-      .then((d) => {
-        if (!cancelled) setTeamsCount((d.teams ?? []).length);
+      .then((d: { teams?: ProfileTeam[] }) => {
+        if (!cancelled) setTeams(d.teams ?? []);
       })
       .catch(() => {
-        if (!cancelled) setTeamsCount(0);
+        if (!cancelled) setTeams([]);
       });
     return () => {
       cancelled = true;
@@ -122,23 +119,22 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
     { id: "achievements", label: "Награды" },
   ];
 
-  const subtitleLocation = [
-    user.city || activeCity,
-    user.city === (activeCity || user.city) ? districtName : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
-
   const tabsForUI: UnderlineTab[] = tabs.map((t) => ({
     label: t.label,
     active: tab === t.id,
     onClick: () => setTab(t.id),
   }));
 
-  const reliabilityValue =
-    stats?.reliability !== null && stats?.reliability !== undefined
-      ? `${stats.reliability}%`
-      : "—";
+  const subtitle = [user.city, districtName].filter(Boolean).join(" · ");
+
+  const titleSlot = (
+    <h1
+      className="font-display font-bold uppercase text-white text-[22px] leading-[1.15] wrap-break-word"
+      style={{ letterSpacing: "0.02em" }}
+    >
+      {user.name}
+    </h1>
+  );
 
   const leadingSlot = (
     <div className="relative shrink-0">
@@ -146,23 +142,26 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         aria-label="Загрузить фото"
-        className="w-16 h-16 rounded-full overflow-hidden flex items-center justify-center"
+        className="w-[72px] h-[72px] rounded-full overflow-hidden flex items-center justify-center"
         style={{
-          background: user.avatar_url ? "white" : "rgba(255,255,255,0.18)",
-          border: "2px solid rgba(255,255,255,0.25)",
-          opacity: uploading ? 0.5 : 1,
+          background: user.avatar_url
+            ? "white"
+            : "rgba(255,255,255,0.18)",
+          border: "3px solid rgba(255,255,255,0.3)",
+          boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
+          opacity: uploading ? 0.6 : 1,
         }}
       >
         {user.avatar_url ? (
           <Image
             src={user.avatar_url}
             alt={user.name}
-            width={64}
-            height={64}
+            width={72}
+            height={72}
             className="w-full h-full object-cover"
           />
         ) : (
-          <span className="font-display text-[24px] font-bold text-white leading-none">
+          <span className="font-display text-[28px] font-bold text-white leading-none">
             {(user.name || "?").trim().charAt(0).toUpperCase()}
           </span>
         )}
@@ -171,15 +170,17 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
         type="button"
         onClick={() => fileInputRef.current?.click()}
         aria-label="Сменить фото"
-        className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+        className="absolute -bottom-0.5 -right-0.5 w-7 h-7 rounded-full flex items-center justify-center"
         style={{
-          background: "var(--green-500)",
-          border: "2px solid var(--green-600)",
+          background: "rgba(0,0,0,0.4)",
+          backdropFilter: "blur(8px)",
+          WebkitBackdropFilter: "blur(8px)",
+          border: "2px solid rgba(255,255,255,0.2)",
         }}
         disabled={uploading}
       >
         {uploading ? (
-          <div className="w-2.5 h-2.5 rounded-full border-2 border-white border-t-transparent animate-spin" />
+          <div className="w-3 h-3 rounded-full border-2 border-white border-t-transparent animate-spin" />
         ) : (
           <CameraIcon />
         )}
@@ -188,40 +189,17 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   );
 
   return (
-    <div className="flex flex-1 flex-col" style={{ background: "var(--bg-secondary)" }}>
+    <div
+      className="flex flex-1 flex-col"
+      style={{ background: "var(--bg-secondary)" }}
+    >
       <PageHeader
-        title={user.name}
-        subtitle={subtitleLocation || undefined}
+        titleSlot={titleSlot}
+        subtitle={subtitle || undefined}
         leadingSlot={leadingSlot}
         onSettingsClick={() => router.push("/profile/settings")}
         settingsAriaLabel="Настройки профиля"
-      >
-        {user.looking_for_team && (
-          <div className="mb-3 -mt-1">
-            <span
-              className="inline-flex items-center gap-1.5 text-[12px] font-semibold rounded-full px-3 py-1"
-              style={{
-                background: "rgba(255,255,255,0.18)",
-                color: "white",
-              }}
-            >
-              <span
-                className="w-1.5 h-1.5 rounded-full"
-                style={{ background: "white" }}
-              />
-              Ищу команду
-            </span>
-          </div>
-        )}
-        <HeaderStatGroup>
-          <HeaderStat value={stats?.playedCount ?? 0} label="Сыграно" />
-          <HeaderStat value={reliabilityValue} label="Надёжность" />
-          <HeaderStat value={teamsCount ?? 0} label="Команд" />
-          {user.rating != null && (
-            <HeaderStat value={user.rating} label="Рейтинг" />
-          )}
-        </HeaderStatGroup>
-      </PageHeader>
+      />
 
       <input
         ref={fileInputRef}
@@ -245,8 +223,15 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
         className="sticky top-0 z-10 bg-white"
       />
 
-      <div className="flex flex-col gap-4 px-4 py-4 pb-6">
-        {tab === "about" && <AboutTab user={user} />}
+      <div className="flex flex-col gap-3 px-4 py-4">
+        {tab === "about" && (
+          <AboutTab
+            user={user}
+            districtName={districtName}
+            teams={teams}
+            stats={stats}
+          />
+        )}
         {tab === "results" && <ResultsTab stats={stats} />}
         {tab === "reliability" && <ReliabilityTab stats={stats} />}
         {tab === "achievements" && <AchievementsTab />}
@@ -260,17 +245,14 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
 function CameraIcon() {
   return (
     <svg
-      width="11"
-      height="11"
+      width="14"
+      height="14"
       viewBox="0 0 24 24"
-      fill="none"
-      stroke="white"
-      strokeWidth="2.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fill="white"
+      stroke="none"
     >
       <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-      <circle cx="12" cy="13" r="4" />
+      <circle cx="12" cy="13" r="4" fill="none" stroke="white" strokeWidth="2" />
     </svg>
   );
 }

@@ -30,6 +30,16 @@ export function levelLetter(code: LevelCode): string {
   return { aplus: "A+", a: "A", b: "B", c: "C", d: "D" }[code];
 }
 
+export function levelName(code: LevelCode): string {
+  return {
+    aplus: "Элитный",
+    a: "Продвинутый",
+    b: "Уверенный",
+    c: "Средний",
+    d: "Начинающий",
+  }[code];
+}
+
 // Детерминированный hue 0..360 из строкового id команды.
 // Используется как фолбэк цвета лого, пока teams.logo_url пуст.
 export function teamFallbackHue(teamId: string): number {

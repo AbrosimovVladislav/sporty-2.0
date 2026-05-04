@@ -14,6 +14,12 @@ export type Stats = {
   }[];
 };
 
+export type ProfileTeam = {
+  id: string;
+  name: string;
+  logo_url: string | null;
+};
+
 export type JoinRequestItem = {
   id: string;
   status: "pending" | "accepted" | "rejected";

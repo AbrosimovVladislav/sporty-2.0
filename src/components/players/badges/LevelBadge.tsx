@@ -3,12 +3,22 @@ import { levelLetter, type LevelCode } from "@/lib/playerBadges";
 
 type Props = {
   code: LevelCode | null;
+  size?: "default" | "large";
 };
 
-export function LevelBadge({ code }: Props) {
+const SIZE = {
+  default: { w: 26, h: 30, fontMain: 14, fontDouble: 10 },
+  large: { w: 38, h: 44, fontMain: 20, fontDouble: 14 },
+};
+
+export function LevelBadge({ code, size = "default" }: Props) {
+  const s = SIZE[size];
+
   if (code == null) {
     return (
       <HexBadge
+        width={s.w}
+        height={s.h}
         borderColor="var(--lvl-empty-border)"
         fillFrom="var(--lvl-empty-fill-from)"
         fillMid="var(--lvl-empty-fill-mid)"
@@ -17,7 +27,7 @@ export function LevelBadge({ code }: Props) {
         <span
           className="font-display"
           style={{
-            fontSize: 14,
+            fontSize: s.fontMain,
             fontWeight: 700,
             color: "var(--text-tertiary)",
             lineHeight: 1,
@@ -30,10 +40,12 @@ export function LevelBadge({ code }: Props) {
   }
 
   const letter = levelLetter(code);
-  const fontSize = letter.length === 2 ? 10 : 14;
+  const fontSize = letter.length === 2 ? s.fontDouble : s.fontMain;
 
   return (
     <HexBadge
+      width={s.w}
+      height={s.h}
       borderColor={`var(--lvl-${code}-border)`}
       fillFrom={`var(--lvl-${code}-fill-from)`}
       fillMid={`var(--lvl-${code}-fill-mid)`}

@@ -1,7 +1,15 @@
-export function Eyebrow({ children }: { children: React.ReactNode }) {
+import type { CSSProperties, ReactNode } from "react";
+
+export function Eyebrow({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <p
-      className="text-[11px] font-bold uppercase"
+      className={`text-[11px] font-semibold uppercase ${className}`}
       style={{
         letterSpacing: "0.06em",
         color: "var(--text-tertiary)",
@@ -12,29 +20,25 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function StatTile({
-  label,
-  value,
-  tone = "default",
+export function Card({
+  children,
+  className = "",
+  style,
 }: {
-  label: string;
-  value: string | number;
-  tone?: "default" | "good";
+  children: ReactNode;
+  className?: string;
+  style?: CSSProperties;
 }) {
-  const valueColor =
-    tone === "good" ? "var(--green-600)" : "var(--text-primary)";
   return (
     <div
-      className="rounded-[16px] p-4"
-      style={{ background: "var(--bg-primary)" }}
+      className={`rounded-[16px] ${className}`}
+      style={{
+        background: "var(--bg-primary)",
+        boxShadow: "var(--shadow-sm)",
+        ...style,
+      }}
     >
-      <Eyebrow>{label}</Eyebrow>
-      <p
-        className="font-display text-[28px] leading-none font-bold tabular-nums mt-2"
-        style={{ color: valueColor }}
-      >
-        {value}
-      </p>
+      {children}
     </div>
   );
 }

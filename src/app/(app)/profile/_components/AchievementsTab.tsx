@@ -1,63 +1,65 @@
 "use client";
 
-export function AchievementsTab() {
-  const placeholders = [
-    { id: "first", label: "Первый матч", emoji: "🏅" },
-    { id: "streak", label: "5 матчей подряд", emoji: "🔥" },
-    { id: "captain", label: "Капитан", emoji: "🎖" },
-    { id: "mvp", label: "MVP события", emoji: "⭐" },
-    { id: "punctual", label: "100% явка", emoji: "✅" },
-    { id: "veteran", label: "50 матчей", emoji: "🏆" },
-  ];
+import { Card } from "./atoms";
 
+const AWARDS = [
+  { id: "first", icon: "🥇", label: "Первый матч" },
+  { id: "streak", icon: "🔥", label: "5 матчей подряд" },
+  { id: "captain", icon: "🏅", label: "Капитан" },
+  { id: "mvp", icon: "⭐", label: "MVP события" },
+  { id: "punctual", icon: "☑️", label: "100% явка" },
+  { id: "veteran", icon: "🏆", label: "50 матчей" },
+];
+
+export function AchievementsTab() {
   return (
-    <div className="flex flex-col gap-3">
-      <div
-        className="rounded-[16px] p-5 text-center"
-        style={{ background: "var(--bg-primary)" }}
-      >
+    <>
+      <Card className="px-5 py-6 text-center">
         <p
-          className="text-[15px] font-semibold"
+          className="text-[17px] font-bold mb-1.5"
           style={{ color: "var(--text-primary)" }}
         >
           Достижения копятся с каждым матчем
         </p>
         <p
-          className="text-[13px] mt-1"
+          className="text-[14px] leading-normal"
           style={{ color: "var(--text-secondary)" }}
         >
           Скоро появятся первые значки за активность и стабильность
         </p>
-      </div>
+      </Card>
 
       <div className="grid grid-cols-3 gap-3">
-        {placeholders.map((p) => (
-          <div
-            key={p.id}
-            className="rounded-[16px] p-3 flex flex-col items-center text-center"
-            style={{ background: "var(--bg-primary)" }}
+        {AWARDS.map((a) => (
+          <Card
+            key={a.id}
+            className="text-center"
+            style={{
+              padding: "18px 8px 14px",
+              opacity: 0.45,
+            }}
           >
-            <div
-              className="w-12 h-12 rounded-full flex items-center justify-center text-[20px] grayscale opacity-40"
-              style={{ background: "var(--bg-card)" }}
-            >
-              {p.emoji}
-            </div>
             <p
-              className="text-[11px] font-semibold mt-2 leading-tight"
-              style={{ color: "var(--text-tertiary)" }}
+              className="text-[32px] mb-2 leading-none"
+              style={{ filter: "grayscale(1)" }}
             >
-              {p.label}
+              {a.icon}
             </p>
             <p
-              className="text-[10px] mt-0.5"
+              className="text-[13px] font-semibold leading-tight"
+              style={{ color: "var(--text-primary)" }}
+            >
+              {a.label}
+            </p>
+            <p
+              className="text-[11px] mt-1"
               style={{ color: "var(--text-tertiary)" }}
             >
               скоро
             </p>
-          </div>
+          </Card>
         ))}
       </div>
-    </div>
+    </>
   );
 }

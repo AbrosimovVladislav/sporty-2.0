@@ -13,6 +13,7 @@ type MembershipWithTeam = {
     created_at: string;
     looking_for_players: boolean;
     district_id: string | null;
+    logo_url: string | null;
     districts: { id: string; name: string } | null;
     team_memberships: { count: number }[];
   } | null;
@@ -29,7 +30,7 @@ export async function GET(
   const { data, error } = await supabase
     .from("team_memberships")
     .select(
-      "role, joined_at, teams(id, name, sport, city, description, created_at, looking_for_players, district_id, districts(id, name), team_memberships(count))",
+      "role, joined_at, teams(id, name, sport, city, description, created_at, looking_for_players, district_id, logo_url, districts(id, name), team_memberships(count))",
     )
     .eq("user_id", userId)
     .order("joined_at", { ascending: true });
@@ -52,6 +53,7 @@ export async function GET(
         description: t.description,
         created_at: t.created_at,
         looking_for_players: t.looking_for_players,
+        logo_url: t.logo_url,
         district_id: t.district_id,
         district: t.districts ?? null,
         members_count: Array.isArray(t.team_memberships)
