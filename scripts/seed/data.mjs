@@ -247,6 +247,64 @@ export const LAST_NAMES = [
 export const POSITIONS = ["Вратарь", "Защитник", "Полузащитник", "Нападающий"];
 export const SKILL_LABELS = ["Новичок", "Любитель", "Уверенный", "Полупрофи", "Про"];
 
+// Соответствие текстового уровня буквенному уровню в UI (см. src/lib/playerBadges.ts).
+const SKILL_TO_LEVEL = {
+  "Новичок": "d",
+  "Любитель": "c",
+  "Уверенный": "b",
+  "Полупрофи": "a",
+  "Про": "aplus",
+};
+
+// Включающие [min, max] диапазоны рейтинга для каждого буквенного уровня.
+// Зеркало бакетов из src/lib/playerBadges.ts: 0-25→D, 26-55→C, 56-72→B, 73-88→A, 89-100→A+.
+const LEVEL_RATING_RANGE = {
+  d: [5, 25],
+  c: [26, 55],
+  b: [56, 72],
+  a: [73, 88],
+  aplus: [89, 100],
+};
+
+// Допустимые соседи по позиции при двух-позиционных игроках.
+// Вратарь не комбинируется с полузащитником/нападающим — нелогично.
+const POSITION_NEIGHBORS = {
+  "Вратарь": ["Защитник"],
+  "Защитник": ["Вратарь", "Полузащитник"],
+  "Полузащитник": ["Защитник", "Нападающий"],
+  "Нападающий": ["Полузащитник"],
+};
+
+// Универсальное трио для 3-позиционных полевых игроков.
+const FIELD_TRIO = ["Защитник", "Полузащитник", "Нападающий"];
+
+// 70% игроков — одна позиция, 25% — две, 5% — три. Вратарь не получает 3 позиции.
+function buildPositions(i) {
+  const main = POSITIONS[i % POSITIONS.length];
+  const r = (i * 7) % 100;
+  let count = 1;
+  if (r >= 70 && r < 95) count = 2;
+  else if (r >= 95) count = 3;
+  if (main === "Вратарь" && count === 3) count = 2;
+
+  if (count === 1) return [main];
+  if (count === 2) {
+    const neighbors = POSITION_NEIGHBORS[main];
+    return [main, neighbors[i % neighbors.length]];
+  }
+  return [main, ...FIELD_TRIO.filter((p) => p !== main)];
+}
+
+// 80% игроков получают рейтинг в диапазоне их буквенного уровня.
+function buildRating(i, skillLabel) {
+  const wantRating = (i * 11) % 100 < 80;
+  if (!wantRating) return null;
+  const level = SKILL_TO_LEVEL[skillLabel];
+  const [lo, hi] = LEVEL_RATING_RANGE[level];
+  const span = hi - lo + 1;
+  return lo + ((i * 17) % span);
+}
+
 // Транслит русских букв в латиницу для slug-имён файлов.
 const TRANSLIT = {
   а: "a", б: "b", в: "v", г: "g", д: "d", е: "e", ё: "e", ж: "zh",
@@ -280,11 +338,10 @@ export function generatePlayers(count = 100) {
     const lastName = LAST_NAMES[lastIdx];
 
     const districtIdx = i % 8; // только Алматы (первые 8 районов)
-    const positionMain = POSITIONS[i % POSITIONS.length];
-    const positions = i % 10 < 3
-      ? [positionMain, POSITIONS[(i + 1) % POSITIONS.length]]
-      : [positionMain];
+    const positions = buildPositions(i);
     const skillIdx = (i * 13) % SKILL_LABELS.length;
+    const skillLabel = SKILL_LABELS[skillIdx];
+    const rating = buildRating(i, skillLabel);
     const lookingForTeam = i % 7 === 0;
     const birthYear = 1985 + (i % 23);
     const birthMonth = ((i * 3) % 12) + 1;
@@ -302,7 +359,8 @@ export function generatePlayers(count = 100) {
       bio: i % 4 === 0 ? `Играю с ${birthYear + 18} года. Готов к матчам по выходным.` : null,
       birth_date: `${birthYear}-${String(birthMonth).padStart(2, "0")}-${String(birthDay).padStart(2, "0")}`,
       position: positions,
-      skill_level: SKILL_LABELS[skillIdx],
+      skill_level: skillLabel,
+      rating,
       looking_for_team: lookingForTeam,
     });
   }

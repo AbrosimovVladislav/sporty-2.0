@@ -165,6 +165,12 @@ export default function SearchPlayersPage() {
           }}
         />
 
+        <FilterPills
+          options={POSITION_PILLS}
+          value={positionPill}
+          onChange={setPositionPill}
+        />
+
         <ListMeta
           countLabel={countLabel}
           sort={{
@@ -172,12 +178,6 @@ export default function SearchPlayersPage() {
             options: SORT_OPTIONS,
             onChange: (v) => setSort(v as SortMode),
           }}
-        />
-
-        <FilterPills
-          options={POSITION_PILLS}
-          value={positionPill}
-          onChange={setPositionPill}
         />
 
         {activeChips.length > 0 && (

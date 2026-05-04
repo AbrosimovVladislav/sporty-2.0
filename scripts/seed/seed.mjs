@@ -75,6 +75,7 @@ export async function seedPlayers(supabase, log, districtMap) {
       birth_date: p.birth_date,
       position: p.position,
       skill_level: p.skill_level,
+      rating: p.rating,
       looking_for_team: p.looking_for_team,
       district_id: districtId,
       avatar_url: publicUrl(supabase, "avatars", p.avatar_filename),
