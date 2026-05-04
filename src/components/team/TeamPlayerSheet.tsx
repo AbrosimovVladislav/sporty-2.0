@@ -3,7 +3,8 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Accordion } from "./team-player-sheet/Accordion";
-import { Empty, SkeletonRow, skillToNum } from "./team-player-sheet/atoms";
+import { Empty, SkeletonRow } from "./team-player-sheet/atoms";
+import { skillToNum } from "@/lib/playerBadges";
 import {
   FinancesBody,
   peekFinances,

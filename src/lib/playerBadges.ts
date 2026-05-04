@@ -49,3 +49,11 @@ export function teamFallbackHue(teamId: string): number {
   }
   return h % 360;
 }
+
+import { SKILL_LEVELS } from "./catalogs";
+
+export function skillToNum(level: string | null | undefined): number {
+  if (!level) return 0;
+  const idx = SKILL_LEVELS.indexOf(level as (typeof SKILL_LEVELS)[number]);
+  return idx === -1 ? 0 : idx + 1;
+}

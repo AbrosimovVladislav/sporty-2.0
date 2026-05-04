@@ -70,7 +70,7 @@ Query: `?userId=&city=`
 
 Публичные данные конкретного игрока.
 
-Ответ: `{ player: { id, name, city, sport, position, skill_level, preferred_time, bio, birth_date, looking_for_team, created_at } }`
+Ответ: `{ player: { id, name, city, sport, position, skill_level, preferred_time, bio, birth_date, looking_for_team, created_at, district_id, district, rating, avatar_url } }`
 
 404 если пользователь не найден или `onboarding_completed = false`.
 
@@ -114,8 +114,21 @@ Query: `?userId=&city=`
 
 ### Профиль `/players/[id]`
 
-- Тёмный хедер: имя, бейджи (город, спорт, «Ищет команду»)
-- Секция «О себе»: bio, позиция, уровень, возраст, предпочтительное время
-- Секция «Статистика»: сыграно, надёжность (%), подпись «X из Y событий»
-- Секция «Последние события»: список с маркерами «Был» / «Не пришёл»
-- Все данные read-only
+Read-only. На светлом фоне `--bg-secondary`, контент — карточки `bg-bg-primary rounded-[16px] shadow-sm` с `gap-3`.
+
+1. **Hero-карточка** (`relative`, центрированный контент):
+   - `BackButton` в `top-4 left-4` (40×40, white bg, shadow)
+   - Аватар 144×144 круглый, тонкая обводка `--gray-200`. Если без фото — белая инициалка на `--gray-100`. В правом-нижнем углу аватара — overlay-плашка рейтинга 44×44 (`--text-primary` фон, белый Oswald 16px, белая рамка 3px)
+   - Имя — Oswald 28px uppercase, центр
+   - Город — `📍 city` 14px secondary, центр
+   - Ряд бейджей (центрированы): `LevelChip` (hex `LevelBadge` + pill `«{skill_level} N/5»`), затем `PositionBadge` для каждой позиции
+2. **Карточка «О себе»** (видна, если есть `birth_date`): `Eyebrow` + строка «Возраст / N лет» с тортом-иконкой справа. Bio/позиция/уровень из карточки убраны — позиции отображаются hex-бейджами в hero, уровень — в `LevelChip`
+3. **Stats grid** (`grid-cols-2 gap-3`):
+   - Карточка «Сыграно» — серый круг 48px с иконкой мяча + Oswald 28px число + label
+   - Карточка «Надёжность» — зелёный (`--green-100`) круг с иконкой щита + Oswald 28px зелёное число + label. Если `reliability === null` — прочерк
+4. **Reliability summary** (если `votedYesCount > 0`): зелёный (`--green-500`) круг с белой галочкой + текст «Посетил X из Y записанных событий»
+5. **«Последние события»**: `Eyebrow` + карточка-список. Каждая строка: 40×40 квадрат (`--green-100` фон) с зелёной иконкой календаря + тип события + полная дата + status pill справа («Был» зелёный / «Не был» красный / «Не голосовал» серый)
+
+**Bottom action bar** «Пригласить в команду» — виден только если просмотрщик не сам игрок и состоит организатором хотя бы в одной команде. Открывает bottom-sheet выбора команды (`POST /api/teams/[id]/invites`).
+
+`LevelChip` (`@/components/players/badges/LevelChip`) — общий компонент: hex-LevelBadge + pill `{skill_level} N/5`. Используется также в `TeamPlayerSheet`.

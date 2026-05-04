@@ -4,7 +4,6 @@ import { useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { useTeam, type TeamMember } from "../team-context";
 import { useAuth } from "@/lib/auth-context";
-import { SKILL_LEVELS } from "@/lib/catalogs";
 import {
   ListSearchBar,
   ListMeta,
@@ -12,6 +11,7 @@ import {
 } from "@/components/ui";
 import { PlayerListRow } from "@/components/players/PlayerListRow";
 import { TeamPlayerSheet } from "@/components/team/lazy";
+import { skillToNum } from "@/lib/playerBadges";
 
 // ─── constants ────────────────────────────────────────────────────────────────
 
@@ -29,12 +29,6 @@ const SORT_OPTIONS = [
 ];
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
-
-function skillToNum(level: string | null): number {
-  if (!level) return 0;
-  const idx = SKILL_LEVELS.indexOf(level as (typeof SKILL_LEVELS)[number]);
-  return idx === -1 ? 0 : idx + 1;
-}
 
 function sortMembers(members: TeamMember[], sort: string): TeamMember[] {
   const arr = [...members];

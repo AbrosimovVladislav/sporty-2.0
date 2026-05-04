@@ -1,5 +1,3 @@
-import { SKILL_LEVELS } from "@/lib/catalogs";
-
 export function MiniStat({
   label,
   value,
@@ -53,8 +51,3 @@ export function SkeletonRow() {
   );
 }
 
-export function skillToNum(level: string | null): number {
-  if (!level) return 0;
-  const idx = SKILL_LEVELS.indexOf(level as (typeof SKILL_LEVELS)[number]);
-  return idx === -1 ? 0 : idx + 1;
-}

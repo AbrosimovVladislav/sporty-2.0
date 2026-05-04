@@ -15,6 +15,7 @@ type PlayerDetailRow = {
   created_at: string;
   district_id: string | null;
   rating: number | null;
+  avatar_url: string | null;
   districts: { id: string; name: string } | null;
 };
 
@@ -27,7 +28,7 @@ export async function GET(
 
   const { data, error } = await supabase
     .from("users")
-    .select("id, name, city, sport, position, skill_level, preferred_time, bio, birth_date, looking_for_team, created_at, district_id, rating, districts(id, name)")
+    .select("id, name, city, sport, position, skill_level, preferred_time, bio, birth_date, looking_for_team, created_at, district_id, rating, avatar_url, districts(id, name)")
     .eq("id", id)
     .eq("onboarding_completed", true)
     .maybeSingle();
@@ -50,6 +51,7 @@ export async function GET(
     created_at: row.created_at,
     district_id: row.district_id,
     rating: row.rating,
+    avatar_url: row.avatar_url,
     district: row.districts ?? null,
   };
 
