@@ -6,6 +6,7 @@ export type EventItem = {
   min_players: number;
   description: string | null;
   status: string;
+  is_public: boolean;
   venue_cost: number;
   venue_paid: number;
   venue: { id: string; name: string; address: string } | null;

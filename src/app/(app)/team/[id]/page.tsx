@@ -72,6 +72,8 @@ export default function TeamHomePage() {
 
   return (
     <>
+      {role === "guest" && <GuestJoinBar teamId={team.team.id} />}
+
       <NextEventCard insights={insights} teamId={team.team.id} />
 
       <ActivityCard insights={insights} />
@@ -88,8 +90,6 @@ export default function TeamHomePage() {
           onOpen={ui.openRequests}
         />
       )}
-
-      {role === "guest" && <GuestJoinBar teamId={team.team.id} />}
 
       {activePlayer && team.status === "ready" && (
         <TeamPlayerSheet

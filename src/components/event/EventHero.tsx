@@ -28,6 +28,7 @@ type Props = {
   photoUrl: string | null;
   venueName: string | null;
   pricePerPlayer: number;
+  isPublic: boolean;
   userVote: "yes" | "no" | null;
   canVote: boolean;
   onVoted: () => void;
@@ -45,6 +46,7 @@ export function EventHero({
   photoUrl,
   venueName,
   pricePerPlayer,
+  isPublic,
   userVote,
   canVote,
   onVoted,
@@ -183,6 +185,12 @@ export function EventHero({
             <CoinIcon />
             <strong className="font-semibold text-white">{formatPrice(pricePerPlayer)}</strong>
           </Chip>
+          {!isPublic && (
+            <Chip>
+              <LockIcon />
+              <span className="text-white">Приватное</span>
+            </Chip>
+          )}
         </div>
 
         {canVote && isPlanned && userId && (
@@ -278,6 +286,14 @@ function PinIcon() {
     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.5)" strokeWidth="2.5" strokeLinecap="round">
       <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
       <circle cx="12" cy="10" r="3" />
+    </svg>
+  );
+}
+function LockIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.7)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
     </svg>
   );
 }

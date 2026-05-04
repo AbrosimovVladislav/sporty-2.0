@@ -55,7 +55,6 @@ export default function EventDetailPage({
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const isOrganizer = team.status === "ready" && team.role === "organizer";
-  const isMember = team.status === "ready" && team.role !== "guest";
   const members = team.status === "ready" ? team.members : [];
   const teamName = team.status === "ready" ? team.team.name : "Команда";
 
@@ -140,7 +139,7 @@ export default function EventDetailPage({
   const myAttended = myAttendance?.attended ?? null;
   const isCompleted = event.status === "completed";
   const isPlanned = event.status === "planned";
-  const canVote = isPlanned && !!userId && (isMember || event.is_public);
+  const canVote = isPlanned && !!userId;
   const isPastDue = isPlanned && new Date(event.date).getTime() < Date.now();
 
   return (
@@ -156,6 +155,7 @@ export default function EventDetailPage({
         photoUrl={event.venue?.photo_url ?? null}
         venueName={event.venue?.name ?? null}
         pricePerPlayer={event.price_per_player}
+        isPublic={event.is_public}
         userVote={myVote}
         canVote={canVote}
         onVoted={handleVoted}

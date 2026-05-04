@@ -1,25 +1,12 @@
-import { ReactNode, useState } from "react";
+import { useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
 import { useTeam } from "../team-context";
 
-const BAR_HEIGHT = 64;
-const NAV_OFFSET_PX = 88;
-
-function FloatingBar({ children }: { children: ReactNode }) {
-  return (
-    <>
-      <div aria-hidden style={{ height: BAR_HEIGHT }} />
-      <div
-        className="fixed left-0 right-0 bg-background-card border-t border-border px-4 py-3 shadow-pop z-30"
-        style={{
-          bottom: `calc(${NAV_OFFSET_PX}px + env(safe-area-inset-bottom, 0px))`,
-        }}
-      >
-        {children}
-      </div>
-    </>
-  );
+function pluralDays(n: number): string {
+  if (n === 1) return "день";
+  if (n < 5) return "дня";
+  return "дней";
 }
 
 export function GuestJoinBar({ teamId }: { teamId: string }) {
@@ -68,21 +55,26 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
 
   if (joinRequestStatus === "pending") {
     return (
-      <FloatingBar>
-        <div className="flex gap-2">
-          <Button variant="secondary" className="flex-1" disabled>
-            Заявка отправлена
-          </Button>
-          <Button
-            variant="secondary"
-            loading={busy}
-            disabled={busy}
-            onClick={handleWithdraw}
-          >
-            Отозвать
-          </Button>
-        </div>
-      </FloatingBar>
+      <div
+        className="flex items-center justify-between gap-3 rounded-[16px] px-4 py-3"
+        style={{ background: "var(--bg-card)" }}
+      >
+        <span
+          className="text-[14px] font-medium"
+          style={{ color: "var(--text-primary)" }}
+        >
+          Заявка на вступление отправлена
+        </span>
+        <button
+          type="button"
+          onClick={handleWithdraw}
+          disabled={busy}
+          className="text-[13px] font-semibold disabled:opacity-50"
+          style={{ color: "var(--text-accent)" }}
+        >
+          Отозвать
+        </button>
+      </div>
     );
   }
 
@@ -99,38 +91,37 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
 
     if (cooldown > 0) {
       return (
-        <FloatingBar>
-          <Button variant="secondary" className="w-full" disabled>
-            Можно подать снова через {cooldown}{" "}
-            {cooldown === 1 ? "день" : cooldown < 5 ? "дня" : "дней"}
-          </Button>
-        </FloatingBar>
+        <div
+          className="rounded-[16px] px-4 py-3 text-center text-[14px]"
+          style={{
+            background: "var(--bg-card)",
+            color: "var(--text-secondary)",
+          }}
+        >
+          Подать заявку снова можно через {cooldown} {pluralDays(cooldown)}
+        </div>
       );
     }
     return (
-      <FloatingBar>
-        <Button
-          variant="primary"
-          className="w-full"
-          loading={busy}
-          onClick={handleJoin}
-        >
-          Подать заявку снова
-        </Button>
-      </FloatingBar>
-    );
-  }
-
-  return (
-    <FloatingBar>
       <Button
         variant="primary"
         className="w-full"
         loading={busy}
         onClick={handleJoin}
       >
-        Подать заявку
+        Подать заявку снова
       </Button>
-    </FloatingBar>
+    );
+  }
+
+  return (
+    <Button
+      variant="primary"
+      className="w-full"
+      loading={busy}
+      onClick={handleJoin}
+    >
+      Вступить в команду
+    </Button>
   );
 }

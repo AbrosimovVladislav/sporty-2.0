@@ -18,6 +18,8 @@ type Props = {
   yesCount: number;
   pricePerPlayer: number;
   myTeam?: boolean;
+  /** Hide private indicator when undefined; show "Приватное" badge when false. */
+  isPublic?: boolean;
 };
 
 const MONTH_SHORT_UPPER = [
@@ -81,6 +83,7 @@ function EventListRowImpl({
   yesCount,
   pricePerPlayer,
   myTeam,
+  isPublic,
 }: Props) {
   const { weekday, day, month, time } = formatDateBlock(date);
   const typeLabel = EVENT_TYPE_LABEL[type] ?? type;
@@ -186,6 +189,23 @@ function EventListRowImpl({
               Моя команда
             </span>
           )}
+          {isPublic === false && (
+            <span
+              className="inline-flex items-center gap-1 shrink-0"
+              style={{
+                padding: "2px 7px",
+                borderRadius: 8,
+                fontSize: 10,
+                fontWeight: 700,
+                background: "var(--gray-100)",
+                color: "var(--text-secondary)",
+                border: "1px solid var(--gray-200)",
+              }}
+            >
+              <LockIcon />
+              Приватное
+            </span>
+          )}
         </div>
         <div
           className="text-[16px] font-semibold truncate"
@@ -240,6 +260,15 @@ function EventListRowImpl({
 }
 
 export const EventListRow = memo(EventListRowImpl);
+
+function LockIcon() {
+  return (
+    <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="11" width="16" height="10" rx="2" />
+      <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
 
 function PeopleIcon() {
   return (

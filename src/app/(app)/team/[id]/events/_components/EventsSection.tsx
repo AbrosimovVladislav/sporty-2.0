@@ -39,6 +39,7 @@ export function EventsSection({
               venueAddress={e.venue?.address ?? null}
               yesCount={e.yesCount}
               pricePerPlayer={e.price_per_player}
+              isPublic={e.is_public}
             />
           </li>
         ))}
