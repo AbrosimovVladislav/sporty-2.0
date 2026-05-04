@@ -52,6 +52,7 @@ export async function GET(req: NextRequest) {
     .from("users")
     .select(
       "id, name, avatar_url, city, position, skill_level, skill_rank, created_at, looking_for_team, district_id, rating, districts(id, name), team_memberships(team_id, joined_at, teams(id, name, logo_url))",
+      cursor ? undefined : { count: "exact" },
     )
     .eq("onboarding_completed", true);
 
@@ -82,7 +83,7 @@ export async function GET(req: NextRequest) {
 
   query = query.limit(limit + 1);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
   const rows = (data ?? []) as unknown as PlayerRow[];
@@ -164,5 +165,5 @@ export async function GET(req: NextRequest) {
     nextCursor = encodeCursor({ v, id: last.id });
   }
 
-  return NextResponse.json({ players, nextCursor });
+  return NextResponse.json({ players, nextCursor, total: count ?? 0 });
 }

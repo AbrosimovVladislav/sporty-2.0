@@ -2,13 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth-context";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
-  HeaderStatGroup,
-  HeaderStat,
   ListSearchBar,
   ListMeta,
   FilterPills,
@@ -39,12 +36,6 @@ type Player = {
   teams: TeamLogo[];
 };
 
-type Stats = {
-  total: number;
-  inMyTeams: number | null;
-  lookingForTeam: number;
-};
-
 type SortMode = "skill" | "recent" | "name_asc";
 
 const POSITION_PILLS = [
@@ -69,8 +60,6 @@ const EMPTY_FILTERS: PlayerFilters = {
 
 
 export default function SearchPlayersPage() {
-  const auth = useAuth();
-  const userId = auth.status === "authenticated" ? auth.user.id : null;
   const { activeCity } = useCity();
 
   const [search, setSearch] = useState("");
@@ -80,7 +69,6 @@ export default function SearchPlayersPage() {
   const [filters, setFilters] = useState<PlayerFilters>(EMPTY_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
-  const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
     setFilters((f) => (f.city ? f : { ...f, city: activeCity }));
@@ -119,36 +107,23 @@ export default function SearchPlayersPage() {
         : `/api/players?${queryString}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error("players fetch failed");
-      return r.json() as Promise<{ players: Player[]; nextCursor: string | null }>;
+      return r.json() as Promise<{
+        players: Player[];
+        nextCursor: string | null;
+        total?: number;
+      }>;
     },
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
   });
 
   const players = playersQuery.data?.pages.flatMap((p) => p.players) ?? [];
+  const total = playersQuery.data?.pages[0]?.total ?? null;
   const loading = playersQuery.isPending || playersQuery.isFetchingNextPage;
   const hasMore = playersQuery.hasNextPage;
   const loadMore = () => {
     if (!playersQuery.isFetchingNextPage) playersQuery.fetchNextPage();
   };
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams();
-    if (userId) params.set("userId", userId);
-    if (filters.city) params.set("city", filters.city);
-    fetch(`/api/players/stats?${params}`)
-      .then((r) => r.json())
-      .then((d: Stats) => {
-        if (!cancelled) setStats(d);
-      })
-      .catch(() => {
-        if (!cancelled) setStats(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, filters.city]);
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
@@ -167,22 +142,13 @@ export default function SearchPlayersPage() {
 
   const showSkeleton = players.length === 0 && playersQuery.isPending;
   const showEmpty = !loading && players.length === 0;
-  const resultsLabel =
-    players.length > 0 ? `${players.length}${hasMore ? "+" : ""}` : null;
+  const countLabel = total != null ? `Результаты · ${total}` : null;
 
   const cityForPicker = filters.city || activeCity;
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader title="Игроки">
-        <HeaderStatGroup>
-          <HeaderStat value={stats?.total ?? "—"} label="Всего" />
-          <HeaderStat
-            value={stats?.lookingForTeam ?? "—"}
-            label="Ищут команду"
-          />
-        </HeaderStatGroup>
-      </PageHeader>
+      <PageHeader title="Игроки" />
 
       <SearchSubnav />
 
@@ -200,6 +166,7 @@ export default function SearchPlayersPage() {
         />
 
         <ListMeta
+          countLabel={countLabel}
           sort={{
             value: sort,
             options: SORT_OPTIONS,
@@ -237,17 +204,6 @@ export default function SearchPlayersPage() {
           </div>
         ) : (
           <>
-            {resultsLabel && (
-              <p
-                className="text-[11px] font-semibold uppercase mb-1"
-                style={{
-                  letterSpacing: "0.06em",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Результаты · {resultsLabel}
-              </p>
-            )}
             <ul className="flex flex-col">
               {players.map((p) => (
                 <li key={p.id}>
@@ -266,6 +222,17 @@ export default function SearchPlayersPage() {
                 </li>
               ))}
             </ul>
+            {playersQuery.isFetchingNextPage && (
+              <div className="flex justify-center py-5">
+                <span
+                  className="block w-6 h-6 rounded-full animate-spin"
+                  style={{
+                    border: "2.5px solid var(--gray-200)",
+                    borderTopColor: "var(--green-500)",
+                  }}
+                />
+              </div>
+            )}
             {hasMore && <InfiniteScrollSentinel onVisible={loadMore} />}
           </>
         )}
