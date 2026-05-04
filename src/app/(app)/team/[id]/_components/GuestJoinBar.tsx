@@ -1,8 +1,26 @@
-import { useState } from "react";
+import { ReactNode, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
 import { Button } from "@/components/ui/Button";
-import { BottomActionBar } from "@/components/ui/BottomActionBar";
 import { useTeam } from "../team-context";
+
+const BAR_HEIGHT = 64;
+const NAV_OFFSET_PX = 88;
+
+function FloatingBar({ children }: { children: ReactNode }) {
+  return (
+    <>
+      <div aria-hidden style={{ height: BAR_HEIGHT }} />
+      <div
+        className="fixed left-0 right-0 bg-background-card border-t border-border px-4 py-3 shadow-pop z-30"
+        style={{
+          bottom: `calc(${NAV_OFFSET_PX}px + env(safe-area-inset-bottom, 0px))`,
+        }}
+      >
+        {children}
+      </div>
+    </>
+  );
+}
 
 export function GuestJoinBar({ teamId }: { teamId: string }) {
   const team = useTeam();
@@ -50,7 +68,7 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
 
   if (joinRequestStatus === "pending") {
     return (
-      <BottomActionBar>
+      <FloatingBar>
         <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" disabled>
             Заявка отправлена
@@ -64,7 +82,7 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
             Отозвать
           </Button>
         </div>
-      </BottomActionBar>
+      </FloatingBar>
     );
   }
 
@@ -81,16 +99,16 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
 
     if (cooldown > 0) {
       return (
-        <BottomActionBar>
+        <FloatingBar>
           <Button variant="secondary" className="w-full" disabled>
             Можно подать снова через {cooldown}{" "}
             {cooldown === 1 ? "день" : cooldown < 5 ? "дня" : "дней"}
           </Button>
-        </BottomActionBar>
+        </FloatingBar>
       );
     }
     return (
-      <BottomActionBar>
+      <FloatingBar>
         <Button
           variant="primary"
           className="w-full"
@@ -99,12 +117,12 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
         >
           Подать заявку снова
         </Button>
-      </BottomActionBar>
+      </FloatingBar>
     );
   }
 
   return (
-    <BottomActionBar>
+    <FloatingBar>
       <Button
         variant="primary"
         className="w-full"
@@ -113,6 +131,6 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
       >
         Подать заявку
       </Button>
-    </BottomActionBar>
+    </FloatingBar>
   );
 }

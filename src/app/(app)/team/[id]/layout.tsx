@@ -5,18 +5,14 @@ import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { TeamProvider, useTeam } from "./team-context";
 import { TeamUIProvider } from "./team-ui-context";
-import {
-  PageHeader,
-  HeaderStatGroup,
-  HeaderStat,
-} from "@/components/ui/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { UnderlineTabs, type UnderlineTab } from "@/components/ui/UnderlineTabs";
 import { TeamSwitcherSheet } from "@/components/teams/TeamSwitcherSheet";
 import { TeamRequestsSheet } from "@/components/team/lazy";
 import { useAuth } from "@/lib/auth-context";
 import { setLastActiveTeamId } from "@/lib/lastActiveTeam";
 import { SPORT_LABEL } from "@/lib/catalogs";
-import { formatMoney, teamGradient } from "@/lib/format";
+import { teamGradient } from "@/lib/format";
 
 const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
 const EVENT_DETAIL_PATH_RE = /\/team\/[^/]+\/events\/[^/]+/;
@@ -64,7 +60,7 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
 
   if (team.status !== "ready") return null;
 
-  const { team: t, members, role, teamStats, pendingRequestsCount } = team;
+  const { team: t, role, pendingRequestsCount } = team;
   const isOrganizer = role === "organizer";
   const sportLabel = SPORT_LABEL[t.sport] ?? t.sport;
   const hasMultiple = myTeamCount >= 2;
@@ -84,11 +80,6 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
       <ChevronDownIcon />
     </button>
   ) : undefined;
-
-  const thirdStatValue = isOrganizer
-    ? formatMoney(teamStats.totalPlayersDebt ?? 0)
-    : String(teamStats.completedEvents);
-  const thirdStatLabel = isOrganizer ? "Долгов" : "Сыграно";
 
   const initial = t.name.trim().charAt(0).toUpperCase() || "?";
   const leadingSlot = (
@@ -130,13 +121,7 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
         onSettingsClick={isOrganizer ? () => router.push(`/team/${teamId}/settings`) : undefined}
         hasSettingsDot={isOrganizer && pendingRequestsCount > 0}
         settingsAriaLabel="Настройки команды"
-      >
-        <HeaderStatGroup>
-          <HeaderStat value={members.length} label="В составе" />
-          <HeaderStat value={teamStats.plannedEvents} label="Впереди" />
-          <HeaderStat value={thirdStatValue} label={thirdStatLabel} />
-        </HeaderStatGroup>
-      </PageHeader>
+      />
 
       {hasMultiple && (
         <TeamSwitcherSheet
