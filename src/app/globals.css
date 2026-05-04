@@ -106,6 +106,94 @@
   /* Legacy shadow names */
   --shadow-card: var(--shadow-sm);
   --shadow-pop:  var(--shadow-md);
+
+  /* ===== PLAYER BADGES — POSITIONS ===== */
+  /* Нападающий */
+  --pos-nap-border:      oklch(0.45 0.21 25);
+  --pos-nap-fill-from:   oklch(0.66 0.22 25);
+  --pos-nap-fill-to:     oklch(0.52 0.21 25);
+  --pos-nap-pill-bg:     oklch(0.97 0.018 25);
+  --pos-nap-pill-fg:     oklch(0.55 0.22 25);
+  --pos-nap-pill-border: oklch(0.86 0.10 25);
+
+  /* Полузащитник */
+  --pos-pzsh-border:      oklch(0.62 0.16 85);
+  --pos-pzsh-fill-from:   oklch(0.86 0.18 85);
+  --pos-pzsh-fill-to:     oklch(0.72 0.18 85);
+  --pos-pzsh-pill-bg:     oklch(0.97 0.04 85);
+  --pos-pzsh-pill-fg:     oklch(0.62 0.16 85);
+  --pos-pzsh-pill-border: oklch(0.84 0.13 85);
+
+  /* Защитник */
+  --pos-zash-border:      oklch(0.42 0.14 145);
+  --pos-zash-fill-from:   oklch(0.58 0.16 145);
+  --pos-zash-fill-to:     oklch(0.46 0.16 145);
+  --pos-zash-pill-bg:     oklch(0.97 0.02 145);
+  --pos-zash-pill-fg:     oklch(0.48 0.16 145);
+  --pos-zash-pill-border: oklch(0.84 0.10 145);
+
+  /* Вратарь */
+  --pos-vrt-border:      oklch(0.55 0.13 240);
+  --pos-vrt-fill-from:   oklch(0.78 0.12 240);
+  --pos-vrt-fill-to:     oklch(0.64 0.14 240);
+  --pos-vrt-pill-bg:     oklch(0.98 0.018 240);
+  --pos-vrt-pill-fg:     oklch(0.56 0.16 240);
+  --pos-vrt-pill-border: oklch(0.85 0.08 240);
+
+  /* ===== PLAYER BADGES — LEVELS ===== */
+  /* A+ — Daimond */
+  --lvl-aplus-border:    oklch(0.35 0.22 280);
+  --lvl-aplus-fill-from: oklch(0.72 0.18 220);
+  --lvl-aplus-fill-mid:  oklch(0.58 0.22 270);
+  --lvl-aplus-fill-to:   oklch(0.50 0.22 310);
+  --lvl-aplus-ring:      oklch(0.55 0.22 280);
+  --lvl-aplus-ring-bg:   oklch(0.90 0.08 280);
+  --lvl-aplus-number:    oklch(0.45 0.22 280);
+
+  /* A — Gold */
+  --lvl-a-border:    oklch(0.55 0.16 85);
+  --lvl-a-fill-from: oklch(0.92 0.16 95);
+  --lvl-a-fill-mid:  oklch(0.84 0.18 85);
+  --lvl-a-fill-to:   oklch(0.78 0.16 80);
+  --lvl-a-ring:      oklch(0.78 0.18 85);
+  --lvl-a-ring-bg:   oklch(0.93 0.10 85);
+  --lvl-a-number:    oklch(0.62 0.18 85);
+
+  /* B — Silver */
+  --lvl-b-border:    oklch(0.62 0.01 250);
+  --lvl-b-fill-from: oklch(0.90 0.01 250);
+  --lvl-b-fill-mid:  oklch(0.82 0.01 250);
+  --lvl-b-fill-to:   oklch(0.78 0.01 250);
+  --lvl-b-ring:      oklch(0.65 0.02 250);
+  --lvl-b-ring-bg:   oklch(0.90 0.01 250);
+  --lvl-b-number:    oklch(0.55 0.02 250);
+
+  /* C — Bronze */
+  --lvl-c-border:    oklch(0.50 0.10 55);
+  --lvl-c-fill-from: oklch(0.78 0.08 60);
+  --lvl-c-fill-mid:  oklch(0.68 0.10 55);
+  --lvl-c-fill-to:   oklch(0.62 0.10 50);
+  --lvl-c-ring:      oklch(0.62 0.12 55);
+  --lvl-c-ring-bg:   oklch(0.90 0.04 55);
+  --lvl-c-number:    oklch(0.52 0.12 55);
+
+  /* D — Graphite */
+  --lvl-d-border:    oklch(0.25 0.01 80);
+  --lvl-d-fill-from: oklch(0.48 0.01 80);
+  --lvl-d-fill-mid:  oklch(0.38 0.01 80);
+  --lvl-d-fill-to:   oklch(0.30 0.01 80);
+  --lvl-d-ring:      oklch(0.35 0.02 80);
+  --lvl-d-ring-bg:   oklch(0.80 0.01 80);
+  --lvl-d-number:    oklch(0.32 0.02 80);
+
+  /* Empty (rating = null) */
+  --lvl-empty-border:    var(--gray-300);
+  --lvl-empty-fill-from: var(--gray-100);
+  --lvl-empty-fill-mid:  var(--gray-200);
+  --lvl-empty-fill-to:   var(--gray-200);
+  --lvl-empty-ring:      var(--gray-300);
+  --lvl-empty-ring-bg:   var(--gray-100);
+  --lvl-empty-number:    var(--text-tertiary);
 }
 
 @theme inline {

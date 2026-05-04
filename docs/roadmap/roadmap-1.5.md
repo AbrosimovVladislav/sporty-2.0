@@ -1,6 +1,6 @@
 # Роадмап MVP 1.5 — Полировка, баги, переработка карточек
 
-> **Контекст.** После роадмапа 1.4 (постраничная переработка дизайна, итерации 30–42.1). В 1.5 закрываем баги и UX-косяки, найденные в живом тестировании, доделываем итерацию 43 из 1.4 и идём по экранам приложения. Итерации 53–55 (профиль игрока v2 + редизайн онбординга) вынесены в [роадмап 1.6](roadmap-1.6.md).
+> **Контекст.** После роадмапа 1.4 (постраничная переработка дизайна, итерации 30–42.1). В 1.5 закрываем баги и UX-косяки, найденные в живом тестировании, доделываем итерацию 43 из 1.4 и идём по экранам приложения. Итерации профиля игрока v2 + редизайна онбординга вынесены в [роадмап 1.7](roadmap-1.7.md) (прежде были в 1.6 как 53–55, переехали с пересчётом номеров).
 >
 > **Глобальное правило**, зафиксированное по итогам тестирования: никакие страницы или фиксированные элементы (кроме bottom-sheet'ов) не должны перекрывать нижнее меню. Bottom-sheet — единственное исключение, потому что это временная подстраница.
 >
@@ -366,7 +366,7 @@
 
 **Решение.**
 
-- Перейти на `PageHeader` (зелёный с диагональной текстурой, скругление 28px снизу) — как `/teams`, `/search/`*, `/team/[id]/*`
+- Перейти на `PageHeader` (зелёный с диагональной текстурой, скругление 28px снизу) — как `/teams`, `/search/`_, `/team/[id]/_`
 - Аватар пользователя — по аналогии с лого команды (см. ит. 41), круглый avatar 56-80px **слева** перед title-блоком (имя + город · район subtitle). Если фото не загружено — градиент с инициалом
 - Иконка камеры-бейдж 20px поверх аватара → загрузка фото (механика та же, что у `team-logo` в ит. 42.1)
 - Stat-карточки в шапке (`HeaderStatGroup`): 2-3 ключевые метрики на тёмной плашке. Кандидаты: «Сыграно · N», «Надёжность · X%», «Команд · K». Финальный набор — при имплементации
@@ -467,8 +467,8 @@
 
 ### 1.5.1.2 Контексты: убрать лишние ре-fetch'и и перерисовки ✅
 
-- ✅ `**TeamSubNav`** — `onClick: reload` удалён, переход по табам больше не дёргает `/api/teams/[id]`
-- ✅ `**CityProvider**` — value обёрнут в `useMemo`, отслеживается `userId/userCity` напрямую
+- ✅ `**TeamSubNav` — `onClick: reload` удалён, переход по табам больше не дёргает `/api/teams/[id]`
+- ✅ `**CityProvider`** — value обёрнут в `useMemo`, отслеживается `userId/userCity` напрямую
 - ✅ `**AuthProvider**` — `useMemo` для value
 - ✅ `**TeamProvider**` — `useMemo` для value
 - ✅ **TeamPageHeader** — fetch `/api/users/[id]/teams` остался, но переключение табов больше не вызывает новых фетчей
@@ -533,7 +533,7 @@
 
 - ✅ Удалён `src/components/PlayerCard.tsx` (147 строк, 0 импортов)
 - ✅ Прогрепаны и удалены все `as any` / `: any`. Жертвы — два notify-helper'а в API: `notifyMembers` ([events/route.ts](../../src/app/api/teams/[id]/events/route.ts)) и `notifyPlayer` ([invites/route.ts](../../src/app/api/teams/[id]/invites/route.ts)). Заменили `supabase: any` на `ReturnType<typeof getServiceClient>`, `event: any` — на узкий `NotifyEvent { id, type, date, venue_id }`. После этого Supabase-types вскрыли отсутствующую relation между `team_memberships` и `users` — переписали блок выборки telegram_id на двухэтапный pipeline (`map → filter` с type predicate) и cast `as unknown as MemberWithTelegram[]` (тот же паттерн, что для `EventWithVenue` в этом же файле). Ноль `: any` в `src/`
-- ✅ Клиентские `console.log/error` — нет в коде. Все 41 вхождение `console.error` живут в API роутах (`src/app/api/*` + `src/lib/telegram-bot.ts`) — это server-side логирование для Vercel logs, оставляем как есть
+- ✅ Клиентские `console.log/error` — нет в коде. Все 41 вхождение `console.error` живут в API роутах (`src/app/api/`* + `src/lib/telegram-bot.ts`) — это server-side логирование для Vercel logs, оставляем как есть
 
 ### 1.5.1.10 Race conditions и cleanup ⏸
 
@@ -547,7 +547,7 @@
 
 ### 1.5.1.13 Optimistic tab activation ✅
 
-**Проблема (по итогам тестирования).** При тапе на табу внутри `/team/[id]/`* (Главная / Состав / События / Финансы) видно паузу 100–300ms между касанием и сменой подсветки на новой табе. Технически: `pathname` обновляется только после смены роута → `usePathname()` отдаёт старое значение → indicator застрял на старой табе. Сами данные на новой табе грузятся ок (≈1 сек), но именно «зависание» подсветки бесит.
+**Проблема (по итогам тестирования).** При тапе на табу внутри `/team/[id]/` (Главная / Состав / События / Финансы) видно паузу 100–300ms между касанием и сменой подсветки на новой табе. Технически: `pathname` обновляется только после смены роута → `usePathname()` отдаёт старое значение → indicator застрял на старой табе. Сами данные на новой табе грузятся ок (≈1 сек), но именно «зависание» подсветки бесит.
 
 **Решение.**
 
@@ -580,110 +580,7 @@
 
 ---
 
-## ⬜ Итерация 1.5.2 — Тестовые данные и быстрая миграция (хоккей)
-
-**Цель.** Получить воспроизводимый seed: дроп БД → накат миграции с реалистичным набором данных (хоккейные арены, 2-3 команды, ~50 игроков) → можно тестировать приложение «с нуля» как новый пользователь. Без этого каждое тестирование требует ручного создания данных, и состояния между прогонами расходятся.
-
-**Зависит от.** Итерация 55 (онбординг с выбором спорта) из [роадмапа 1.6](roadmap-1.6.md) — seed-данные должны корректно работать, когда пользователь заходит как `sport='hockey'`.
-
-### 1.5.2.1 Reset-flow + структура seed'а
-
-**Решение.**
-
-- Папка `supabase/seed/` (или эквивалент): набор SQL-файлов с INSERT'ами
-- Структура файлов в порядке применения:
-  - `01-venues.sql` — площадки
-  - `02-users.sql` — игроки (~50)
-  - `03-teams.sql` — команды (2-3)
-  - `04-team-memberships.sql` — связи игрок-команда
-  - `05-events.sql` — события (исторические + предстоящие)
-  - `06-attendances.sql` — явки + платежи
-  - `07-team-deposits.sql` — депозиты команд
-  - `08-team-requests.sql` — несколько pending-заявок
-- Один корневой файл `seed.sql`, который импортирует остальные через `\i` или конкатенация через скрипт
-
-### 1.5.2.2 Площадки (хоккейные арены)
-
-**Реальные хоккейные арены Алматы/Астаны** (финальный список — при имплементации, проверяем существующие):
-
-- «Halyk Arena» (Алматы)
-- «Алматы Арена»
-- «Балуан Шолак» (Алматы)
-- «Зимний дворец спорта» (Алматы)
-- «Барыс Арена» (Астана)
-- «Сарыарка» (Караганда — опц.)
-- 2-3 хоккейных коробки уровня района (для разнообразия — небольшие, бесплатные)
-
-**Поля для каждой:** name, address, district, city, sport='hockey', photo_url (Unsplash или плейсхолдер), default_price (см. 48.2), description, phone, website (см. 51.1).
-
-### 1.5.2.3 Команды (2-3 шт)
-
-Покрыть разные сценарии тестирования:
-
-- **Команда A — «Активная»** — 12-15 игроков, регулярные события, прозрачные финансы, organizer + 2-3 заявки на вступление pending
-- **Команда B — «Молодая»** — 5-7 игроков, недавно создана, мало событий, ищет игроков (`looking_for_players=true`)
-- **Команда C — «С историей»** — 10-12 игроков, 2-3 месяца истории событий, разнообразные финансы (есть должники, переплаты), несколько прошедших событий
-
-**Поля:** name, sport='hockey', city, district, logo_url, description, looking_for_players, created_at (разные даты для тестирования сортировок).
-
-### 1.5.2.4 Игроки (~50 шт)
-
-**Распределение:**
-
-- 30 игроков — в командах (распределены по A/B/C)
-- 20 игроков — без команды (free agents для теста `/search/players` и заявок)
-- Реалистичные имена (СНГ-набор), avatar_url для половины (Unsplash random portraits), для остальных — null (тест градиент-fallback)
-- Уровни: распределение нормальное (мало 1, много 2-3, мало 5)
-- Позиции: хоккейные ВРТ/ЗАЩ/НАП, у части — multi-position (для теста 47.3 / 50.4)
-- `is_looking_for_team` — у ~5 free agents
-- Возраст: разброс 18-45
-- Город: в основном Алматы, 5-7 в Астане (для теста городского scope из 44.1)
-
-### 1.5.2.5 События, явки, финансы
-
-Без истории дашборд финансов не показывает ничего, пустой — половина итерации 49 не проверяется. Поэтому seed обязан включать историю.
-
-**События:**
-
-- Команда A: 6 прошедших событий за последние 30 дней + 3 предстоящих
-- Команда B: 1 прошедшее, 1 предстоящее
-- Команда C: 12 прошедших за 3 месяца + 2 предстоящих
-- 3-5 публичных событий (`is_public=true`) от team A/C — для теста `/search/events`
-
-**Явки и платежи:**
-
-- Для каждого прошедшего события: ~70% игроков команды отметили «приду», из них ~80% реально были (`attended=true`)
-- Платежи: ~70% присутствовавших оплатили в полном объёме, ~20% частично, ~10% не платили — даёт реалистичные сценарии «должников» и «переплат» в финансах команды
-- Несколько игроков с большим долгом (для теста sort/filter в 49.4)
-- Несколько игроков с переплатой
-
-**Депозиты команд:** у A — небольшой положительный баланс, у C — отрицательный (для теста разных trend'ов в 49.1).
-
-**Заявки:** 2-3 pending-заявки в команду A (для теста red-dot на gear в 45.1).
-
-### 1.5.2.6 npm-скрипты
-
-```
-"db:reset": "supabase db reset --linked"           # дроп всех таблиц + миграции с нуля
-"db:seed": "node scripts/seed.js"                   # запускает seed.sql через psql/Supabase REST
-"db:fresh": "npm run db:reset && npm run db:seed"   # full reset + seed одной командой
-```
-
-**Имплементация.**
-
-- Миграции применяем через Supabase MCP (`apply_migration`), как зафиксировано в memory
-- `scripts/seed.js` — простой скрипт, читает SQL-файлы из `supabase/seed/` и применяет через service-role клиент (`SUPABASE_SERVICE_ROLE_KEY`)
-- Документация в `docs/tech/db-seed.md` — как пользоваться, какие данные внутри, как добавлять новые
-
-### Не входит
-
-- Seed для футбольных данных — только хоккей (по запросу пользователя). Если позже понадобится — отдельная задача
-- Тестовые сценарии типа «Telegram-юзер X = organizer team A» — пользователь подключается к seed-данным как новый пользователь через свой Telegram-аккаунт
-- Backup/restore prod-БД — это отдельная инфраструктурная задача
-
----
-
-## 🔄 Итерация 1.5.3 — Готовность к нагрузке (пагинация, индексы, агрегаты)
+## ✅ Итерация 1.5.3 — Готовность к нагрузке (пагинация, индексы, агрегаты)
 
 **Цель.** Подготовить приложение к нагрузке первых 3–6 месяцев: 1000–2000 игроков, 1000–5000 событий, десятки команд. Без индексов и пагинации на этой нагрузке `/search/players` отдаёт ~1MB JSON, события команды грузят сотни attendance-строк, sequential scan упирается в десятки мс. Решаем тремя пластами: индексы → серверные агрегаты → cursor-пагинация через TanStack Query.
 
@@ -704,77 +601,55 @@
 3. **1.5.3.7 + 1.5.3.1 / 1.5.3.2 / 1.5.3.3** — поставить TanStack Query, переписать 4 экрана на cursor + `useInfiniteQuery`
 4. **1.5.3.8** — виртуализация откладывается, возвращаемся при подтверждённой проблеме рендера
 
-### 1.5.3.1 Cursor-пагинация: события команды
+### 1.5.3.6 Индексы БД ✅
 
-**API.** `GET /api/teams/[id]/events`:
+Миграция `perf_indexes_1_5_3_6` (через Supabase MCP) добавила 11 индексов под точечные горячие запросы. Каждый индекс привязан к конкретному запросу из роута:
 
-- Параметры: `limit=20`, `cursor=<base64({date, id})>`, `direction=upcoming|past`
-- Default: `upcoming` — `date >= now()` отсортированы `date ASC`
-- Past block — `direction=past`, `date < now()` отсортированы `date DESC`
-- Ответ: `{ events: [...], nextCursor: string | null }`
+- ✅ `idx_events_team_date` — `(team_id, date DESC)` — пагинация событий команды (`/api/teams/[id]/events`)
+- ✅ `idx_events_public_date` — partial `(date) WHERE is_public AND status='planned'` — публичный поиск (`/api/events/public`)
+- ✅ `idx_events_venue_date` — partial `(venue_id, date DESC) WHERE venue_id IS NOT NULL` — события на странице площадки
+- ✅ `idx_event_attendances_user` — `(user_id)` — батч надёжности игроков, история (существующий unique `(event_id, user_id)` не покрывает leading user_id)
+- ✅ `idx_financial_transactions_event_type` — `(event_id, type)` — агрегация event_payment'ов
+- ✅ `idx_team_memberships_team` — `(team_id)` — состав команды (существующий unique `(user_id, team_id)` не покрывает leading team_id)
+- ✅ `idx_teams_city_created` — `(city, created_at DESC)` — discovery с city scope
+- ✅ `idx_teams_created` — `(created_at DESC)` — fallback сортировка
+- ✅ `idx_users_city_skill` — partial `(city, skill_rank DESC NULLS LAST) WHERE onboarding_completed` — игроки по уровню в городе
+- ✅ `idx_users_city_created` — partial `(city, created_at DESC) WHERE onboarding_completed` — recent-сортировка игроков
+- ✅ `idx_users_looking` — partial `WHERE looking_for_team` — фильтр «ищет команду»
 
-**UI.** На `/team/[id]/events`:
+**Не входит.** EXPLAIN ANALYZE-baseline в `docs/tech/perf-baseline.md` отложен до 1.5.2 (без seed нет реалистичного объёма для замеров).
 
-- Initial load: все upcoming + первые 20 past
-- Под past — `IntersectionObserver` sentinel, при попадании в viewport → fetch следующих 20
-- Спиннер `EventsListSkeleton` для подгрузки
+### 1.5.3.7 TanStack Query ✅
 
-### 1.5.3.2 Cursor-пагинация: публичные события
+- ✅ Установлен `@tanstack/react-query`
+- ✅ `src/lib/query-client.tsx` — `QueryProvider` с дефолтами: `staleTime: 30s`, `gcTime: 5m`, `refetchOnWindowFocus: false`, `retry: 1`
+- ✅ `QueryProvider` обёрнут в корневом `src/app/layout.tsx` внутри `AuthProvider`
+- ✅ Используется только на 4 пагинированных экранах через `useInfiniteQuery` (см. 1.5.3.1–1.5.3.3). Остальные ~25 fetch-сайтов остаются на `useEffect`
 
-**API.** `GET /api/events/public` — те же параметры. Все фильтры (`type`, `from`, `to`, `price_max`, `has_spots`) применяются до пагинации в Postgres (`has_spots` — отдельная задача, нужен серверный счётчик yes_count).
+### 1.5.3.4 + 1.5.3.5 Server-side агрегаты + lazy details ✅
 
-**UI.** `/search/events` — infinite scroll вместо одиночного fetch'а.
+- ✅ `/api/teams/[id]/events` отдаёт только агрегаты (`yesCount`, `noCount`, `myVote`, `expectedCollected = attended * price`, `actualCollected = sum(transactions)`); сырые массивы attendances/transactions клиенту не уходят
+- ✅ Агрегаты считаются на сервере в JS по компактному батчу: после cursor-пагинации `eventIds.length ≤ 20`, поэтому `IN (...)` к `event_attendances` и `financial_transactions` возвращает максимум ~200 строк. RPC `get_team_events_with_stats` не вынесен — overhead не оправдан, оставлено как опция, если этот же агрегат понадобится в 2-3 местах
+- ✅ Полные attendances/transactions грузятся только при открытии конкретного события через `/api/teams/[id]/events/[eventId]` (отдельный endpoint)
 
-### 1.5.3.3 Cursor-пагинация: команды и игроки
+### 1.5.3.1 Cursor-пагинация: события команды ✅
 
-**API.**
+- ✅ Хелпер `src/lib/cursor.ts`: `encodeCursor`, `decodeCursor`, `keysetClause` (PostgREST-формат `or=(field.gt."v",and(field.eq."v",id.gt.id))` для tie-break по id)
+- ✅ `GET /api/teams/[id]/events` параметры: `direction=upcoming|past`, `cursor`, `limit≤50` (default 20). Default `upcoming` — `date >= now()` ASC, past — `date < now()` DESC. Ответ: `{ events, nextCursor }`. Over-fetch на 1 строку для определения `hasMore` без лишнего round-trip
+- ✅ `/team/[id]/events` — два `useInfiniteQuery` (upcoming + past) с одним `queryKey` префиксом `["team-events", teamId, userId, ...]`, два `InfiniteScrollSentinel`. Создание события → `queryClient.invalidateQueries({ queryKey: ["team-events", teamId] })`
 
-- `GET /api/teams` — `cursor`, `limit=20`. Сортировки `created_desc`/`name_asc` остаются
-- `GET /api/players` — `cursor`, `limit=20`. Сортировки `skill`/`name_asc`/`recent` остаются
+### 1.5.3.2 Cursor-пагинация: публичные события ✅
 
-**UI.** `/search/teams`, `/search/players` — infinite scroll.
+- ✅ `GET /api/events/public` переписан: убран `count: exact` (медленный sequential count со всеми фильтрами), убран `nextOffset`, добавлен `cursor` + `nextCursor`
+- ✅ Cursor зависит от сортировки: `date_asc/date_desc` → `(date, id)`, `price_asc` → `(price_per_player, id)` (риск пропуска при коллизии цены принят, tie-break по id страхует)
+- ✅ `has_spots` оставлен с over-fetch (`dbLimit = limit * 4`) + JS-фильтрацией по `yes_count < min_players` — отмечено как MVP-компромисс. Денормализованный `events.yes_count` — отдельная пост-задача
+- ✅ `/search/events` — `useInfiniteQuery` с ключом `["public-events", queryString]`. Метка «Результаты · N+» — счётчик загруженных, не total
 
-### 1.5.3.4 Server-side aggregates для events list
+### 1.5.3.3 Cursor-пагинация: команды и игроки ✅
 
-**Решение.** Агрегатный SQL в роуте `/api/teams/[id]/events`: один запрос с `LEFT JOIN LATERAL` (или scalar subqueries) на `event_attendances` и `financial_transactions` с фильтром `type = 'event_payment'`. Возвращаем `yes_count`, `no_count`, `expected_collected`, `actual_collected` готовыми числами рядом с полями события.
-
-RPC-функцию (`get_team_events_with_stats`) выносим **только если** этот же агрегат потребуется в 2-3 местах — пока он нужен только тут.
-
-**Backend.** Старая логика `byEvent.map` / `txByEvent.map` в роуте удаляется. Сырые массивы attendances и transactions из ответа уходят (см. 1.5.3.5).
-
-### 1.5.3.5 Lazy event details
-
-**Решение.** На `/team/[id]/events` отдаём только агрегаты (см. 1.5.3.4), без сырых attendances/transactions. Полные данные грузятся в `EventDetail` при открытии события (отдельный endpoint `/api/events/[id]`, проверить — может уже есть).
-
-### 1.5.3.6 Аудит индексов БД
-
-**Что проверить EXPLAIN ANALYZE на seed-данных (после 1.5.2).**
-
-- `events(team_id, date DESC)` — пагинация событий команды
-- `events(date)` WHERE `is_public = true` — публичный поиск
-- `event_attendances(event_id)` — батч и LATERAL JOIN
-- `financial_transactions(event_id, type)` — батч и LATERAL JOIN
-- `team_memberships(team_id)`, `team_memberships(user_id)` — membership-пробы и состав
-- `teams(city, created_at DESC)`, `teams(city, name)` — discovery с фильтром по городу
-- `users(city, skill DESC)`, `users(city, created_at DESC)` — discovery игроков
-- `users(is_looking_for_team) WHERE is_looking_for_team = true` (partial index) — фильтр «ищут команду»
-
-**Имплементация.** Миграция `perf_indexes` через Supabase MCP. До и после — снять EXPLAIN ANALYZE на seed-данных, зафиксировать в `docs/tech/perf-baseline.md` (создать).
-
-### 1.5.3.7 TanStack Query — точечно для пагинированных списков
-
-**Скоуп.** Только 4 пагинированных экрана:
-
-- `/team/[id]/events`
-- `/search/events`
-- `/search/teams`
-- `/search/players`
-
-**Зачем.** Cursor + infinite scroll + кэш-инвалидация (новое событие создалось → лист команды должен обновиться) на ручном `useEffect` болезненны: накопление страниц, скролл-позиция, race conditions при быстрой смене фильтров. `useInfiniteQuery` из `@tanstack/react-query` решает это в одну строку.
-
-**Не входит.** Остальные ~25 fetch-сайтов остаются на `useEffect` — они не пагинированы и работают корректно. Big-bang миграции data layer не делаем.
-
-**Реализация.** `QueryClientProvider` оборачивает `(app)` layout. На 4 экранах — `useInfiniteQuery({ queryKey, queryFn: ({ pageParam }) => fetch(...), getNextPageParam })`. Инвалидация `queryClient.invalidateQueries({ queryKey })` на мутациях (создание события, заявки).
+- ✅ `GET /api/teams` — cursor `(created_at, id)` для `created_desc`, `(name, id)` для `name_asc`. Убран `count: exact`
+- ✅ `GET /api/players` — cursor `(skill_rank, id)` для `skill` (NULL skill_rank — пустая строка в `cursor.v`), `(name, id)` для `name_asc`, `(created_at, id)` для `recent`. Reliability батч считается только для текущей страницы. Убран `count: exact`
+- ✅ `/search/teams` и `/search/players` — `useInfiniteQuery` с ключами `["teams-search", queryString]` и `["players-search", queryString]`. Метка «Результаты · N+»
 
 ### 1.5.3.8 Виртуализация списков — отложено
 
@@ -782,6 +657,10 @@ RPC-функцию (`get_team_events_with_stats`) выносим **только 
 
 ### Не входит
 
+- Денормализованный `events.yes_count` (нужен для server-side `has_spots` в публичном поиске) — отдельная задача
+- `usePaginatedList` ещё используется в `/search/venues`. Не удаляем, площадки в скоуп 1.5.3 не входили
+- EXPLAIN ANALYZE baseline в `docs/tech/perf-baseline.md` — после 1.5.2 (seed)
+- RPC `get_team_events_with_stats` — пока агрегат нужен только в одном роуте, переносим, если повторится в 2-3 местах
 - Server-side rendering (SSR) для search-страниц — Telegram Mini App работает в WebView, smooth client-side hydration важнее SSR
 - Кэш на Vercel Edge для публичных endpoint'ов — оставляем на 2.0
 - Денормализация (members_count, last_event_at и т.п.) — добавляем точечно по запросу, не превентивно

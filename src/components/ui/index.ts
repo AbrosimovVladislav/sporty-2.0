@@ -24,3 +24,4 @@ export { ActiveFilterChips } from "./ActiveFilterChips";
 export type { FilterChip } from "./ActiveFilterChips";
 export { SheetChipGroup } from "./SheetChipGroup";
 export type { ChipOption } from "./SheetChipGroup";
+export { CityPickerSheet } from "./CityPickerSheet";

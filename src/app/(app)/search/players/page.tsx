@@ -14,6 +14,7 @@ import {
   FilterPills,
   ActiveFilterChips,
   EmptyState,
+  CityPickerSheet,
   type FilterChip,
 } from "@/components/ui";
 import { SearchSubnav } from "@/components/search/SearchSubnav";
@@ -22,7 +23,8 @@ import {
   PlayerFiltersSheet,
   type PlayerFilters,
 } from "@/components/players/PlayerFiltersSheet";
-import { useCity } from "@/lib/city-context";
+import { useCity, KZ_CITIES } from "@/lib/city-context";
+import type { TeamLogo } from "@/components/players/badges";
 
 type Player = {
   id: string;
@@ -34,6 +36,7 @@ type Player = {
   looking_for_team: boolean;
   district: { id: string; name: string } | null;
   rating: number | null;
+  teams: TeamLogo[];
 };
 
 type Stats = {
@@ -76,10 +79,11 @@ export default function SearchPlayersPage() {
   const [sort, setSort] = useState<SortMode>("skill");
   const [filters, setFilters] = useState<PlayerFilters>(EMPTY_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
   const [stats, setStats] = useState<Stats | null>(null);
 
   useEffect(() => {
-    setFilters((f) => ({ ...f, city: activeCity }));
+    setFilters((f) => (f.city ? f : { ...f, city: activeCity }));
   }, [activeCity]);
 
   useEffect(() => {
@@ -148,14 +152,6 @@ export default function SearchPlayersPage() {
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
-    if (filters.city) {
-      chips.push({
-        id: "city",
-        label: filters.city,
-        onRemove: () =>
-          setFilters((f) => ({ ...f, city: "", districtId: "" })),
-      });
-    }
     if (filters.lookingForTeam) {
       chips.push({
         id: "looking",
@@ -167,14 +163,14 @@ export default function SearchPlayersPage() {
   }, [filters]);
 
   const sheetActiveCount =
-    (filters.city ? 1 : 0) +
-    (filters.districtId ? 1 : 0) +
-    (filters.lookingForTeam ? 1 : 0);
+    (filters.districtId ? 1 : 0) + (filters.lookingForTeam ? 1 : 0);
 
   const showSkeleton = players.length === 0 && playersQuery.isPending;
   const showEmpty = !loading && players.length === 0;
   const resultsLabel =
     players.length > 0 ? `${players.length}${hasMore ? "+" : ""}` : null;
+
+  const cityForPicker = filters.city || activeCity;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -196,7 +192,11 @@ export default function SearchPlayersPage() {
           onChange={setSearch}
           onFilterClick={() => setSheetOpen(true)}
           filterActiveCount={sheetActiveCount}
-          placeholder="Имя, город, позиция…"
+          placeholder="Имя, команда…"
+          cityPicker={{
+            value: cityForPicker,
+            onClick: () => setCityOpen(true),
+          }}
         />
 
         <ListMeta
@@ -261,6 +261,7 @@ export default function SearchPlayersPage() {
                     skillLevel={p.skill_level}
                     lookingForTeam={p.looking_for_team}
                     rating={p.rating}
+                    teams={p.teams}
                   />
                 </li>
               ))}
@@ -275,6 +276,16 @@ export default function SearchPlayersPage() {
         initial={filters}
         onClose={() => setSheetOpen(false)}
         onApply={(next) => setFilters(next)}
+      />
+
+      <CityPickerSheet
+        open={cityOpen}
+        cities={KZ_CITIES}
+        value={cityForPicker}
+        onClose={() => setCityOpen(false)}
+        onSelect={(c) =>
+          setFilters((f) => ({ ...f, city: c, districtId: "" }))
+        }
       />
     </div>
   );

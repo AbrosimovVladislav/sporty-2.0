@@ -15,6 +15,11 @@ type PlayerRow = {
   district_id: string | null;
   rating: number | null;
   districts: { id: string; name: string } | null;
+  team_memberships: {
+    team_id: string;
+    joined_at: string;
+    teams: { id: string; name: string; logo_url: string | null } | null;
+  }[] | null;
 };
 
 type AttendanceRow = {
@@ -46,7 +51,7 @@ export async function GET(req: NextRequest) {
   let query = supabase
     .from("users")
     .select(
-      "id, name, avatar_url, city, position, skill_level, skill_rank, created_at, looking_for_team, district_id, rating, districts(id, name)",
+      "id, name, avatar_url, city, position, skill_level, skill_rank, created_at, looking_for_team, district_id, rating, districts(id, name), team_memberships(team_id, joined_at, teams(id, name, logo_url))",
     )
     .eq("onboarding_completed", true);
 
@@ -56,13 +61,13 @@ export async function GET(req: NextRequest) {
   if (position) query = query.contains("position", [position]);
   if (district_id) query = query.eq("district_id", district_id);
 
-  // Sort + cursor. For skill sort the cursor is on skill_rank with a tie-break on id.
-  // NULL skill_rank rows come last; cursor.v = "" sentinel for them so we can keep paging.
+  // Sort + cursor. For skill sort the cursor is on rating (0..100) with a tie-break on id.
+  // NULL rating rows come last; cursor.v = "" sentinel for them so we can keep paging.
   if (sort === "skill") {
     query = query
-      .order("skill_rank", { ascending: false, nullsFirst: false })
+      .order("rating", { ascending: false, nullsFirst: false })
       .order("id", { ascending: false });
-    if (cursor) query = query.or(keysetClause("skill_rank", cursor, "desc"));
+    if (cursor) query = query.or(keysetClause("rating", cursor, "desc"));
   } else if (sort === "name_asc") {
     query = query
       .order("name", { ascending: true })
@@ -119,6 +124,15 @@ export async function GET(req: NextRequest) {
 
   const players = pageRows.map((p) => {
     const stats = reliabilityMap.get(p.id) ?? { reliability: null, played: 0 };
+    const teams = (p.team_memberships ?? [])
+      .filter((m) => m.teams)
+      .sort((a, b) => (a.joined_at < b.joined_at ? 1 : -1))
+      .slice(0, 3)
+      .map((m) => ({
+        id: m.teams!.id,
+        name: m.teams!.name,
+        logo_url: m.teams!.logo_url,
+      }));
     return {
       id: p.id,
       name: p.name,
@@ -132,6 +146,7 @@ export async function GET(req: NextRequest) {
       district: p.districts ?? null,
       reliability: stats.reliability,
       played: stats.played,
+      teams,
     };
   });
 
@@ -140,7 +155,7 @@ export async function GET(req: NextRequest) {
   if (hasMore && last) {
     let v: string;
     if (sort === "skill") {
-      v = last.skill_rank == null ? "" : String(last.skill_rank);
+      v = last.rating == null ? "" : String(last.rating);
     } else if (sort === "name_asc") {
       v = last.name;
     } else {

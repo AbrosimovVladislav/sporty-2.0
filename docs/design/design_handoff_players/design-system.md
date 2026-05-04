@@ -4,7 +4,6 @@
 
 Референсы: [ref.png](ref.png), скриншоты в Figma — экраны «Состав» и «Карточка события».
 
-> **Итерация 53 (1.6).** Семейство бейджей игрока: `HexBadge` (общий шестиугольник), `PositionBadge` (4 позиции + pill), `LevelBadge` (5 уровней A+/A/B/C/D + плейсхолдер), `RatingCircle` (SVG-кольцо), `TeamLogosStack` (стек лого команд на аватаре). `LevelBadge` и цвет `RatingCircle` считаются из `users.rating` по бакетам (см. ниже). Также: `CityPickerSheet` — bottom-sheet для inline-пикера города в search-row, и опц. `cityPicker` prop у `ListSearchBar`. Сабтайтл «позиция · район/город» в `PlayerListRow` удалён.
 > **Итерация 35 (1.4).** Шапка «Моя команда» переведена на `PageHeader` (green hero). Добавлен `UnderlineTabs` — общий примитив для `SearchSubnav` и нового `TeamSubNav`. `PageHeader` получил `titleSlot` и `subtitle`.
 > **Итерация 30 (1.4).** Внедрены Sporty Design Tokens v1: цветовые шкалы `oklch()`, семантические поверхности `--bg-*` / текст `--text-*`, тени `--shadow-sm/md/lg`. Старые Tailwind-классы продолжают работать как алиасы.
 > **Итерация 24 (1.3).** Базовые компоненты `src/components/ui/` созданы. `UIChromeContext` + `BottomTabs` скрывают нижние табы при активном `BottomActionBar`. `BackButton` поддерживает `kind="light"|"on-photo"`. `Skeleton` использует `bg-background-muted`.
@@ -512,7 +511,6 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 
 **1. Search-row** — `<ListSearchBar>` (`src/components/ui/ListSearchBar.tsx`). Контейнер `flex gap-2 mb-3`:
 - Поисковый input: `flex-1 pl-10 pr-9 py-3 rounded-[14px]`, `bg-bg-card`, `1.5px solid var(--gray-200)`, focus → `border-green-500`. Лупа слева 18px (`text-tertiary`). При непустом значении — кнопка-крестик справа (`16×16 rounded-full bg-gray-300`).
-- City-pill (опц., prop `cityPicker`): `h-[46px] px-3.5 rounded-[14px]`, тот же бэкграунд/бордер, font 14px/600, имя города + chevron-down 12px. Тап → `<CityPickerSheet>` (`src/components/ui/CityPickerSheet.tsx`) — bottom-sheet со списком городов из `KZ_CITIES`. Используется только в `/search/players`; меняет локальный фильтр страницы, в профиль пользователя не пишет. На остальных листингах не рендерим (по умолчанию prop отсутствует).
 - Filter-btn: `46×46 rounded-[14px]`, тот же бэкграунд/бордер, иконка funnel 20px. Бейдж справа-сверху (`min-w-[18px] h-[18px] bg-green-500 text-white`) с числом активных sheet-фильтров. Опциональна — если фильтрам некуда уходить в sheet, кнопку не рендерим.
 
 **2. Meta-row** — `<ListMeta>` (`src/components/ui/ListMeta.tsx`). Контейнер `flex justify-between mb-3`:
@@ -567,61 +565,6 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 
 **Разделитель строк:** `border-bottom: 1px var(--gray-100)`. Последняя строка — без border. Никаких карточек-боксов вокруг каждой строки.
 
-### `PlayerListRow` — строка игрока (расширенная, итер 53)
-
-Используется только в `/search/players` (в ростере команды пока остаётся базовая `ListRow` версия). Отличается от базовой строки тем, что под именем — два цветных бейджа (уровень + позиция), а справа — кольцо рейтинга вместо мини-бара или числа.
-
-```
-┌────────────────────────────────────────────┐
-│ ●●●  Михаил Карпов                  ◯94    │
-│  ↑   [A+] [НАП]                            │
-│  └ TeamLogosStack                          │
-└────────────────────────────────────────────┘
-```
-
-- **Аватар:** 52×52, `border: 2px white`, `box-shadow: 0 0 0 1px var(--gray-200)`. Без фото — `bg-card` + инициал 17px font-bold.
-- **`TeamLogosStack`:** до 3 кругов 24×24, поверх аватара, `left:32 bottom:-2`, `margin-left:-9` для каждого следующего, `z-index` растёт слева направо. У каждого `border: 2.5px solid white`. Если у команды есть `teams.logo_url` — картинка; если нет — цветной круг (`oklch(0.62 0.14 H)`, `H` детерминированно из `team.id`) + белый инициал 9px font-extrabold.
-- **Имя:** 16px font-semibold. Рядом — опц. `SeekingBadge` («Ищет команду»), `RoleBadge` (для ростера — «Организатор»).
-- **Бейджи:** ниже имени (gap 6px) — `LevelBadge` + до **2** `PositionBadge` подряд. Третья позиция в `users.position[]` отбрасывается. Позиция «Универсал» в палитре не определена, бейдж для неё не рендерится.
-- **Справа:** `RatingCircle` 48×48.
-
-### Бейджи игрока
-
-Семейство декоративных шестиугольных бейджей. Все цвета — CSS-переменные из `--pos-*` и `--lvl-*`. Иконки — белые PNG в `public/badges/`.
-
-**`HexBadge`** ([HexBadge.tsx](../../src/components/players/badges/HexBadge.tsx)) — общий примитив. 26×30, `clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)`. Двухслойный: outer (border) + inner (gradient + лёгкий белый overlay) с inset 2px. Принимает `borderColor`, `fillFrom`, `fillMid?`, `fillTo` и опц. children.
-
-**`PositionBadge`** — `HexBadge` (PNG-иконка 15px) + примыкающая pill справа (`border-radius: 0 9999px 9999px 0`, h18, font 10px/800, letter-spacing 0.04em, uppercase). Маппинг русского `users.position` → код:
-
-| Русское значение | Код | Иконка | Pill |
-|-------|-----|--------|------|
-| Вратарь | `vrt` | glove.png | ВРТ |
-| Защитник | `zash` | shield.png | ЗАЩ |
-| Полузащитник | `pzsh` | target.png | ПЗЩ |
-| Нападающий | `nap` | boot.png | НАП |
-| Универсал | — | — | (бейдж не рендерится) |
-
-Палитры в `globals.css`: `--pos-{vrt|zash|pzsh|nap}-{border|fill-from|fill-to|pill-bg|pill-fg|pill-border}`. Маппинг — `positionCode()` из [src/lib/playerBadges.ts](../../src/lib/playerBadges.ts).
-
-**`LevelBadge`** — `HexBadge` с буквой Oswald 14px (10px для `A+`), белая, weight 700, text-shadow. Палитры `--lvl-{aplus|a|b|c|d}-*`. Для `code = null` (нет рейтинга) — серый плейсхолдер (`--lvl-empty-*`) с прочерком вместо буквы.
-
-**`RatingCircle`** — SVG-кольцо `size×size` (default 48). Stroke 3.5, `stroke-linecap: round`, rotate −90deg. Фоновый круг `--lvl-{level}-ring-bg`, активный `--lvl-{level}-ring`, цифра в центре `font-display` weight 700, размер `size × 0.36`. Для `rating = null` — серое пустое кольцо без активной заливки и `—` в центре.
-
-**Источник истины «уровня» — `users.rating` (0–100).** Значение `skill_level` (текстовая шкала Новичок…Про из онбординга) на этой странице не отображается. Buckets (см. `levelFromRating()`):
-
-| Rating | Code | Letter | Палитра |
-|--------|------|--------|---------|
-| 89–100 | `aplus` | A+ | Daimond (фиолетовый) |
-| 73–88 | `a` | A | Gold |
-| 56–72 | `b` | B | Silver |
-| 26–55 | `c` | C | Bronze |
-| 0–25 | `d` | D | Graphite |
-| `null` | — | — | Empty (gray) |
-
-Сортировка «По уровню» в каталоге игроков сортирует по `users.rating` desc, `nullsFirst:false`.
-
-**`TeamLogosStack`** — абсолютный оверлей `left:32 bottom:-2` для рендера команд игрока на аватаре 52×52. Принимает `teams: { id, name, logo_url? }[]`, рендерит до 3.
-
 ### Шаринг между листингами
 
 Готовые переиспользуемые примитивы в `src/components/ui/`:
@@ -634,8 +577,6 @@ inner: bg-background-card rounded-t-xl p-6 shadow-pop max-h-[85vh] overflow-y-au
 | `FilterPills` | [FilterPills.tsx](../../src/components/ui/FilterPills.tsx) | Grid быстрых toggle-pills для одного измерения |
 | `ActiveFilterChips` + тип `FilterChip` | [ActiveFilterChips.tsx](../../src/components/ui/ActiveFilterChips.tsx) | Массив `{id, label, onRemove}` с ✕ |
 | `SheetChipGroup` + тип `ChipOption` | [SheetChipGroup.tsx](../../src/components/ui/SheetChipGroup.tsx) | Single-select чипы для шит-фильтров вместо нативного `<select>` |
-| `CityPickerSheet` | [CityPickerSheet.tsx](../../src/components/ui/CityPickerSheet.tsx) | Bottom-sheet выбора города из `KZ_CITIES` (вертикальный список с галочкой на активном) |
-| `HexBadge` / `PositionBadge` / `LevelBadge` / `RatingCircle` / `TeamLogosStack` | [src/components/players/badges/](../../src/components/players/badges/) | Семейство бейджей игрока — см. раздел «Бейджи игрока» |
 | `UnderlineTabs` + тип `UnderlineTab` | [UnderlineTabs.tsx](../../src/components/ui/UnderlineTabs.tsx) | Underline-табы (nav с flex-1 слотами): активный = `font-bold text-green-700` + 2.5px underline. Принимает `tabs: UnderlineTab[]` (href, label, active, onClick?) + опц. `className` |
 | `SearchSubnav` | [SearchSubnav.tsx](../../src/components/search/SearchSubnav.tsx) | Underline-навигация `/search/*` — обёртка над `UnderlineTabs` с автоопределением active по pathname |
 | `EventListRow` | [EventListRow.tsx](../../src/components/events/EventListRow.tsx) | Строка списка для `/search/events` (date-tile + team + meta + yes/price) |

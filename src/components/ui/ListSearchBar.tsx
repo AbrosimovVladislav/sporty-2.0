@@ -1,11 +1,17 @@
 "use client";
 
+type CityPicker = {
+  value: string;
+  onClick: () => void;
+};
+
 type Props = {
   value: string;
   onChange: (v: string) => void;
   onFilterClick?: () => void;
   filterActiveCount?: number;
   placeholder?: string;
+  cityPicker?: CityPicker;
 };
 
 export function ListSearchBar({
@@ -14,6 +20,7 @@ export function ListSearchBar({
   onFilterClick,
   filterActiveCount = 0,
   placeholder = "Поиск",
+  cityPicker,
 }: Props) {
   return (
     <div className="flex gap-2 mb-3">
@@ -48,6 +55,23 @@ export function ListSearchBar({
           }}
         />
       </div>
+      {cityPicker && (
+        <button
+          type="button"
+          onClick={cityPicker.onClick}
+          className="h-[46px] px-3.5 rounded-[14px] flex items-center gap-1.5 shrink-0 active:scale-95 transition-transform"
+          style={{
+            background: "var(--bg-card)",
+            color: "var(--text-primary)",
+            border: "1.5px solid var(--gray-200)",
+            fontSize: 14,
+            fontWeight: 600,
+          }}
+        >
+          <span className="truncate max-w-[80px]">{cityPicker.value}</span>
+          <ChevronDownIcon />
+        </button>
+      )}
       {onFilterClick && (
         <button
           type="button"
@@ -106,6 +130,23 @@ function FunnelIcon() {
       strokeLinejoin="round"
     >
       <path d="M22 3H2l8 9.46V19l4 2v-8.54L22 3z" />
+    </svg>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="6 9 12 15 18 9" />
     </svg>
   );
 }

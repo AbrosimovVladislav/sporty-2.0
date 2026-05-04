@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Игроки — Sporty</title>
+<link rel="stylesheet" href="colors_and_type.css">
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: var(--bg-secondary); display: flex; align-items: flex-start; justify-content: center; min-height: 100vh; }
+
+  .pos-badge { display: inline-flex; align-items: center; height: 30px; }
+  .pos-hex { width: 26px; height: 30px; position: relative; flex-shrink: 0; display: grid; place-items: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 2; }
+  .pos-hex .hex-inner { position: absolute; inset: 2px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .pos-hex img { position: relative; z-index: 1; display: block; }
+  .pos-pill { display: flex; align-items: center; height: 18px; padding: 0 6px; border-radius: 0 999px 999px 0; font-size: 10px; font-weight: 800; letter-spacing: 0.04em; border: 1.5px solid; }
+  .pos-nap .pos-hex { background: oklch(0.45 0.21 25); }
+  .pos-nap .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.66 0.22 25), oklch(0.52 0.21 25)); }
+  .pos-nap .pos-pill { background: oklch(0.97 0.018 25); color: oklch(0.55 0.22 25); border-color: oklch(0.86 0.10 25); }
+  .pos-pzsh .pos-hex { background: oklch(0.62 0.16 85); }
+  .pos-pzsh .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.86 0.18 85), oklch(0.72 0.18 85)); }
+  .pos-pzsh .pos-pill { background: oklch(0.97 0.04 85); color: oklch(0.62 0.16 85); border-color: oklch(0.84 0.13 85); }
+  .pos-zash .pos-hex { background: oklch(0.42 0.14 145); }
+  .pos-zash .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.58 0.16 145), oklch(0.46 0.16 145)); }
+  .pos-zash .pos-pill { background: oklch(0.97 0.02 145); color: oklch(0.48 0.16 145); border-color: oklch(0.84 0.10 145); }
+  .pos-vrt .pos-hex { background: oklch(0.55 0.13 240); }
+  .pos-vrt .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.78 0.12 240), oklch(0.64 0.14 240)); }
+  .pos-vrt .pos-pill { background: oklch(0.98 0.018 240); color: oklch(0.56 0.16 240); border-color: oklch(0.85 0.08 240); }
+
+  .lvl-hex-svg { width: 26px; height: 30px; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .lvl-hex-svg .hex-border { position: absolute; inset: 0; }
+  .lvl-hex-svg .hex-fill { position: absolute; inset: 2px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .lvl-hex-svg .hex-letter { position: relative; z-index: 1; font-family: var(--font-display); font-size: 14px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.15); line-height: 1; }
+  .lvl-hex-svg .hex-letter-sm { font-size: 10px; }
+  .lvl-aplus .hex-border { background: oklch(0.35 0.22 280); }
+  .lvl-aplus .hex-fill { background: linear-gradient(160deg, oklch(0.72 0.18 220), oklch(0.58 0.22 270), oklch(0.50 0.22 310)); }
+  .lvl-a .hex-border { background: oklch(0.55 0.16 85); }
+  .lvl-a .hex-fill { background: linear-gradient(160deg, oklch(0.92 0.16 95), oklch(0.84 0.18 85), oklch(0.78 0.16 80)); }
+  .lvl-b .hex-border { background: oklch(0.62 0.01 250); }
+  .lvl-b .hex-fill { background: linear-gradient(160deg, oklch(0.90 0.01 250), oklch(0.82 0.01 250), oklch(0.78 0.01 250)); }
+  .lvl-c .hex-border { background: oklch(0.50 0.10 55); }
+  .lvl-c .hex-fill { background: linear-gradient(160deg, oklch(0.78 0.08 60), oklch(0.68 0.10 55), oklch(0.62 0.10 50)); }
+  .lvl-d .hex-border { background: oklch(0.25 0.01 80); }
+  .lvl-d .hex-fill { background: linear-gradient(160deg, oklch(0.48 0.01 80), oklch(0.38 0.01 80), oklch(0.30 0.01 80)); }
+
+  .rating-circle { position: relative; flex-shrink: 0; }
+  .rating-circle svg { display: block; transform: rotate(-90deg); }
+  .ring-bg { fill: none; stroke-width: 3.5; }
+  .ring-fg { fill: none; stroke-width: 3.5; stroke-linecap: round; }
+  .rating-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-weight: 700; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel">
+
+const PLAYERS = [
+  { name: 'Михаил Карпов', photo: 'https://i.pravatar.cc/150?img=12', lvl: 'aplus', lvlLetter: 'A+', pos: 'nap', posLabel: 'НАП', posIcon: 'boot-icon.png', rating: 94, teams: [{c:'oklch(0.35 0.15 250)',l:'Д'}] },
+  { name: 'Станислав Волков', photo: 'https://i.pravatar.cc/150?img=33', lvl: 'a', lvlLetter: 'A', pos: 'pzsh', posLabel: 'ПЗЩ', posIcon: 'target-icon.png', rating: 89, teams: [{c:'oklch(0.55 0.18 25)',l:'Б'},{c:'oklch(0.45 0.12 145)',l:'С'}] },
+  { name: 'Андрей Харченко', photo: 'https://i.pravatar.cc/150?img=52', lvl: 'b', lvlLetter: 'B', pos: 'zash', posLabel: 'ЗАЩ', posIcon: 'shield-icon.png', rating: 79, teams: [{c:'oklch(0.45 0.12 145)',l:'С'}] },
+  { name: 'Дмитрий Козлов', photo: 'https://i.pravatar.cc/150?img=59', lvl: 'c', lvlLetter: 'C', pos: 'nap', posLabel: 'НАП', posIcon: 'boot-icon.png', rating: 65, teams: [{c:'oklch(0.50 0.10 55)',l:'А'}] },
+  { name: 'Евгений Попов', photo: 'https://i.pravatar.cc/150?img=68', lvl: 'd', lvlLetter: 'D', pos: 'vrt', posLabel: 'ВРТ', posIcon: 'glove-icon.png', rating: 40, teams: [{c:'oklch(0.40 0.08 80)',l:'Ф'}] },
+  { name: 'Арман Сериков', photo: 'https://i.pravatar.cc/150?img=14', lvl: 'a', lvlLetter: 'A', pos: 'zash', posLabel: 'ЗАЩ', posIcon: 'shield-icon.png', rating: 87, teams: [{c:'oklch(0.35 0.15 250)',l:'Д'},{c:'oklch(0.55 0.18 25)',l:'Б'}] },
+  { name: 'Тимур Жумабаев', photo: 'https://i.pravatar.cc/150?img=51', lvl: 'b', lvlLetter: 'B', pos: 'pzsh', posLabel: 'ПЗЩ', posIcon: 'target-icon.png', rating: 74, teams: [{c:'oklch(0.55 0.18 25)',l:'Б'}] },
+  { name: 'Нурлан Касымов', photo: 'https://i.pravatar.cc/150?img=7', lvl: 'aplus', lvlLetter: 'A+', pos: 'nap', posLabel: 'НАП', posIcon: 'boot-icon.png', rating: 96, teams: [{c:'oklch(0.45 0.12 145)',l:'С'}] },
+  { name: 'Бауыржан Ахметов', photo: 'https://i.pravatar.cc/150?img=11', lvl: 'c', lvlLetter: 'C', pos: 'vrt', posLabel: 'ВРТ', posIcon: 'glove-icon.png', rating: 58, teams: [{c:'oklch(0.40 0.08 80)',l:'Ф'}] },
+];
+
+const RATING_COLORS = {
+  aplus: { ring: 'oklch(0.55 0.22 280)', bg: 'oklch(0.90 0.08 280)', num: 'oklch(0.45 0.22 280)' },
+  a:     { ring: 'oklch(0.78 0.18 85)',  bg: 'oklch(0.93 0.10 85)',  num: 'oklch(0.62 0.18 85)' },
+  b:     { ring: 'oklch(0.65 0.02 250)', bg: 'oklch(0.90 0.01 250)', num: 'oklch(0.55 0.02 250)' },
+  c:     { ring: 'oklch(0.62 0.12 55)',  bg: 'oklch(0.90 0.04 55)',  num: 'oklch(0.52 0.12 55)' },
+  d:     { ring: 'oklch(0.35 0.02 80)',  bg: 'oklch(0.80 0.01 80)',  num: 'oklch(0.32 0.02 80)' },
+};
+
+function RatingCircle({ rating, lvl, size = 48 }) {
+  const r = (size - 7) / 2;
+  const circ = 2 * Math.PI * r;
+  const offset = circ * (1 - rating / 100);
+  const c = RATING_COLORS[lvl];
+  return (
+    <div className="rating-circle" style={{ width: size, height: size }}>
+      <svg viewBox={`0 0 ${size} ${size}`} style={{ width: size, height: size }}>
+        <circle className="ring-bg" cx={size/2} cy={size/2} r={r} style={{ stroke: c.bg }} />
+        <circle className="ring-fg" cx={size/2} cy={size/2} r={r} stroke={c.ring} strokeDasharray={circ} strokeDashoffset={offset} />
+      </svg>
+      <div className="rating-num" style={{ fontSize: size * 0.36, color: c.num }}>{rating}</div>
+    </div>
+  );
+}
+
+function LevelHex({ lvl, letter }) {
+  return (
+    <div className={`lvl-hex-svg lvl-${lvl}`}>
+      <div className="hex-border"></div><div className="hex-fill"></div>
+      <span className={`hex-letter${letter.length > 1 ? ' hex-letter-sm' : ''}`}>{letter}</span>
+    </div>
+  );
+}
+
+function PosBadge({ pos, label, icon }) {
+  return (
+    <div className={`pos-badge pos-${pos}`}>
+      <div className="pos-hex"><div className="hex-inner"></div>
+        <img src={icon} style={{ height: 15, width: 'auto', display: 'block' }} alt="" />
+      </div>
+      <div className="pos-pill">{label}</div>
+    </div>
+  );
+}
+
+function TeamLogos({ teams }) {
+  if (!teams?.length) return null;
+  return (
+    <div style={{ position: 'absolute', bottom: -2, left: 32, display: 'flex' }}>
+      {teams.map((t, i) => (
+        <div key={i} style={{
+          width: 24, height: 24, borderRadius: 9999, border: '2.5px solid #fff',
+          background: t.c, display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: 9, fontWeight: 800, color: '#fff',
+          marginLeft: i > 0 ? -9 : 0, zIndex: i + 1,
+        }}>{t.l}</div>
+      ))}
+    </div>
+  );
+}
+
+function PlayerRow({ player }) {
+  const p = player;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 24, padding: '14px 16px', borderBottom: '1px solid var(--gray-100)' }}>
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{ width: 52, height: 52, borderRadius: 9999, overflow: 'hidden', border: '2px solid #fff', boxShadow: '0 0 0 1px var(--border)' }}>
+          <img src={p.photo} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+        </div>
+        <TeamLogos teams={p.teams} />
+      </div>
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontSize: 16, fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{p.name}</div>
+        <div style={{ display: 'flex', gap: 6, marginTop: 6, alignItems: 'center' }}>
+          <LevelHex lvl={p.lvl} letter={p.lvlLetter} />
+          <PosBadge pos={p.pos} label={p.posLabel} icon={p.posIcon} />
+        </div>
+      </div>
+      <RatingCircle rating={p.rating} lvl={p.lvl} size={48} />
+    </div>
+  );
+}
+
+function SearchIcon() {
+  return <svg width="20" height="20" fill="none" stroke="var(--text-tertiary)" strokeWidth="2" strokeLinecap="round"><circle cx="9" cy="9" r="6"/><line x1="13.5" y1="13.5" x2="18" y2="18"/></svg>;
+}
+function FilterIcon() {
+  return <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M2.5 3h15l-5.625 6.65v4.6L8.125 16V9.65L2.5 3z" stroke="var(--text-secondary)" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/></svg>;
+}
+
+function PlayersPage() {
+  const [activePos, setActivePos] = React.useState('all');
+  const positions = [
+    { id: 'all', label: 'Все' }, { id: 'vrt', label: 'ВРТ' },
+    { id: 'zash', label: 'ЗАЩ' }, { id: 'pzsh', label: 'ПЗЩ' }, { id: 'nap', label: 'НАП' },
+  ];
+  const filtered = activePos === 'all' ? PLAYERS : PLAYERS.filter(p => p.pos === activePos);
+
+  return (
+    <div style={{ background: 'var(--bg-primary)', minHeight: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* Green header */}
+      <div style={{ background: 'var(--green-600)', padding: '16px 16px 20px', borderRadius: '0 0 24px 24px', position: 'relative', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', inset: 0, opacity: 0.08, backgroundImage: 'repeating-linear-gradient(135deg, transparent, transparent 10px, rgba(255,255,255,0.3) 10px, rgba(255,255,255,0.3) 12px)' }}></div>
+        <div style={{ position: 'relative', zIndex: 1, fontFamily: 'var(--font-display)', fontSize: 28, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.02em', color: '#fff' }}>ИГРОКИ</div>
+      </div>
+
+      {/* Tabs */}
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--gray-100)' }}>
+        {['События', 'Команды', 'Игроки', 'Площадки'].map((tab, i) => (
+          <div key={tab} style={{ flex: 1, textAlign: 'center', padding: '12px 0', fontSize: 14, fontWeight: i===2?700:500, color: i===2?'var(--green-700)':'var(--text-secondary)', borderBottom: i===2?'2.5px solid var(--green-700)':'none', cursor: 'pointer' }}>{tab}</div>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div style={{ padding: '12px 16px 0', display: 'flex', gap: 8, alignItems: 'center' }}>
+        <div style={{ flex: 1, position: 'relative' }}>
+          <div style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)' }}><SearchIcon/></div>
+          <input type="text" placeholder="Имя, команда…" style={{ width: '100%', padding: '12px 12px 12px 40px', borderRadius: 14, border: '1.5px solid var(--border)', background: 'var(--bg-card)', fontSize: 15, fontFamily: 'inherit', color: 'var(--text-primary)', outline: 'none' }} />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 2, padding: '12px 14px', borderRadius: 14, background: 'var(--bg-card)', border: '1.5px solid var(--border)', fontSize: 14, fontWeight: 600, whiteSpace: 'nowrap', cursor: 'pointer', height: 46 }}>
+          Алматы <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{marginLeft:2}}><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--text-secondary)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </div>
+        <div style={{ width: 46, height: 46, borderRadius: 14, background: 'var(--bg-card)', border: '1.5px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, position: 'relative', cursor: 'pointer' }}>
+          <FilterIcon/>
+          <div style={{ position: 'absolute', top: -4, right: -4, minWidth: 18, height: 18, borderRadius: 9999, background: 'var(--primary)', color: '#fff', fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>1</div>
+        </div>
+      </div>
+
+      {/* Pills */}
+      <div style={{ padding: '12px 16px 0', display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 6 }}>
+        {positions.map(p => (
+          <div key={p.id} onClick={() => setActivePos(p.id)} style={{ borderRadius: 10, padding: '8px 4px', fontSize: 12, fontWeight: 600, textAlign: 'center', cursor: 'pointer', background: activePos===p.id?'var(--gray-900)':'var(--bg-card)', color: activePos===p.id?'#fff':'var(--text-secondary)', border: activePos===p.id?'1px solid var(--gray-900)':'1px solid var(--border)' }}>{p.label}</div>
+        ))}
+      </div>
+
+      {/* Meta */}
+      <div style={{ padding: '12px 16px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <span style={{ fontSize: 13, color: 'var(--text-tertiary)' }}>РЕЗУЛЬТАТЫ · {filtered.length}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-accent)', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 9999, padding: '4px 12px', cursor: 'pointer' }}>По уровню ▾</span>
+      </div>
+
+      {/* List */}
+      <div style={{ marginTop: 8 }}>
+        {filtered.map((p, i) => <PlayerRow key={i} player={p} />)}
+      </div>
+    </div>
+  );
+}
+
+function App() {
+  return <PlayersPage/>;
+}
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body></html>

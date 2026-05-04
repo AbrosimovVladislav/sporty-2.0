@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="ru"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sporty Design System</title>
+<link rel="stylesheet" href="colors_and_type.css">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: var(--font-sans); background: var(--bg-secondary); color: var(--text-primary); padding: 32px 24px 64px; max-width: 900px; margin: 0 auto; }
+
+  h2.section-title { font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; color: var(--text-tertiary); margin: 48px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  h2.section-title:first-of-type { margin-top: 0; }
+
+  .row { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px; }
+  .col { display: flex; flex-direction: column; gap: 8px; }
+
+  /* Color swatches */
+  .scale { display: flex; gap: 4px; flex: 1; min-width: 300px; }
+  .swatch { flex: 1; border-radius: 8px; min-height: 64px; display: flex; flex-direction: column; justify-content: flex-end; padding: 6px; }
+  .swatch span { font-size: 10px; font-weight: 600; }
+
+  /* Semantic blocks */
+  .sem-row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .sem { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 10px; background: var(--bg-primary); }
+  .sem-dot { width: 28px; height: 28px; border-radius: 6px; flex-shrink: 0; }
+  .sem-name { font-size: 12px; font-weight: 600; }
+  .sem-desc { font-size: 10px; color: var(--text-secondary); }
+
+  /* Surfaces */
+  .surf { border-radius: 10px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+  .surf-name { font-size: 13px; font-weight: 600; }
+  .surf-desc { font-size: 11px; opacity: 0.6; }
+
+  /* Type */
+  .type-row { display: flex; align-items: baseline; gap: 16px; margin-bottom: 8px; }
+  .type-meta { font-size: 10px; color: var(--text-tertiary); min-width: 160px; flex-shrink: 0; }
+
+  /* Radii / shadows */
+  .token-row { display: flex; gap: 10px; align-items: end; }
+  .rbox { width: 52px; height: 52px; background: var(--primary-soft); border: 1.5px solid var(--primary); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: var(--text-accent); }
+  .sbox { width: 72px; height: 52px; background: var(--bg-primary); border-radius: var(--radius-lg); display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 600; color: var(--text-secondary); }
+
+  /* Buttons */
+  .btn { display: inline-flex; align-items: center; justify-content: center; font-weight: 600; font-size: 14px; border: none; cursor: pointer; font-family: inherit; border-radius: 9999px; padding: 10px 20px; }
+  .btn-primary { background: var(--primary); color: #fff; box-shadow: var(--shadow-sm); }
+  .btn-primary-lg { background: var(--primary); color: #fff; box-shadow: var(--shadow-sm); padding: 12px 24px; font-size: 15px; }
+  .btn-secondary { background: var(--bg-card); color: var(--text-primary); border: 1px solid var(--border); }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .icon-btn { width: 40px; height: 40px; border-radius: 9999px; background: var(--bg-card); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+
+  /* Chips */
+  .chip-active { background: var(--primary); color: #fff; border-radius: 9999px; padding: 8px 16px; font-size: 13px; font-weight: 600; box-shadow: var(--shadow-sm); border: none; font-family: inherit; }
+  .chip-inactive { background: var(--bg-card); color: var(--text-primary); border-radius: 9999px; padding: 8px 16px; font-size: 13px; font-weight: 500; border: 1px solid var(--border); font-family: inherit; }
+  .qp { border-radius: 10px; padding: 8px 4px; font-size: 12px; font-weight: 600; text-align: center; border: 1px solid var(--border); background: var(--bg-card); color: var(--text-secondary); font-family: inherit; }
+  .qp-active { background: var(--gray-900); color: #fff; border-color: var(--gray-900); }
+  .status-pill { display: inline-block; font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; border-radius: 9999px; padding: 4px 12px; }
+  .af-chip { display: inline-flex; align-items: center; gap: 6px; background: var(--primary-soft); color: var(--text-accent); border-radius: 9999px; padding: 6px 12px; font-size: 12px; font-weight: 600; }
+  .af-x { width: 16px; height: 16px; border-radius: 9999px; background: rgba(0,0,0,0.08); display: flex; align-items: center; justify-content: center; font-size: 10px; color: var(--text-secondary); }
+
+  /* Avatars */
+  .avatar { border-radius: 9999px; display: flex; align-items: center; justify-content: center; font-weight: 700; color: #fff; border: 2px solid #fff; box-shadow: 0 0 0 1px var(--border); flex-shrink: 0; }
+  .av-sm { width: 32px; height: 32px; font-size: 12px; }
+  .av-md { width: 44px; height: 44px; font-size: 17px; }
+  .av-lg { width: 64px; height: 64px; font-size: 24px; }
+  .av-xl { width: 96px; height: 96px; font-size: 36px; }
+  .stack { display: flex; }
+  .stack .avatar { margin-left: -10px; }
+  .stack .avatar:first-child { margin-left: 0; }
+  .plus-pill { border-radius: 9999px; background: var(--bg-muted); color: var(--text-secondary); display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; margin-left: -10px; border: 2px solid #fff; }
+  .minibar { display: flex; gap: 2px; align-items: center; }
+  .bar { width: 4px; height: 14px; border-radius: 2px; }
+  .bar-on { background: var(--primary); }
+  .bar-off { background: var(--border); }
+  .badge-cap { width: 18px; height: 18px; border-radius: 9999px; background: var(--primary); color: #fff; font-size: 9px; font-weight: 800; display: flex; align-items: center; justify-content: center; }
+  .badge-seek { background: var(--primary-soft); color: var(--text-accent); padding: 2px 6px; border-radius: 9999px; font-size: 10px; font-weight: 600; }
+
+  /* Cards */
+  .card { background: var(--bg-primary); border-radius: var(--radius-lg); padding: 16px; box-shadow: var(--shadow-sm); }
+  .progress-bar { height: 6px; background: var(--bg-muted); border-radius: 9999px; overflow: hidden; }
+  .progress-fill { height: 100%; border-radius: 9999px; }
+
+  /* List */
+  .list-card { background: var(--bg-primary); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .list-row { display: flex; align-items: center; gap: 14px; padding: 12px 16px; }
+  .list-row + .list-row { border-top: 1px solid var(--gray-100); }
+  .list-info { flex: 1; min-width: 0; }
+  .list-name { font-size: 15px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .list-meta { font-size: 13px; color: var(--text-secondary); }
+  .eyebrow { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: var(--text-accent); padding: 12px 16px 4px; }
+
+  /* Inputs */
+  .input-field { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px 16px; font-size: 15px; font-family: inherit; color: var(--text-primary); outline: none; width: 100%; }
+  .input-field:focus { border-color: var(--primary); }
+  .input-field::placeholder { color: var(--text-tertiary); }
+  .input-label { font-size: 13px; color: var(--text-secondary); margin-bottom: 4px; }
+  .input-error { font-size: 13px; color: var(--danger); margin-top: 2px; }
+
+  .search-wrap { position: relative; flex: 1; }
+  .search-wrap input { padding-left: 40px; padding-right: 36px; border-radius: 14px; border-width: 1.5px; }
+  .search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); }
+  .filter-btn { width: 46px; height: 46px; border-radius: 14px; background: var(--bg-card); border: 1.5px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; position: relative; }
+  .filter-dot { position: absolute; top: -3px; right: -3px; min-width: 18px; height: 18px; border-radius: 9999px; background: var(--primary); color: #fff; font-size: 10px; font-weight: 700; display: flex; align-items: center; justify-content: center; }
+
+  /* Headers */
+  .page-header { background: var(--green-600); border-radius: 0 0 28px 28px; padding: 20px 20px 18px; color: #fff; }
+  .ph-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; }
+  .ph-title { font-family: var(--font-display); font-size: 26px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.02em; }
+  .ph-bell { width: 36px; height: 36px; border-radius: 9999px; background: rgba(255,255,255,0.15); display: flex; align-items: center; justify-content: center; }
+  .ph-stats { display: flex; gap: 10px; }
+  .ph-stat { flex: 1; background: rgba(0,0,0,0.18); border-radius: 16px; padding: 14px 12px; backdrop-filter: blur(8px); }
+  .ph-stat-num { font-family: var(--font-display); font-size: 30px; font-weight: 700; }
+  .ph-stat-label { font-size: 10px; color: rgba(255,255,255,0.5); line-height: 1.4; margin-top: 2px; }
+
+  .screen-header { display: flex; align-items: center; justify-content: space-between; padding: 16px; background: var(--bg-primary); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+  .sh-left { display: flex; align-items: center; gap: 12px; }
+  .sh-back { width: 36px; height: 36px; border-radius: 9999px; background: var(--bg-card); display: flex; align-items: center; justify-content: center; }
+  .sh-title { font-size: 24px; font-weight: 700; }
+  .sh-actions { display: flex; gap: 8px; }
+  .sh-btn { width: 36px; height: 36px; border-radius: 9999px; background: var(--bg-card); box-shadow: var(--shadow-sm); display: flex; align-items: center; justify-content: center; }
+
+  /* Actions */
+  .action-row { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+  .action-row + .action-row { border-top: 1px solid var(--gray-100); }
+  .action-icon { width: 36px; height: 36px; border-radius: 10px; background: var(--primary-soft); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+  .action-info { flex: 1; }
+  .action-title { font-size: 15px; font-weight: 500; }
+  .action-desc { font-size: 13px; color: var(--text-secondary); }
+  .action-link { font-size: 13px; color: var(--text-accent); font-weight: 500; }
+
+  /* Empty */
+  .empty { background: var(--bg-primary); border-radius: var(--radius-lg); padding: 32px; text-align: center; box-shadow: var(--shadow-sm); }
+  .empty-text { font-size: 15px; color: var(--text-secondary); margin-top: 12px; }
+  .empty-cta { font-size: 14px; font-weight: 600; color: var(--text-accent); margin-top: 12px; background: none; border: none; cursor: pointer; font-family: inherit; }
+
+  /* Bottom bar */
+  .bottom-bar { background: var(--bg-primary); border-top: 1px solid var(--border); padding: 12px 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; box-shadow: var(--shadow-md); border-radius: var(--radius-lg); }
+  .bar-btn { padding: 12px; border-radius: 9999px; font-size: 14px; font-weight: 600; text-align: center; border: none; font-family: inherit; cursor: pointer; }
+
+  /* Tabs */
+  .tabs { display: flex; background: var(--bg-primary); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); overflow: hidden; }
+  .tab { flex: 1; text-align: center; padding: 12px 0; font-size: 14px; font-weight: 500; color: var(--text-secondary); border-bottom: 1px solid var(--gray-100); cursor: pointer; }
+  .tab-active { font-weight: 700; color: var(--green-700); border-bottom: 2.5px solid var(--green-700); }
+
+  .sub-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: var(--text-tertiary); margin-bottom: 8px; }
+
+  /* City selector */
+  .city-selector { display: flex; align-items: center; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--bg-card); border: 1.5px solid var(--border); font-size: 14px; font-weight: 600; color: var(--text-primary); white-space: nowrap; cursor: pointer; font-family: inherit; height: 46px; box-sizing: border-box; }
+
+  /* Hexagon shape — pointy-top regular hexagon */
+  .hex-shape { clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+
+  /* Position badge: hexagon (proper pointy-top, with bordered ring) + flat-left pill */
+  .pos-badge { display: inline-flex; align-items: center; height: 34px; }
+  .pos-hex { width: 30px; height: 34px; position: relative; flex-shrink: 0; display: grid; place-items: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); z-index: 2; }
+  .pos-hex .hex-inner { position: absolute; inset: 2.5px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .pos-hex img, .pos-hex svg { position: relative; z-index: 1; display: block; }
+  .pos-pill { display: flex; align-items: center; height: 20px; padding: 0 6px; border-radius: 0 999px 999px 0; font-size: 11px; font-weight: 800; letter-spacing: 0.04em; margin-left: 0; border: 1.5px solid; }
+  /* НАП — red */
+  .pos-nap .pos-hex { background: oklch(0.45 0.21 25); }
+  .pos-nap .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.66 0.22 25), oklch(0.52 0.21 25)); }
+  .pos-nap .pos-pill { background: oklch(0.97 0.018 25); color: oklch(0.55 0.22 25); border-color: oklch(0.86 0.10 25); }
+  /* ПЗЩ — gold/yellow */
+  .pos-pzsh .pos-hex { background: oklch(0.62 0.16 85); }
+  .pos-pzsh .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.28), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.86 0.18 85), oklch(0.72 0.18 85)); }
+  .pos-pzsh .pos-pill { background: oklch(0.97 0.04 85); color: oklch(0.62 0.16 85); border-color: oklch(0.84 0.13 85); }
+  /* ЗАЩ — green */
+  .pos-zash .pos-hex { background: oklch(0.42 0.14 145); }
+  .pos-zash .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.20), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.58 0.16 145), oklch(0.46 0.16 145)); }
+  .pos-zash .pos-pill { background: oklch(0.97 0.02 145); color: oklch(0.48 0.16 145); border-color: oklch(0.84 0.10 145); }
+  /* ВРТ — sky blue */
+  .pos-vrt .pos-hex { background: oklch(0.55 0.13 240); }
+  .pos-vrt .hex-inner { background: linear-gradient(180deg, rgba(255,255,255,0.30), rgba(255,255,255,0) 55%), linear-gradient(180deg, oklch(0.78 0.12 240), oklch(0.64 0.14 240)); }
+  .pos-vrt .pos-pill { background: oklch(0.98 0.018 240); color: oklch(0.56 0.16 240); border-color: oklch(0.85 0.08 240); }
+
+  /* Level badge: SVG hex same size as position hex */
+  .lvl-badge { display: inline-flex; flex-shrink: 0; }
+  .lvl-badge img { display: block; }
+  .lvl-hex-svg { width: 30px; height: 34px; position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .lvl-hex-svg .hex-border { position: absolute; inset: 0; }
+  .lvl-hex-svg .hex-fill { position: absolute; inset: 2.5px; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); }
+  .lvl-hex-svg .hex-letter { position: relative; z-index: 1; font-family: var(--font-display); font-size: 16px; font-weight: 700; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.15); line-height: 1; }
+  .lvl-hex-svg .hex-letter-sm { font-size: 12px; }
+  /* A+ purple-blue */
+  .lvl-aplus .hex-border { background: oklch(0.35 0.22 280); }
+  .lvl-aplus .hex-fill { background: linear-gradient(160deg, oklch(0.72 0.18 220), oklch(0.58 0.22 270), oklch(0.50 0.22 310)); }
+  /* A gold */
+  .lvl-a .hex-border { background: oklch(0.55 0.16 85); }
+  .lvl-a .hex-fill { background: linear-gradient(160deg, oklch(0.92 0.16 95), oklch(0.84 0.18 85), oklch(0.78 0.16 80)); }
+  /* B silver */
+  .lvl-b .hex-border { background: oklch(0.62 0.01 250); }
+  .lvl-b .hex-fill { background: linear-gradient(160deg, oklch(0.90 0.01 250), oklch(0.82 0.01 250), oklch(0.78 0.01 250)); }
+  /* C bronze/copper */
+  .lvl-c .hex-border { background: oklch(0.50 0.10 55); }
+  .lvl-c .hex-fill { background: linear-gradient(160deg, oklch(0.78 0.08 60), oklch(0.68 0.10 55), oklch(0.62 0.10 50)); }
+  /* D dark gray */
+  .lvl-d .hex-border { background: oklch(0.25 0.01 80); }
+  .lvl-d .hex-fill { background: linear-gradient(160deg, oklch(0.48 0.01 80), oklch(0.38 0.01 80), oklch(0.30 0.01 80)); }
+  /* Avatar corner badge — mini hex sticker on avatar */
+  .av-corner { position: absolute; bottom: -2px; right: -2px; width: 22px; height: 22px; display: flex; align-items: center; justify-content: center; clip-path: polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%); box-shadow: 0 0 0 2px #fff; }
+  .av-wrap { position: relative; flex-shrink: 0; }
+
+
+  /* Circular rating */
+  .rating-circle { position: relative; width: 48px; height: 48px; flex-shrink: 0; }
+  .rating-circle svg { width: 48px; height: 48px; transform: rotate(-90deg); }
+  .rating-circle .ring-bg { fill: none; stroke: var(--gray-100); stroke-width: 3.5; }
+  .rating-circle .ring-fg { fill: none; stroke-width: 3.5; stroke-linecap: round; }
+  .rating-num { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--font-display); font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  /* Team mini-logo */
+  .team-logos { position: absolute; bottom: -2px; right: -4px; display: flex; }
+  .team-logo { width: 20px; height: 20px; border-radius: 6px; border: 1.5px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 8px; font-weight: 800; color: #fff; }
+  .team-logo + .team-logo { margin-left: -5px; }
+</style>
+</head><body>
+
+<!-- ═══ COLORS ═══ -->
+<h2 class="section-title">Colors — Green Scale</h2>
+<div class="scale">
+  <div class="swatch" style="background:var(--green-50)"><span style="color:var(--green-900)">50</span></div>
+  <div class="swatch" style="background:var(--green-100)"><span style="color:var(--green-900)">100</span></div>
+  <div class="swatch" style="background:var(--green-200)"><span style="color:var(--green-900)">200</span></div>
+  <div class="swatch" style="background:var(--green-300)"><span style="color:var(--green-900)">300</span></div>
+  <div class="swatch" style="background:var(--green-400)"><span style="color:#fff">400</span></div>
+  <div class="swatch" style="background:var(--green-500)"><span style="color:#fff">500</span></div>
+  <div class="swatch" style="background:var(--green-600)"><span style="color:#fff">600</span></div>
+  <div class="swatch" style="background:var(--green-700)"><span style="color:#fff">700</span></div>
+  <div class="swatch" style="background:var(--green-800)"><span style="color:#fff">800</span></div>
+  <div class="swatch" style="background:var(--green-900)"><span style="color:#fff">900</span></div>
+</div>
+
+<h2 class="section-title">Colors — Gray Scale</h2>
+<div class="scale">
+  <div class="swatch" style="background:var(--gray-50)"><span style="color:var(--gray-900)">50</span></div>
+  <div class="swatch" style="background:var(--gray-100)"><span style="color:var(--gray-900)">100</span></div>
+  <div class="swatch" style="background:var(--gray-200)"><span style="color:var(--gray-900)">200</span></div>
+  <div class="swatch" style="background:var(--gray-300)"><span style="color:var(--gray-900)">300</span></div>
+  <div class="swatch" style="background:var(--gray-400)"><span style="color:#fff">400</span></div>
+  <div class="swatch" style="background:var(--gray-500)"><span style="color:#fff">500</span></div>
+  <div class="swatch" style="background:var(--gray-600)"><span style="color:#fff">600</span></div>
+  <div class="swatch" style="background:var(--gray-700)"><span style="color:#fff">700</span></div>
+  <div class="swatch" style="background:var(--gray-800)"><span style="color:#fff">800</span></div>
+  <div class="swatch" style="background:var(--gray-900)"><span style="color:#fff">900</span></div>
+</div>
+
+<h2 class="section-title">Colors — Semantic</h2>
+<div class="sem-row">
+  <div class="sem"><div class="sem-dot" style="background:var(--primary)"></div><div><div class="sem-name">Primary</div><div class="sem-desc">Бренд, позитив</div></div></div>
+  <div class="sem"><div class="sem-dot" style="background:var(--primary-hover)"></div><div><div class="sem-name">Primary Hover</div><div class="sem-desc">Нажато</div></div></div>
+  <div class="sem"><div class="sem-dot" style="background:var(--primary-soft)"></div><div><div class="sem-name">Primary Soft</div><div class="sem-desc">Бейджи</div></div></div>
+  <div class="sem"><div class="sem-dot" style="background:var(--warning)"></div><div><div class="sem-name">Warning</div><div class="sem-desc">Ожидание</div></div></div>
+  <div class="sem"><div class="sem-dot" style="background:var(--warning-soft)"></div><div><div class="sem-name">Warning Soft</div></div></div>
+  <div class="sem"><div class="sem-dot" style="background:var(--danger)"></div><div><div class="sem-name">Danger</div><div class="sem-desc">Дефицит, долг</div></div></div>
+  <div class="sem"><div class="sem-dot" style="background:var(--danger-soft)"></div><div><div class="sem-name">Danger Soft</div></div></div>
+</div>
+
+<h2 class="section-title">Surfaces & Text</h2>
+<div class="row">
+  <div class="col" style="flex:1;gap:6px">
+    <div class="surf" style="background:var(--bg-primary);border:1px solid var(--border)"><span class="surf-name" style="color:var(--text-primary)">bg-primary</span><span class="surf-desc" style="color:var(--text-secondary)">Карточки</span></div>
+    <div class="surf" style="background:var(--bg-secondary);border:1px solid var(--border)"><span class="surf-name" style="color:var(--text-primary)">bg-secondary</span><span class="surf-desc" style="color:var(--text-secondary)">Фон страниц</span></div>
+    <div class="surf" style="background:var(--bg-card);border:1px solid var(--border)"><span class="surf-name" style="color:var(--text-primary)">bg-card</span><span class="surf-desc" style="color:var(--text-secondary)">Вторичные блоки</span></div>
+    <div class="surf" style="background:var(--bg-dark)"><span class="surf-name" style="color:var(--text-inverse)">bg-dark</span><span class="surf-desc" style="color:rgba(255,255,255,0.5)">Баннеры</span></div>
+  </div>
+  <div class="col" style="flex:1;gap:6px;padding:8px 0">
+    <span style="font-size:15px;font-weight:700;color:var(--text-primary)">text-primary — Заголовки, имена</span>
+    <span style="font-size:14px;color:var(--text-secondary)">text-secondary — Подписи, мета</span>
+    <span style="font-size:13px;color:var(--text-tertiary)">text-tertiary — Подсказки</span>
+    <span style="font-size:14px;font-weight:600;color:var(--text-accent)">text-accent — Ссылки, акцент</span>
+    <div style="background:var(--bg-dark);border-radius:8px;padding:8px 12px;margin-top:4px"><span style="color:var(--text-inverse)">text-inverse — На тёмном</span></div>
+  </div>
+</div>
+
+<!-- ═══ TYPOGRAPHY ═══ -->
+<h2 class="section-title">Typography — Geist Sans</h2>
+<div class="type-row"><span class="type-meta">Page title · Oswald 30 bold</span><span style="font-family:var(--font-display);font-size:30px;font-weight:700;text-transform:uppercase;letter-spacing:0.02em">ИГРОКИ</span></div>
+<div class="type-row"><span class="type-meta">Screen title · 28 bold</span><span style="font-size:28px;font-weight:700;line-height:1.15">Состав</span></div>
+<div class="type-row"><span class="type-meta">Section heading · 17 semi</span><span style="font-size:17px;font-weight:600">Управление</span></div>
+<div class="type-row"><span class="type-meta">Card title · 15 semi</span><span style="font-size:15px;font-weight:600">Иван Петров</span></div>
+<div class="type-row"><span class="type-meta">Body · 15 regular</span><span style="font-size:15px">Описание события или текстовый блок</span></div>
+<div class="type-row"><span class="type-meta">Meta · 13 secondary</span><span style="font-size:13px;color:var(--text-secondary)">ЦЗ · Основной · Алматы</span></div>
+<div class="type-row"><span class="type-meta">Eyebrow · 11 upper semi</span><span style="font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;color:var(--text-accent)">РЕЗУЛЬТАТЫ · 36</span></div>
+
+<h2 class="section-title">Typography — Display (Oswald)</h2>
+<div class="row" style="align-items:baseline;gap:24px">
+  <span style="font-family:var(--font-display);font-size:40px;font-weight:700;font-variant-numeric:tabular-nums">36</span>
+  <span style="font-family:var(--font-display);font-size:40px;font-weight:700;font-variant-numeric:tabular-nums;color:var(--text-accent)">9 / 12</span>
+  <span style="font-family:var(--font-display);font-size:34px;font-weight:700;color:var(--danger)">−4 500 ₸</span>
+  <span style="font-family:var(--font-display);font-size:24px;font-weight:700;text-transform:uppercase;color:var(--primary)">ТРЕНИРОВКА</span>
+</div>
+
+<!-- ═══ SPACING ═══ -->
+<h2 class="section-title">Radii & Shadows</h2>
+<div class="row" style="gap:24px">
+  <div class="col">
+    <div class="sub-label">Border Radius</div>
+    <div class="token-row">
+      <div class="rbox" style="border-radius:var(--radius-sm)">8</div>
+      <div class="rbox" style="border-radius:var(--radius-md)">12</div>
+      <div class="rbox" style="border-radius:var(--radius-lg)">16</div>
+      <div class="rbox" style="border-radius:var(--radius-xl)">20</div>
+      <div class="rbox" style="border-radius:var(--radius-full)">∞</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="sub-label">Shadows</div>
+    <div class="token-row">
+      <div class="sbox" style="box-shadow:var(--shadow-sm)">sm</div>
+      <div class="sbox" style="box-shadow:var(--shadow-md)">md</div>
+      <div class="sbox" style="box-shadow:var(--shadow-lg)">lg</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="sub-label">Borders</div>
+    <div class="token-row">
+      <div class="sbox" style="border:1px solid var(--border);box-shadow:none">default</div>
+      <div class="sbox" style="border:1.5px solid var(--border-strong);box-shadow:none">strong</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ COMPONENTS ═══ -->
+<h2 class="section-title">Buttons</h2>
+<div class="row" style="align-items:center;gap:12px">
+  <button class="btn btn-primary">Приду</button>
+  <button class="btn btn-primary-lg">Завершить</button>
+  <button class="btn btn-secondary">Не приду</button>
+  <button class="btn btn-danger">Удалить</button>
+  <button class="btn btn-primary" style="opacity:0.5">Disabled</button>
+  <div class="icon-btn"><svg width="18" height="18" fill="none" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round"><line x1="9" y1="3" x2="9" y2="15"></line><line x1="3" y1="9" x2="15" y2="9"></line></svg></div>
+</div>
+<div class="sub-label" style="margin-top:12px">Button Pairs</div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;max-width:280px">
+  <button class="btn btn-primary">Приду</button>
+  <button class="btn btn-secondary">Не приду</button>
+</div>
+
+<h2 class="section-title">Chips & Pills</h2>
+<div class="sub-label">Filter Chips</div>
+<div class="row" style="gap:8px">
+  <button class="chip-active">Все</button>
+  <button class="chip-inactive">Вратари</button>
+  <button class="chip-inactive">Защитники</button>
+  <button class="chip-inactive">Полузащ.</button>
+  <button class="chip-inactive">Нападающие</button>
+</div>
+<div class="sub-label">Quick Pills (grid)</div>
+<div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;max-width:400px;margin-bottom:16px">
+  <div class="qp qp-active">Все</div>
+  <div class="qp">ВРТ</div>
+  <div class="qp">ЗАЩ</div>
+  <div class="qp">ПЗЩ</div>
+  <div class="qp">НАП</div>
+</div>
+<div class="sub-label">Status Pills</div>
+<div class="row" style="gap:8px">
+  <span class="status-pill" style="background:var(--primary);color:#fff">Матч</span>
+  <span class="status-pill" style="background:var(--bg-card);color:var(--text-primary)">Запланировано</span>
+  <span class="status-pill" style="background:var(--bg-muted);color:var(--text-secondary)">Завершено</span>
+  <span class="status-pill" style="background:var(--danger-soft);color:var(--danger)">Отменено</span>
+</div>
+<div class="sub-label">Active Filter Chips</div>
+<div class="row" style="gap:6px">
+  <span class="af-chip">Алматы <span class="af-x">✕</span></span>
+  <span class="af-chip">Ищет команду <span class="af-x">✕</span></span>
+</div>
+
+<h2 class="section-title">Avatars, Mini Bar, Badges</h2>
+<div class="row" style="gap:24px">
+  <div class="col">
+    <div class="sub-label">Sizes</div>
+    <div style="display:flex;gap:12px;align-items:end">
+      <div class="avatar av-sm" style="background:var(--green-500)">И</div>
+      <div class="avatar av-md" style="background:var(--green-600)">И</div>
+      <div class="avatar av-lg" style="background:var(--green-700)">И</div>
+      <div class="avatar av-xl" style="background:var(--green-800)">И</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="sub-label">Stack + Overflow</div>
+    <div class="stack">
+      <div class="avatar av-md" style="background:var(--green-400)">А</div>
+      <div class="avatar av-md" style="background:var(--green-500)">Б</div>
+      <div class="avatar av-md" style="background:var(--green-600)">В</div>
+      <div class="avatar av-md" style="background:var(--green-700)">Г</div>
+      <div class="plus-pill av-md">+12</div>
+    </div>
+  </div>
+  <div class="col">
+    <div class="sub-label">Mini Bar</div>
+    <div style="display:flex;gap:16px">
+      <div class="minibar"><div class="bar bar-on"></div><div class="bar bar-on"></div><div class="bar bar-on"></div><div class="bar bar-on"></div><div class="bar bar-on"></div></div>
+      <div class="minibar"><div class="bar bar-on"></div><div class="bar bar-on"></div><div class="bar bar-on"></div><div class="bar bar-off"></div><div class="bar bar-off"></div></div>
+      <div class="minibar"><div class="bar bar-on"></div><div class="bar bar-off"></div><div class="bar bar-off"></div><div class="bar bar-off"></div><div class="bar bar-off"></div></div>
+    </div>
+    <div class="sub-label" style="margin-top:8px">Badges</div>
+    <div style="display:flex;gap:10px;align-items:center">
+      <div class="badge-cap">C</div>
+      <span class="badge-seek">Ищет команду</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">Stat Cards</h2>
+<div class="row">
+  <div class="card" style="flex:1.2">
+    <div style="font-size:13px;color:var(--text-secondary)">Состав в сборе</div>
+    <div style="display:flex;align-items:baseline;gap:4px;margin-top:4px">
+      <span style="font-family:var(--font-display);font-size:34px;font-weight:700;font-variant-numeric:tabular-nums">9</span>
+      <span style="font-size:20px;color:var(--text-tertiary);font-weight:600">/ 12</span>
+    </div>
+    <div class="progress-bar" style="margin-top:8px"><div style="display:flex;height:100%"><div class="progress-fill" style="background:var(--primary);width:60%"></div><div class="progress-fill" style="background:var(--warning);width:15%"></div><div class="progress-fill" style="background:var(--danger);width:10%"></div></div></div>
+    <div style="display:flex;gap:12px;margin-top:8px;font-size:12px;color:var(--text-secondary)"><span>● активные</span><span style="color:var(--warning)">● под ?</span><span style="color:var(--danger)">● дефицит</span></div>
+  </div>
+  <div class="card" style="flex:0.5;display:flex;flex-direction:column;gap:4px">
+    <span style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--warning)">3</span>
+    <span style="font-size:13px;color:var(--text-secondary)">под вопросом</span>
+  </div>
+  <div class="card" style="flex:0.5;display:flex;flex-direction:column;gap:4px">
+    <span style="font-family:var(--font-display);font-size:28px;font-weight:700;color:var(--danger)">0</span>
+    <span style="font-size:13px;color:var(--text-secondary)">вратарей</span>
+  </div>
+</div>
+
+<h2 class="section-title">Position Badges</h2>
+<div class="row" style="gap:18px;align-items:center;flex-wrap:wrap">
+  <div class="pos-badge pos-nap"><div class="pos-hex"><div class="hex-inner"></div><img src="boot-icon.png" width="16" style="display:block;filter:drop-shadow(0 0 0 transparent)" alt=""></div><div class="pos-pill">НАП</div></div>
+  <div class="pos-badge pos-pzsh"><div class="pos-hex"><div class="hex-inner"></div><img src="target-icon.png" style="height:17px;width:auto;display:block" alt=""></div><div class="pos-pill">ПЗЩ</div></div>
+  <div class="pos-badge pos-zash"><div class="pos-hex"><div class="hex-inner"></div><img src="shield-icon.png" style="height:17px;width:auto;display:block" alt=""></div><div class="pos-pill">ЗАЩ</div></div>
+  <div class="pos-badge pos-vrt"><div class="pos-hex"><div class="hex-inner"></div><img src="glove-icon.png" style="height:19px;width:auto;display:block" alt=""></div><div class="pos-pill">ВРТ</div></div>
+</div>
+
+<h2 class="section-title">Level Badges</h2>
+<div class="row" style="gap:14px;align-items:center;flex-wrap:wrap">
+  <div class="lvl-hex-svg lvl-aplus"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter hex-letter-sm">A+</span></div>
+  <div class="lvl-hex-svg lvl-a"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">A</span></div>
+  <div class="lvl-hex-svg lvl-b"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">B</span></div>
+  <div class="lvl-hex-svg lvl-c"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">C</span></div>
+  <div class="lvl-hex-svg lvl-d"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">D</span></div>
+</div>
+
+<h2 class="section-title">Rating Circle</h2>
+<p class="muted" style="margin:-8px 0 16px;font-size:13px">Цвета соответствуют уровням: A+ фиолетовый · A золотой · B серебро · C бронза · D графит. Цифра — Oswald.</p>
+<div class="row" style="gap:20px;align-items:center;flex-wrap:wrap">
+  <!-- A+ фиолет 94 -->
+  <div class="rating-circle">
+    <svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" cx="24" cy="24" r="20" stroke="oklch(0.55 0.22 280)" stroke-dasharray="125.66" stroke-dashoffset="7.54"/></svg>
+    <div class="rating-num" style="color:oklch(0.45 0.22 280)">94</div>
+  </div>
+  <!-- A золото 89 -->
+  <div class="rating-circle">
+    <svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" cx="24" cy="24" r="20" stroke="oklch(0.78 0.18 85)" stroke-dasharray="125.66" stroke-dashoffset="13.82"/></svg>
+    <div class="rating-num" style="color:oklch(0.62 0.18 85)">89</div>
+  </div>
+  <!-- B серебро 79 -->
+  <div class="rating-circle">
+    <svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" cx="24" cy="24" r="20" stroke="oklch(0.65 0.02 250)" stroke-dasharray="125.66" stroke-dashoffset="26.39"/></svg>
+    <div class="rating-num" style="color:oklch(0.55 0.02 250)">79</div>
+  </div>
+  <!-- C бронза 65 -->
+  <div class="rating-circle">
+    <svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" cx="24" cy="24" r="20" stroke="oklch(0.62 0.12 55)" stroke-dasharray="125.66" stroke-dashoffset="43.98"/></svg>
+    <div class="rating-num" style="color:oklch(0.52 0.12 55)">65</div>
+  </div>
+  <!-- D графит 40 -->
+  <div class="rating-circle">
+    <svg viewBox="0 0 48 48"><circle class="ring-bg" cx="24" cy="24" r="20"/><circle class="ring-fg" cx="24" cy="24" r="20" stroke="oklch(0.35 0.02 80)" stroke-dasharray="125.66" stroke-dashoffset="75.40"/></svg>
+    <div class="rating-num" style="color:oklch(0.32 0.02 80)">40</div>
+  </div>
+</div>
+
+<h2 class="section-title">Player List Row</h2>
+<div class="list-card" style="max-width:620px">
+  <!-- Row 1: A+ НАП -->
+  <div class="list-row" style="padding:14px 16px;gap:24px">
+    <div class="av-wrap">
+      <div class="avatar av-lg" style="width:56px;height:56px;font-size:0;background:none"><img src="https://i.pravatar.cc/150?img=12" style="width:100%;height:100%;object-fit:cover;border-radius:9999px" alt=""></div><div style="position:absolute;bottom:-2px;right:-4px;width:26px;height:26px;border-radius:9999px;border:2px solid #fff;background:oklch(0.35 0.15 250);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">Д</div>
+    </div>
+    <div class="list-info">
+      <div class="list-name" style="font-size:17px">Михаил Карпов</div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <div class="lvl-hex-svg lvl-aplus"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter hex-letter-sm">A+</span></div>
+        <div class="pos-badge pos-nap"><div class="pos-hex"><div class="hex-inner"></div><img src="boot-icon.png" width="16" style="display:block;filter:drop-shadow(0 0 0 transparent)" alt=""></div><div class="pos-pill">НАП</div></div>
+      </div>
+    </div>
+    <div class="rating-circle" style="width:56px;height:56px">
+      <svg viewBox="0 0 56 56" style="width:56px;height:56px"><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.90 0.08 280)" stroke-width="4"/><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.55 0.22 280)" stroke-width="4" stroke-linecap="round" stroke-dasharray="144.51" stroke-dashoffset="8.67"/></svg>
+      <div class="rating-num" style="font-size:20px;color:oklch(0.45 0.22 280)">94</div>
+    </div>
+  </div>
+  <!-- Row 2: A ПЗЩ -->
+  <div class="list-row" style="padding:14px 16px;gap:24px">
+    <div class="av-wrap">
+      <div class="avatar av-lg" style="width:56px;height:56px;font-size:0;background:none"><img src="https://i.pravatar.cc/150?img=33" style="width:100%;height:100%;object-fit:cover;border-radius:9999px" alt=""></div><div style="position:absolute;bottom:-2px;left:34px;display:flex"><div style="width:26px;height:26px;border-radius:9999px;border:2.5px solid #fff;background:oklch(0.55 0.18 25);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;z-index:1">Б</div><div style="width:26px;height:26px;border-radius:9999px;border:2.5px solid #fff;background:oklch(0.45 0.12 145);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;z-index:2;margin-left:-9px">С</div></div>
+    </div>
+    <div class="list-info">
+      <div class="list-name" style="font-size:17px">Станислав Волков</div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <div class="lvl-hex-svg lvl-a"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">A</span></div>
+        <div class="pos-badge pos-pzsh"><div class="pos-hex"><div class="hex-inner"></div><img src="target-icon.png" style="height:17px;width:auto;display:block" alt=""></div><div class="pos-pill">ПЗЩ</div></div>
+      </div>
+    </div>
+    <div class="rating-circle" style="width:56px;height:56px">
+      <svg viewBox="0 0 56 56" style="width:56px;height:56px"><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.93 0.10 85)" stroke-width="4"/><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.78 0.18 85)" stroke-width="4" stroke-linecap="round" stroke-dasharray="144.51" stroke-dashoffset="15.90"/></svg>
+      <div class="rating-num" style="font-size:20px;color:oklch(0.62 0.18 85)">89</div>
+    </div>
+  </div>
+  <!-- Row 3: B ЗАЩ -->
+  <div class="list-row" style="padding:14px 16px;gap:24px">
+    <div class="av-wrap">
+      <div class="avatar av-lg" style="width:56px;height:56px;font-size:0;background:none"><img src="https://i.pravatar.cc/150?img=52" style="width:100%;height:100%;object-fit:cover;border-radius:9999px" alt=""></div><div style="position:absolute;bottom:-2px;right:-4px;width:26px;height:26px;border-radius:9999px;border:2px solid #fff;background:oklch(0.45 0.12 145);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">С</div>
+    </div>
+    <div class="list-info">
+      <div class="list-name" style="font-size:17px">Андрей Харченко</div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <div class="lvl-hex-svg lvl-b"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">B</span></div>
+        <div class="pos-badge pos-zash"><div class="pos-hex"><div class="hex-inner"></div><img src="shield-icon.png" style="height:17px;width:auto;display:block" alt=""></div><div class="pos-pill">ЗАЩ</div></div>
+      </div>
+    </div>
+    <div class="rating-circle" style="width:56px;height:56px">
+      <svg viewBox="0 0 56 56" style="width:56px;height:56px"><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.90 0.01 250)" stroke-width="4"/><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.65 0.02 250)" stroke-width="4" stroke-linecap="round" stroke-dasharray="144.51" stroke-dashoffset="30.35"/></svg>
+      <div class="rating-num" style="font-size:20px;color:oklch(0.55 0.02 250)">79</div>
+    </div>
+  </div>
+  <!-- Row 4: C НАП -->
+  <div class="list-row" style="padding:14px 16px;gap:24px">
+    <div class="av-wrap">
+      <div class="avatar av-lg" style="width:56px;height:56px;font-size:0;background:none"><img src="https://i.pravatar.cc/150?img=59" style="width:100%;height:100%;object-fit:cover;border-radius:9999px" alt=""></div><div style="position:absolute;bottom:-2px;right:-4px;width:26px;height:26px;border-radius:9999px;border:2px solid #fff;background:oklch(0.50 0.10 55);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">А</div>
+    </div>
+    <div class="list-info">
+      <div class="list-name" style="font-size:17px">Дмитрий Козлов</div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <div class="lvl-hex-svg lvl-c"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">C</span></div>
+        <div class="pos-badge pos-nap"><div class="pos-hex"><div class="hex-inner"></div><img src="boot-icon.png" width="16" style="display:block;filter:drop-shadow(0 0 0 transparent)" alt=""></div><div class="pos-pill">НАП</div></div>
+      </div>
+    </div>
+    <div class="rating-circle" style="width:56px;height:56px">
+      <svg viewBox="0 0 56 56" style="width:56px;height:56px"><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.90 0.04 55)" stroke-width="4"/><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.62 0.12 55)" stroke-width="4" stroke-linecap="round" stroke-dasharray="144.51" stroke-dashoffset="50.58"/></svg>
+      <div class="rating-num" style="font-size:20px;color:oklch(0.52 0.12 55)">65</div>
+    </div>
+  </div>
+  <!-- Row 5: D ВРТ -->
+  <div class="list-row" style="padding:14px 16px;gap:24px">
+    <div class="av-wrap">
+      <div class="avatar av-lg" style="width:56px;height:56px;font-size:0;background:none"><img src="https://i.pravatar.cc/150?img=68" style="width:100%;height:100%;object-fit:cover;border-radius:9999px" alt=""></div><div style="position:absolute;bottom:-2px;right:-4px;width:26px;height:26px;border-radius:9999px;border:2px solid #fff;background:oklch(0.40 0.08 80);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff">Ф</div>
+    </div>
+    <div class="list-info">
+      <div class="list-name" style="font-size:17px">Евгений Попов</div>
+      <div style="display:flex;gap:8px;margin-top:8px;align-items:center;flex-wrap:wrap">
+        <div class="lvl-hex-svg lvl-d"><div class="hex-border"></div><div class="hex-fill"></div><span class="hex-letter">D</span></div>
+        <div class="pos-badge pos-vrt"><div class="pos-hex"><div class="hex-inner"></div><img src="glove-icon.png" style="height:19px;width:auto;display:block" alt=""></div><div class="pos-pill">ВРТ</div></div>
+      </div>
+    </div>
+    <div class="rating-circle" style="width:56px;height:56px">
+      <svg viewBox="0 0 56 56" style="width:56px;height:56px"><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.80 0.01 80)" stroke-width="4"/><circle cx="28" cy="28" r="23" fill="none" stroke="oklch(0.35 0.02 80)" stroke-width="4" stroke-linecap="round" stroke-dasharray="144.51" stroke-dashoffset="86.71"/></svg>
+      <div class="rating-num" style="font-size:20px;color:oklch(0.32 0.02 80)">40</div>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">Inputs & Search</h2>
+<div class="row">
+  <div class="col" style="flex:1;gap:12px">
+    <div><div class="input-label">Имя</div><input class="input-field" type="text" placeholder="Введите имя"></div>
+    <div><div class="input-label">Email</div><input class="input-field" type="text" value="ivan@example.com"></div>
+    <div><div class="input-label">Телефон</div><input class="input-field" type="text" placeholder="+7..." style="border-color:var(--danger)"><div class="input-error">Обязательное поле</div></div>
+  </div>
+  <div class="col" style="flex:1;gap:12px">
+    <div class="sub-label">Search Bar (simple)</div>
+    <div style="display:flex;gap:8px">
+      <div class="search-wrap">
+        <span class="search-icon"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"></circle><line x1="12" y1="12" x2="16" y2="16"></line></svg></span>
+        <input class="input-field" type="text" placeholder="Поиск игроков…" style="padding-left:40px;border-radius:14px;border-width:1.5px">
+      </div>
+      <div class="filter-btn">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M2.5 3h15l-5.625 6.65v4.6L8.125 16V9.65L2.5 3z" stroke="var(--text-secondary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="filter-dot">2</span>
+      </div>
+    </div>
+    <div class="sub-label" style="margin-top:4px">Search Bar + City + Filter</div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="search-wrap">
+        <span class="search-icon"><svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="8" cy="8" r="5.5"></circle><line x1="12" y1="12" x2="16" y2="16"></line></svg></span>
+        <input class="input-field" type="text" placeholder="Имя, команда…" style="padding-left:40px;border-radius:14px;border-width:1.5px">
+      </div>
+      <div class="city-selector">Алматы <svg width="12" height="12" viewBox="0 0 12 12" fill="none" style="vertical-align:middle;margin-left:2px"><path d="M3 4.5L6 7.5L9 4.5" stroke="var(--text-secondary)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="filter-btn">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M2.5 3h15l-5.625 6.65v4.6L8.125 16V9.65L2.5 3z" stroke="var(--text-secondary)" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span class="filter-dot">1</span>
+      </div>
+    </div>
+    <div class="sub-label" style="margin-top:4px">Meta Row</div>
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <span style="font-size:13px;color:var(--text-tertiary)">Найдено 36 игроков</span>
+      <span style="font-size:13px;font-weight:600;color:var(--text-accent);background:var(--bg-card);border:1px solid var(--border);border-radius:9999px;padding:4px 12px">По уровню ▾</span>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">Headers</h2>
+<div class="row">
+  <div class="col" style="flex:1">
+    <div class="sub-label">PageHeader (Green Hero)</div>
+    <div class="page-header">
+      <div class="ph-top">
+        <span class="ph-title">ИГРОКИ</span>
+        <div class="ph-bell"><svg width="18" height="18" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round"><path d="M9 2a4 4 0 014 4c0 4 2 5 2 5H3s2-1 2-5a4 4 0 014-4z"></path><path d="M7.5 15a1.5 1.5 0 003 0"></path></svg></div>
+      </div>
+      <div class="ph-stats">
+        <div class="ph-stat"><div class="ph-stat-num">36</div><div class="ph-stat-label">Всего</div></div>
+        <div class="ph-stat"><div class="ph-stat-num">2</div><div class="ph-stat-label">В моих</div></div>
+        <div class="ph-stat"><div class="ph-stat-num">28</div><div class="ph-stat-label">С опытом</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="col" style="flex:1">
+    <div class="sub-label">Screen Header (Inner)</div>
+    <div class="screen-header">
+      <div class="sh-left">
+        <div class="sh-back"><svg width="18" height="18" fill="none" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round"><polyline points="11,4 5,9 11,14"></polyline></svg></div>
+        <span class="sh-title">Состав</span>
+      </div>
+      <div class="sh-actions">
+        <div class="sh-btn"><svg width="18" height="18" fill="none" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round"><circle cx="9" cy="9" r="5.5"></circle><line x1="13" y1="13" x2="16" y2="16"></line></svg></div>
+        <div class="sh-btn"><svg width="18" height="18" fill="none" stroke="var(--text-primary)" stroke-width="2" stroke-linecap="round"><line x1="9" y1="3" x2="9" y2="15"></line><line x1="3" y1="9" x2="15" y2="9"></line></svg></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">Actions, Empty State, Tabs</h2>
+<div class="row">
+  <div class="col" style="flex:1;gap:16px">
+    <div>
+      <div class="sub-label">Action List</div>
+      <div class="list-card">
+        <div style="padding:12px 16px 4px;font-size:11px;text-transform:uppercase;letter-spacing:0.06em;font-weight:600;color:var(--text-secondary)">Управление</div>
+        <div class="action-row">
+          <div class="action-icon"><svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2"><rect x="3" y="3" width="12" height="12" rx="2"></rect></svg></div>
+          <div class="action-info"><div class="action-title">Площадка</div><div class="action-desc">расходы</div></div>
+          <span class="action-link">Указать</span><span style="color:var(--text-tertiary)">›</span>
+        </div>
+        <div class="action-row">
+          <div class="action-icon"><svg width="18" height="18" fill="none" stroke="var(--primary)" stroke-width="2"><circle cx="9" cy="9" r="6"></circle><path d="M9 6v4l2.5 1.5"></path></svg></div>
+          <div class="action-info"><div class="action-title">Финансы</div><div class="action-desc">12 из 18 ₸</div></div>
+          <span style="color:var(--text-tertiary)">›</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="sub-label">Bottom Action Bar</div>
+      <div class="bottom-bar">
+        <button class="bar-btn" style="background:var(--primary);color:#fff">Завершить</button>
+        <button class="bar-btn" style="background:var(--bg-card);color:var(--text-primary);border:1px solid var(--border)">Отменить</button>
+      </div>
+    </div>
+  </div>
+  <div class="col" style="flex:1;gap:16px">
+    <div>
+      <div class="sub-label">Empty State</div>
+      <div class="empty">
+        <svg width="40" height="40" fill="none" stroke="var(--text-tertiary)" stroke-width="1.5" stroke-linecap="round" style="margin:0 auto"><circle cx="20" cy="16" r="7"></circle><path d="M8 34c0-6.6 5.4-12 12-12s12 5.4 12 12"></path></svg>
+        <div class="empty-text">В команде пока никого нет</div>
+        <button class="empty-cta">Пригласить игрока</button>
+      </div>
+    </div>
+    <div>
+      <div class="sub-label">Underline Tabs</div>
+      <div class="tabs">
+        <div class="tab tab-active">Главная</div>
+        <div class="tab">Состав</div>
+        <div class="tab">События</div>
+        <div class="tab">Финансы</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<h2 class="section-title">Triplet Metric</h2>
+<div class="card" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;text-align:center;max-width:400px">
+  <div><div style="font-size:15px;font-weight:600">1 ₸</div><div style="font-size:11px;color:var(--text-tertiary)">взнос</div></div>
+  <div><div style="font-size:15px;font-weight:600">Мин. 1</div><div style="font-size:11px;color:var(--text-tertiary)">игрок</div></div>
+  <div>
+    <div style="font-size:15px;font-weight:600">16 / 18</div>
+    <div style="font-size:11px;color:var(--text-tertiary)">участников</div>
+    <div class="progress-bar" style="margin-top:4px"><div class="progress-fill" style="background:var(--primary);width:89%"></div></div>
+  </div>
+</div>
+
+</body></html>
