@@ -1,5 +1,4 @@
 import { EventListRow } from "@/components/events/EventListRow";
-import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import type { EventItem } from "./types";
 
 export function EventsSection({
@@ -34,12 +33,10 @@ export function EventsSection({
               id={e.id}
               teamId={teamId}
               teamName={teamName}
-              title={EVENT_TYPE_LABEL[e.type] ?? e.type}
               type={e.type}
               date={e.date}
               venueName={e.venue?.name ?? null}
-              venueDistrict={null}
-              venueCity={null}
+              venueAddress={e.venue?.address ?? null}
               yesCount={e.yesCount}
               pricePerPlayer={e.price_per_player}
             />

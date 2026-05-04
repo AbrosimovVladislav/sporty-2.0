@@ -322,8 +322,7 @@ export default function VenueProfilePage() {
                       type={e.type}
                       date={e.date}
                       venueName={null}
-                      venueDistrict={null}
-                      venueCity={null}
+                      venueAddress={null}
                       yesCount={e.yes_count}
                       pricePerPlayer={e.price_per_player}
                     />

@@ -37,6 +37,7 @@ type PublicEvent = {
   venue: {
     id: string;
     name: string;
+    address: string | null;
     city: string;
     district: { id: string; name: string } | null;
   } | null;
@@ -363,8 +364,11 @@ function SearchEventsInner() {
                     type={e.type}
                     date={e.date}
                     venueName={e.venue?.name ?? null}
-                    venueDistrict={e.venue?.district?.name ?? null}
-                    venueCity={e.venue?.city ?? null}
+                    venueAddress={
+                      [e.venue?.district?.name, e.venue?.address]
+                        .filter(Boolean)
+                        .join(", ") || null
+                    }
                     yesCount={e.yes_count}
                     pricePerPlayer={e.price_per_player}
                     myTeam={myTeamIds.has(e.team_id)}

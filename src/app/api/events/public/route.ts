@@ -14,7 +14,7 @@ type PublicEventRow = {
   venues: {
     id: string;
     name: string;
-    address: string;
+    address: string | null;
     city: string;
     district_id: string | null;
     districts: { id: string; name: string } | null;
