@@ -8,6 +8,7 @@ import DistrictPicker from "@/components/DistrictPicker";
 import { Button, BottomActionBar, SheetChipGroup } from "@/components/ui";
 import { POSITIONS, SKILL_LEVELS } from "@/lib/catalogs";
 import { useCity, KZ_CITIES } from "@/lib/city-context";
+import { levelFromRating, levelLetter } from "@/lib/playerBadges";
 import type { User } from "@/types/database";
 
 export default function ProfileSettingsPage() {
@@ -51,6 +52,9 @@ function SettingsContent({
     initialUser.position ?? [],
   );
   const [skillLevel, setSkillLevel] = useState(initialUser.skill_level ?? "");
+  const [rating, setRating] = useState<string>(
+    initialUser.rating != null ? String(initialUser.rating) : "",
+  );
   const [birthDate, setBirthDate] = useState(initialUser.birth_date ?? "");
   const [city, setCity] = useState(activeCity || initialUser.city || "");
   const [districtId, setDistrictId] = useState(initialUser.district_id ?? "");
@@ -67,6 +71,7 @@ function SettingsContent({
           setUser(d.user);
           setDistrictId(d.user.district_id ?? "");
           setPositions(d.user.position ?? []);
+          setRating(d.user.rating != null ? String(d.user.rating) : "");
         }
       })
       .catch(() => {});
@@ -78,7 +83,14 @@ function SettingsContent({
     );
   }
 
+  const ratingNum = rating === "" ? null : Number(rating);
+  const ratingValid =
+    ratingNum === null ||
+    (Number.isInteger(ratingNum) && ratingNum >= 0 && ratingNum <= 100);
+  const ratingLevel = levelFromRating(ratingNum);
+
   async function handleSave() {
+    if (!ratingValid) return;
     setSaving(true);
     try {
       const res = await fetch(`/api/users/${user.id}/profile`, {
@@ -88,6 +100,7 @@ function SettingsContent({
           bio: bio.trim() || null,
           position: positions.length > 0 ? positions : null,
           skill_level: skillLevel || null,
+          rating: ratingNum,
           birth_date: birthDate || null,
           city: city || null,
           district_id: districtId || null,
@@ -205,6 +218,51 @@ function SettingsContent({
         </Section>
 
         <Section>
+          <FieldLabel>Рейтинг</FieldLabel>
+          <FieldHint>Целое число от 0 до 100. Можно оставить пустым.</FieldHint>
+          <div className="flex items-center gap-2.5 mt-2">
+            <input
+              type="number"
+              inputMode="numeric"
+              min={0}
+              max={100}
+              step={1}
+              value={rating}
+              onChange={(e) => setRating(e.target.value.replace(/[^\d]/g, ""))}
+              placeholder="—"
+              className="flex-1 rounded-[12px] px-3.5 h-[46px] text-[15px] outline-none transition-colors tabular-nums"
+              style={{
+                background: "var(--bg-card)",
+                border: ratingValid
+                  ? "1.5px solid var(--gray-200)"
+                  : "1.5px solid var(--red-500, #e5484d)",
+                color: "var(--text-primary)",
+              }}
+            />
+            {ratingLevel && (
+              <span
+                className="inline-flex items-center justify-center px-3 h-[46px] rounded-[12px] font-display font-bold text-[18px] tabular-nums"
+                style={{
+                  background: `var(--lvl-${ratingLevel}-ring-bg)`,
+                  color: `var(--lvl-${ratingLevel}-ring)`,
+                  minWidth: 64,
+                }}
+              >
+                {levelLetter(ratingLevel)}
+              </span>
+            )}
+          </div>
+          {!ratingValid && (
+            <p
+              className="text-[12px] mt-1"
+              style={{ color: "var(--red-500, #e5484d)" }}
+            >
+              Рейтинг должен быть целым числом от 0 до 100
+            </p>
+          )}
+        </Section>
+
+        <Section>
           <FieldLabel>Дата рождения</FieldLabel>
           <input
             type="date"
@@ -271,6 +329,7 @@ function SettingsContent({
           variant="primary"
           size="lg"
           loading={saving}
+          disabled={!ratingValid}
           className="w-full"
           onClick={handleSave}
         >

@@ -29,6 +29,21 @@ export async function PUT(
     }
   }
   if ("skill_level" in body) update.skill_level = body.skill_level ?? null;
+  if ("rating" in body) {
+    const raw = body.rating;
+    if (raw == null || raw === "") {
+      update.rating = null;
+    } else {
+      const n = typeof raw === "number" ? raw : Number(raw);
+      if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 100) {
+        return NextResponse.json(
+          { error: "rating must be an integer between 0 and 100" },
+          { status: 400 },
+        );
+      }
+      update.rating = n;
+    }
+  }
   if ("preferred_time" in body) update.preferred_time = body.preferred_time ?? null;
   if ("looking_for_team" in body) update.looking_for_team = Boolean(body.looking_for_team);
   if ("city" in body) update.city = body.city ?? null;

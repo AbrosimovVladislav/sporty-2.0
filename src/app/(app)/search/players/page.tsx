@@ -171,6 +171,12 @@ export default function SearchPlayersPage() {
           onChange={setPositionPill}
         />
 
+        {activeChips.length > 0 && (
+          <ActiveFilterChips chips={activeChips} className="mt-3.5" />
+        )}
+      </div>
+
+      <div className="px-4 mt-5">
         <ListMeta
           countLabel={countLabel}
           sort={{
@@ -179,13 +185,6 @@ export default function SearchPlayersPage() {
             onChange: (v) => setSort(v as SortMode),
           }}
         />
-
-        {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} className="mt-3.5" />
-        )}
-      </div>
-
-      <div className="px-4 mt-5">
         {showSkeleton ? (
           <SkeletonList count={5} />
         ) : showEmpty ? (

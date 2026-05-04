@@ -63,12 +63,23 @@ export async function GET(req: NextRequest) {
   if (district_id) query = query.eq("district_id", district_id);
 
   // Sort + cursor. For skill sort the cursor is on rating (0..100) with a tie-break on id.
-  // NULL rating rows come last; cursor.v = "" sentinel for them so we can keep paging.
+  // NULL rating rows come last; cursor.v = "" sentinel = we are inside the null-rated zone.
+  // Иначе курсор по рейтингу — добавляем `rating.is.null` в OR, чтобы плавно перейти
+  // в null-зону, когда рейтинговые игроки кончатся.
   if (sort === "skill") {
     query = query
       .order("rating", { ascending: false, nullsFirst: false })
       .order("id", { ascending: false });
-    if (cursor) query = query.or(keysetClause("rating", cursor, "desc"));
+    if (cursor) {
+      if (cursor.v === "") {
+        query = query.is("rating", null).lt("id", cursor.id);
+      } else {
+        const v = cursor.v;
+        query = query.or(
+          `rating.lt.${v},rating.is.null,and(rating.eq.${v},id.lt.${cursor.id})`,
+        );
+      }
+    }
   } else if (sort === "name_asc") {
     query = query
       .order("name", { ascending: true })
