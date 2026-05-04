@@ -201,7 +201,7 @@ export default function SearchTeamsPage() {
         )}
       </div>
 
-      <div className="px-4 mt-5">
+      <div className="px-4 mt-3">
         <ListMeta
           countLabel={countLabel}
           sort={{
