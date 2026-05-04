@@ -69,10 +69,36 @@ export function PinIcon() {
   );
 }
 
-export function StarIcon() {
+export function CrownIcon() {
   return (
-    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" />
+    <svg
+      width="12"
+      height="12"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M3 7l4.5 4L12 4l4.5 7L21 7l-2 12H5L3 7zm3.4 10h11.2l1.1-6.7-3.7 3.3-3.5-5.4-2.5 5.4-3.7-3.3L7.4 17z" />
+    </svg>
+  );
+}
+
+export function LogoutIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+      <polyline points="16 17 21 12 16 7" />
+      <line x1="21" y1="12" x2="9" y2="12" />
     </svg>
   );
 }

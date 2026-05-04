@@ -1,8 +1,13 @@
-import { Avatar } from "@/components/ui";
-import { PositionChipList } from "@/components/PositionChip";
-import { SkillBadge } from "./atoms";
-import { PinIcon } from "./icons";
-import { ratingColor } from "@/lib/ratingColor";
+import Image from "next/image";
+import { LevelBadge } from "@/components/players/badges/LevelBadge";
+import { PositionBadge } from "@/components/players/badges/PositionBadge";
+import { SKILL_LEVELS } from "@/lib/catalogs";
+import {
+  levelFromRating,
+  positionCode,
+  type PositionCode,
+} from "@/lib/playerBadges";
+import { CrownIcon, PinIcon } from "./icons";
 import type { TeamPlayerSheetMember } from "./types";
 
 export function SheetHeader({
@@ -16,75 +21,192 @@ export function SheetHeader({
   skillNum: number;
   onOpenProfile: () => void;
 }) {
-  const positions = member.user.position ?? [];
+  const levelCode = levelFromRating(member.user.rating);
+  const positions = (member.user.position ?? [])
+    .map((p) => positionCode(p))
+    .filter((c): c is PositionCode => c !== null);
+
+  const hasBadgesRow = !!levelCode || positions.length > 0;
 
   return (
     <>
-      <div className="flex items-start gap-3">
-        <Avatar src={member.user.avatar_url} name={member.user.name} size="lg" />
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <p
-              className="text-[18px] font-bold leading-tight"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {member.user.name}
-            </p>
-            {member.user.rating != null && (
-              <span
-                className="text-[18px] font-black tabular-nums leading-tight"
-                style={{ color: ratingColor(member.user.rating) }}
-              >
-                {member.user.rating}
-              </span>
-            )}
+      <div className="flex items-start gap-4">
+        <AvatarWithRating
+          src={member.user.avatar_url}
+          name={member.user.name}
+          rating={member.user.rating}
+        />
+        <div className="flex-1 min-w-0 pt-1 flex flex-col gap-2.5">
+          <h2
+            className="font-display font-bold uppercase wrap-break-word"
+            style={{
+              fontSize: 24,
+              lineHeight: 1.1,
+              letterSpacing: "0.01em",
+              color: "var(--text-primary)",
+            }}
+          >
+            {member.user.name}
+          </h2>
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
             {isTargetOrganizer && (
               <span
-                className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold uppercase"
                 style={{
-                  background: "var(--green-50)",
+                  border: "1.5px solid var(--green-500)",
                   color: "var(--green-700)",
-                  letterSpacing: "0.6px",
+                  letterSpacing: "0.06em",
                 }}
               >
+                <CrownIcon />
                 Организатор
               </span>
             )}
+            {member.user.city && (
+              <span
+                className="inline-flex items-center gap-1 text-[13px]"
+                style={{ color: "var(--text-secondary)" }}
+              >
+                <PinIcon />
+                {member.user.city}
+              </span>
+            )}
           </div>
-
-          {(positions.length > 0 || member.user.city) && (
-            <div className="flex flex-wrap items-center gap-1.5 mt-2">
-              <PositionChipList positions={positions} tone="light" />
-              {member.user.city && (
-                <span
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[12px] font-medium"
-                  style={{
-                    background: "var(--bg-secondary)",
-                    color: "var(--text-secondary)",
-                  }}
-                >
-                  <PinIcon />
-                  {member.user.city}
-                </span>
-              )}
-            </div>
-          )}
-
-          {member.user.skill_level && (
-            <div className="mt-2">
-              <SkillBadge level={member.user.skill_level} num={skillNum} />
-            </div>
-          )}
         </div>
       </div>
 
+      {hasBadgesRow && (
+        <div className="flex flex-wrap gap-2 items-center">
+          {levelCode && (
+            <LevelChip
+              code={levelCode}
+              skillLabel={member.user.skill_level}
+              skillNum={skillNum}
+            />
+          )}
+          {positions.map((c) => (
+            <PositionBadge key={c} code={c} />
+          ))}
+        </div>
+      )}
+
       <button
         onClick={onOpenProfile}
-        className="w-full h-11 rounded-xl text-[14px] font-semibold"
-        style={{ background: "var(--gray-100)", color: "var(--text-primary)" }}
+        className="w-full h-12 rounded-full text-[15px] font-semibold"
+        style={{
+          background: "var(--text-primary)",
+          color: "white",
+        }}
       >
         Открыть профиль
       </button>
     </>
+  );
+}
+
+function AvatarWithRating({
+  src,
+  name,
+  rating,
+}: {
+  src: string | null;
+  name: string;
+  rating: number | null;
+}) {
+  const initial = (name || "?").trim().charAt(0).toUpperCase();
+  return (
+    <div className="relative shrink-0" style={{ width: 84, height: 84 }}>
+      <div
+        className="w-full h-full rounded-full overflow-hidden flex items-center justify-center"
+        style={{
+          background: src ? "white" : "var(--gray-100)",
+          border: "1px solid var(--gray-200)",
+        }}
+      >
+        {src ? (
+          <Image
+            src={src}
+            alt={name}
+            width={84}
+            height={84}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span
+            className="font-display text-[28px] font-bold"
+            style={{ color: "var(--text-secondary)" }}
+          >
+            {initial}
+          </span>
+        )}
+      </div>
+      {rating != null && (
+        <div
+          className="absolute flex items-center justify-center font-display tabular-nums"
+          style={{
+            right: -2,
+            bottom: -2,
+            width: 30,
+            height: 30,
+            borderRadius: "9999px",
+            background: "var(--text-primary)",
+            color: "white",
+            border: "2.5px solid white",
+            fontSize: 12,
+            fontWeight: 700,
+            lineHeight: 1,
+          }}
+        >
+          {rating}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function LevelChip({
+  code,
+  skillLabel,
+  skillNum,
+}: {
+  code: NonNullable<ReturnType<typeof levelFromRating>>;
+  skillLabel: string | null;
+  skillNum: number;
+}) {
+  const showSkill = !!skillLabel && skillNum > 0;
+  return (
+    <div className="inline-flex items-center shrink-0">
+      <LevelBadge code={code} />
+      {showSkill && (
+        <span
+          className="inline-flex items-center"
+          style={{
+            height: 22,
+            padding: "0 10px 0 8px",
+            marginLeft: -1,
+            background: "var(--bg-primary)",
+            border: "1.5px solid var(--gray-200)",
+            borderRadius: "0 9999px 9999px 0",
+            fontSize: 11,
+            fontWeight: 700,
+            lineHeight: 1,
+            whiteSpace: "nowrap",
+            color: "var(--text-primary)",
+            letterSpacing: "0.02em",
+          }}
+        >
+          {skillLabel}
+          <span
+            style={{
+              color: "var(--text-tertiary)",
+              marginLeft: 6,
+              fontWeight: 600,
+            }}
+          >
+            {skillNum}/{SKILL_LEVELS.length}
+          </span>
+        </span>
+      )}
+    </div>
   );
 }

@@ -8,7 +8,7 @@ import {
   FinancesBody,
   peekFinances,
 } from "./team-player-sheet/FinancesBody";
-import { CloseIcon } from "./team-player-sheet/icons";
+import { CloseIcon, LogoutIcon } from "./team-player-sheet/icons";
 import {
   ReliabilityBody,
   peekReliability,
@@ -309,9 +309,10 @@ export function TeamPlayerSheet({
             ) : (
               <button
                 onClick={() => setConfirmLeave(true)}
-                className="w-full h-11 rounded-xl text-[14px] font-semibold"
+                className="w-full h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2"
                 style={{ background: "#FFF1F1", color: "#E53935" }}
               >
+                <LogoutIcon />
                 Покинуть команду
               </button>
             ))}

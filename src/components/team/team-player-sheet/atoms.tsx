@@ -1,26 +1,4 @@
 import { SKILL_LEVELS } from "@/lib/catalogs";
-import { StarIcon } from "./icons";
-
-export function SkillBadge({ level, num }: { level: string; num: number }) {
-  const total = SKILL_LEVELS.length;
-  const palette: Record<number, { bg: string; fg: string }> = {
-    1: { bg: "#F1F4F8", fg: "#6B7280" },
-    2: { bg: "#E8F0FE", fg: "#1F66D9" },
-    3: { bg: "#E6F7EC", fg: "#1F8A4C" },
-    4: { bg: "#FFF4E0", fg: "#B86E00" },
-    5: { bg: "#FFE3E3", fg: "#C12A2A" },
-  };
-  const c = palette[num] ?? palette[1];
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[12px] font-semibold"
-      style={{ background: c.bg, color: c.fg }}
-    >
-      <StarIcon />
-      {level} · {num}/{total}
-    </span>
-  );
-}
 
 export function MiniStat({
   label,
