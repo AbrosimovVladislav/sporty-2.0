@@ -61,10 +61,15 @@ export async function GET(req: NextRequest) {
   // events.yes_count is a separate task (see roadmap 1.5.3).
   const dbLimit = hasSpots ? limit * 4 : limit + 1;
 
+  // Total count is meaningful only on the first page and when has_spots is off
+  // (has_spots filters in JS after fetch, so DB count would diverge).
+  const wantCount = !cursor && !hasSpots;
+
   let query = supabase
     .from("events")
     .select(
       "id, team_id, type, date, price_per_player, min_players, description, venue_id, venues!inner(id, name, address, city, district_id, districts(id, name)), teams!inner(id, name, city)",
+      wantCount ? { count: "exact" } : undefined,
     )
     .eq("is_public", true)
     .eq("status", "planned")
@@ -101,7 +106,7 @@ export async function GET(req: NextRequest) {
 
   query = query.limit(dbLimit);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
 
   if (error) {
     console.error("Public events fetch error:", error);
@@ -161,5 +166,9 @@ export async function GET(req: NextRequest) {
     yes_count: countMap.get(e.id) ?? 0,
   }));
 
-  return NextResponse.json({ events: result, nextCursor });
+  return NextResponse.json({
+    events: result,
+    nextCursor,
+    total: wantCount ? count ?? 0 : null,
+  });
 }

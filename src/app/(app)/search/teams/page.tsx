@@ -7,12 +7,11 @@ import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
-  HeaderStatGroup,
-  HeaderStat,
   ListSearchBar,
   ListMeta,
   ActiveFilterChips,
   EmptyState,
+  CityPickerSheet,
   type FilterChip,
 } from "@/components/ui";
 import { SearchSubnav } from "@/components/search/SearchSubnav";
@@ -22,7 +21,7 @@ import {
   type TeamFilters,
 } from "@/components/teams/TeamFiltersSheet";
 import { SPORT_LABEL } from "@/lib/catalogs";
-import { useCity } from "@/lib/city-context";
+import { useCity, KZ_CITIES } from "@/lib/city-context";
 
 type Team = {
   id: string;
@@ -36,12 +35,6 @@ type Team = {
   logo_url: string | null;
   district: { id: string; name: string } | null;
   members_count: number;
-};
-
-type Stats = {
-  total: number;
-  mine: number | null;
-  lookingForPlayers: number;
 };
 
 type TeamSort = "created_desc" | "name_asc";
@@ -67,40 +60,22 @@ export default function SearchTeamsPage() {
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState<TeamFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<TeamSort>("created_desc");
-
-  useEffect(() => {
-    setFilters((f) => ({ ...f, city: activeCity }));
-  }, [activeCity]);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
 
-  const [stats, setStats] = useState<Stats | null>(null);
   const [myTeamIds, setMyTeamIds] = useState<Set<string>>(new Set());
   const [myRoles, setMyRoles] = useState<
     Record<string, "organizer" | "player">
   >({});
 
   useEffect(() => {
+    setFilters((f) => (f.city ? f : { ...f, city: activeCity }));
+  }, [activeCity]);
+
+  useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
     return () => clearTimeout(t);
   }, [search]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams();
-    if (filters.city) params.set("city", filters.city);
-    if (filters.sport) params.set("sport", filters.sport);
-    fetch(`/api/teams/stats?${params}`)
-      .then((r) => r.json())
-      .then((d: Stats) => {
-        if (!cancelled) setStats(d);
-      })
-      .catch(() => {
-        if (!cancelled) setStats(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [filters.city, filters.sport]);
 
   useEffect(() => {
     if (!userId) {
@@ -153,13 +128,18 @@ export default function SearchTeamsPage() {
         : `/api/teams?${queryString}`;
       const r = await fetch(url);
       if (!r.ok) throw new Error("teams fetch failed");
-      return r.json() as Promise<{ teams: Team[]; nextCursor: string | null }>;
+      return r.json() as Promise<{
+        teams: Team[];
+        nextCursor: string | null;
+        total?: number;
+      }>;
     },
     initialPageParam: null as string | null,
     getNextPageParam: (last) => last.nextCursor,
   });
 
   const teams = teamsQuery.data?.pages.flatMap((p) => p.teams) ?? [];
+  const total = teamsQuery.data?.pages[0]?.total ?? null;
   const loading = teamsQuery.isPending || teamsQuery.isFetchingNextPage;
   const hasMore = teamsQuery.hasNextPage;
   const loadMore = () => {
@@ -168,14 +148,6 @@ export default function SearchTeamsPage() {
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
-    if (filters.city) {
-      chips.push({
-        id: "city",
-        label: filters.city,
-        onRemove: () =>
-          setFilters((f) => ({ ...f, city: "", districtId: "" })),
-      });
-    }
     if (filters.sport) {
       chips.push({
         id: "sport",
@@ -195,27 +167,19 @@ export default function SearchTeamsPage() {
   }, [filters]);
 
   const sheetActiveCount =
-    (filters.city ? 1 : 0) +
     (filters.districtId ? 1 : 0) +
     (filters.sport ? 1 : 0) +
     (filters.lookingForPlayers ? 1 : 0);
 
   const showSkeleton = teams.length === 0 && teamsQuery.isPending;
   const showEmpty = !loading && teams.length === 0;
-  const resultsLabel =
-    teams.length > 0 ? `${teams.length}${hasMore ? "+" : ""}` : null;
+  const countLabel = total != null ? `Результаты · ${total}` : null;
+
+  const cityForPicker = filters.city || activeCity;
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader title="Команды">
-        <HeaderStatGroup>
-          <HeaderStat value={stats?.total ?? "—"} label="Всего" />
-          <HeaderStat
-            value={stats?.lookingForPlayers ?? "—"}
-            label="Ищут игроков"
-          />
-        </HeaderStatGroup>
-      </PageHeader>
+      <PageHeader title="Команды" />
 
       <SearchSubnav />
 
@@ -226,22 +190,26 @@ export default function SearchTeamsPage() {
           onFilterClick={() => setSheetOpen(true)}
           filterActiveCount={sheetActiveCount}
           placeholder="Имя команды, город…"
+          cityPicker={{
+            value: cityForPicker,
+            onClick: () => setCityOpen(true),
+          }}
         />
 
+        {activeChips.length > 0 && (
+          <ActiveFilterChips chips={activeChips} className="mt-3.5" />
+        )}
+      </div>
+
+      <div className="px-4 mt-5">
         <ListMeta
+          countLabel={countLabel}
           sort={{
             value: sort,
             options: SORT_OPTIONS,
             onChange: (v) => setSort(v as TeamSort),
           }}
         />
-
-        {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} className="mt-1.5" />
-        )}
-      </div>
-
-      <div className="px-4 mt-5">
         {showSkeleton ? (
           <SkeletonList count={5} />
         ) : showEmpty ? (
@@ -259,17 +227,6 @@ export default function SearchTeamsPage() {
           </div>
         ) : (
           <>
-            {resultsLabel && (
-              <p
-                className="text-[11px] font-semibold uppercase mb-1"
-                style={{
-                  letterSpacing: "0.06em",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Результаты · {resultsLabel}
-              </p>
-            )}
             <ul className="flex flex-col">
               {teams.map((t) => (
                 <li key={t.id}>
@@ -287,6 +244,17 @@ export default function SearchTeamsPage() {
                 </li>
               ))}
             </ul>
+            {teamsQuery.isFetchingNextPage && (
+              <div className="flex justify-center py-5">
+                <span
+                  className="block w-6 h-6 rounded-full animate-spin"
+                  style={{
+                    border: "2.5px solid var(--gray-200)",
+                    borderTopColor: "var(--green-500)",
+                  }}
+                />
+              </div>
+            )}
             {hasMore && <InfiniteScrollSentinel onVisible={loadMore} />}
           </>
         )}
@@ -297,6 +265,16 @@ export default function SearchTeamsPage() {
         initial={filters}
         onClose={() => setSheetOpen(false)}
         onApply={(next) => setFilters(next)}
+      />
+
+      <CityPickerSheet
+        open={cityOpen}
+        cities={KZ_CITIES}
+        value={cityForPicker}
+        onClose={() => setCityOpen(false)}
+        onSelect={(c) =>
+          setFilters((f) => ({ ...f, city: c, districtId: "" }))
+        }
       />
     </div>
   );

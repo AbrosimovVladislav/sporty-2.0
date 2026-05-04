@@ -17,7 +17,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div
           className="flex flex-col flex-1"
           style={{
-            paddingBottom: "calc(72px + env(safe-area-inset-bottom, 0px))",
+            paddingBottom: "calc(88px + env(safe-area-inset-bottom, 0px))",
           }}
         >
           {children}

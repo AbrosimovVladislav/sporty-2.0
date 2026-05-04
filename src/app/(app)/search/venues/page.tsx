@@ -1,15 +1,15 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { usePaginatedList } from "@/lib/usePaginatedList";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
   ListSearchBar,
-  ActiveFilterChips,
+  ListMeta,
   EmptyState,
-  type FilterChip,
+  CityPickerSheet,
 } from "@/components/ui";
 import { SearchSubnav } from "@/components/search/SearchSubnav";
 import { VenueListRow } from "@/components/venues/VenueListRow";
@@ -17,7 +17,7 @@ import {
   VenueFiltersSheet,
   type VenueFilters,
 } from "@/components/venues/VenueFiltersSheet";
-import { useCity } from "@/lib/city-context";
+import { useCity, KZ_CITIES } from "@/lib/city-context";
 
 type Venue = {
   id: string;
@@ -37,11 +37,12 @@ export default function SearchVenuesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState<VenueFilters>(EMPTY_FILTERS);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [cityOpen, setCityOpen] = useState(false);
 
   useEffect(() => {
-    setFilters((f) => ({ ...f, city: activeCity }));
+    setFilters((f) => (f.city ? f : { ...f, city: activeCity }));
   }, [activeCity]);
-  const [sheetOpen, setSheetOpen] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 250);
@@ -99,24 +100,13 @@ export default function SearchVenuesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [debouncedSearch, filters.city, filters.districtId]);
 
-  const activeChips = useMemo<FilterChip[]>(() => {
-    const chips: FilterChip[] = [];
-    if (filters.city) {
-      chips.push({
-        id: "city",
-        label: filters.city,
-        onRemove: () =>
-          setFilters((f) => ({ ...f, city: "", districtId: "" })),
-      });
-    }
-    return chips;
-  }, [filters]);
-
-  const sheetActiveCount =
-    (filters.city ? 1 : 0) + (filters.districtId ? 1 : 0);
+  const sheetActiveCount = filters.districtId ? 1 : 0;
 
   const showSkeleton = venues.length === 0 && loading;
   const showEmpty = !loading && venues.length === 0;
+  const countLabel = resultsTotal != null ? `Результаты · ${resultsTotal}` : null;
+
+  const cityForPicker = filters.city || activeCity;
 
   return (
     <div className="flex flex-1 flex-col">
@@ -131,14 +121,15 @@ export default function SearchVenuesPage() {
           onFilterClick={() => setSheetOpen(true)}
           filterActiveCount={sheetActiveCount}
           placeholder="Название, адрес…"
+          cityPicker={{
+            value: cityForPicker,
+            onClick: () => setCityOpen(true),
+          }}
         />
-
-        {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} className="mt-3" />
-        )}
       </div>
 
       <div className="px-4 mt-5">
+        <ListMeta countLabel={countLabel} />
         {showSkeleton ? (
           <SkeletonList count={5} />
         ) : showEmpty ? (
@@ -156,17 +147,6 @@ export default function SearchVenuesPage() {
           </div>
         ) : (
           <>
-            {resultsTotal !== null && resultsTotal > 0 && (
-              <p
-                className="text-[11px] font-semibold uppercase mb-1"
-                style={{
-                  letterSpacing: "0.06em",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Результаты · {resultsTotal}
-              </p>
-            )}
             <ul className="flex flex-col">
               {venues.map((v) => (
                 <li key={v.id}>
@@ -191,6 +171,16 @@ export default function SearchVenuesPage() {
         initial={filters}
         onClose={() => setSheetOpen(false)}
         onApply={(next) => setFilters(next)}
+      />
+
+      <CityPickerSheet
+        open={cityOpen}
+        cities={KZ_CITIES}
+        value={cityForPicker}
+        onClose={() => setCityOpen(false)}
+        onSelect={(c) =>
+          setFilters((f) => ({ ...f, city: c, districtId: "" }))
+        }
       />
     </div>
   );

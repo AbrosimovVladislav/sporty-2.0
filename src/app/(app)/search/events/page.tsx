@@ -8,13 +8,12 @@ import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
-  HeaderStatGroup,
-  HeaderStat,
   ListSearchBar,
   ListMeta,
   FilterPills,
   ActiveFilterChips,
   EmptyState,
+  CityPickerSheet,
   type FilterChip,
 } from "@/components/ui";
 import { SearchSubnav } from "@/components/search/SearchSubnav";
@@ -25,7 +24,7 @@ import {
   type EventFilters,
 } from "@/components/events/EventFiltersSheet";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
-import { useCity } from "@/lib/city-context";
+import { useCity, KZ_CITIES } from "@/lib/city-context";
 
 type PublicEvent = {
   id: string;
@@ -44,8 +43,6 @@ type PublicEvent = {
   team: { id: string; name: string; city: string } | null;
   yes_count: number;
 };
-
-type Stats = { total: number; today: number; week: number };
 
 type MyTeam = { id: string };
 
@@ -147,11 +144,11 @@ function SearchEventsInner() {
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<EventSort>("date_asc");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [stats, setStats] = useState<Stats | null>(null);
+  const [cityOpen, setCityOpen] = useState(false);
   const [myTeamIds, setMyTeamIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
-    setFilters((f) => ({ ...f, city: activeCity }));
+    setFilters((f) => (f.city ? f : { ...f, city: activeCity }));
   }, [activeCity]);
 
   useEffect(() => {
@@ -178,23 +175,6 @@ function SearchEventsInner() {
       cancelled = true;
     };
   }, [userId]);
-
-  useEffect(() => {
-    let cancelled = false;
-    const params = new URLSearchParams();
-    if (filters.city) params.set("city", filters.city);
-    fetch(`/api/events/stats?${params}`)
-      .then((r) => r.json())
-      .then((d: Stats) => {
-        if (!cancelled) setStats(d);
-      })
-      .catch(() => {
-        if (!cancelled) setStats(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [filters.city]);
 
   const effectiveType = typePill || filters.type;
 
@@ -241,6 +221,7 @@ function SearchEventsInner() {
       return r.json() as Promise<{
         events: PublicEvent[];
         nextCursor: string | null;
+        total?: number | null;
       }>;
     },
     initialPageParam: null as string | null,
@@ -248,6 +229,7 @@ function SearchEventsInner() {
   });
 
   const events = eventsQuery.data?.pages.flatMap((p) => p.events) ?? [];
+  const total = eventsQuery.data?.pages[0]?.total ?? null;
   const loading = eventsQuery.isPending || eventsQuery.isFetchingNextPage;
   const hasMore = eventsQuery.hasNextPage;
   const loadMore = () => {
@@ -256,14 +238,6 @@ function SearchEventsInner() {
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
-    if (filters.city) {
-      chips.push({
-        id: "city",
-        label: filters.city,
-        onRemove: () =>
-          setFilters((f) => ({ ...f, city: "", districtId: "" })),
-      });
-    }
     if (filters.type && !typePill) {
       chips.push({
         id: "type",
@@ -310,7 +284,6 @@ function SearchEventsInner() {
   }, [filters, typePill]);
 
   const sheetActiveCount =
-    (filters.city ? 1 : 0) +
     (filters.districtId ? 1 : 0) +
     (filters.type && !typePill ? 1 : 0) +
     (filters.datePreset || filters.dateFrom || filters.dateTo ? 1 : 0) +
@@ -319,19 +292,13 @@ function SearchEventsInner() {
 
   const showSkeleton = events.length === 0 && eventsQuery.isPending;
   const showEmpty = !loading && events.length === 0;
-  const resultsLabel =
-    events.length > 0
-      ? `${events.length}${hasMore ? "+" : ""}`
-      : null;
+  const countLabel = total != null ? `Результаты · ${total}` : null;
+
+  const cityForPicker = filters.city || activeCity;
 
   return (
     <div className="flex flex-1 flex-col">
-      <PageHeader title="События">
-        <HeaderStatGroup>
-          <HeaderStat value={stats?.total ?? "—"} label="Всего" />
-          <HeaderStat value={stats?.week ?? "—"} label="На неделе" />
-        </HeaderStatGroup>
-      </PageHeader>
+      <PageHeader title="События" />
 
       <SearchSubnav />
 
@@ -342,13 +309,9 @@ function SearchEventsInner() {
           onFilterClick={() => setSheetOpen(true)}
           filterActiveCount={sheetActiveCount}
           placeholder="Команда, площадка…"
-        />
-
-        <ListMeta
-          sort={{
-            value: sort,
-            options: SORT_OPTIONS,
-            onChange: (v) => setSort(v as EventSort),
+          cityPicker={{
+            value: cityForPicker,
+            onClick: () => setCityOpen(true),
           }}
         />
 
@@ -364,6 +327,14 @@ function SearchEventsInner() {
       </div>
 
       <div className="px-4 mt-5">
+        <ListMeta
+          countLabel={countLabel}
+          sort={{
+            value: sort,
+            options: SORT_OPTIONS,
+            onChange: (v) => setSort(v as EventSort),
+          }}
+        />
         {showSkeleton ? (
           <SkeletonList count={5} />
         ) : showEmpty ? (
@@ -382,17 +353,6 @@ function SearchEventsInner() {
           </div>
         ) : (
           <>
-            {resultsLabel && (
-              <p
-                className="text-[11px] font-semibold uppercase mb-1"
-                style={{
-                  letterSpacing: "0.06em",
-                  color: "var(--text-tertiary)",
-                }}
-              >
-                Результаты · {resultsLabel}
-              </p>
-            )}
             <ul className="flex flex-col">
               {events.map((e) => (
                 <li key={e.id}>
@@ -412,6 +372,17 @@ function SearchEventsInner() {
                 </li>
               ))}
             </ul>
+            {eventsQuery.isFetchingNextPage && (
+              <div className="flex justify-center py-5">
+                <span
+                  className="block w-6 h-6 rounded-full animate-spin"
+                  style={{
+                    border: "2.5px solid var(--gray-200)",
+                    borderTopColor: "var(--green-500)",
+                  }}
+                />
+              </div>
+            )}
             {hasMore && <InfiniteScrollSentinel onVisible={loadMore} />}
           </>
         )}
@@ -422,6 +393,16 @@ function SearchEventsInner() {
         initial={filters}
         onClose={() => setSheetOpen(false)}
         onApply={(next) => setFilters(next)}
+      />
+
+      <CityPickerSheet
+        open={cityOpen}
+        cities={KZ_CITIES}
+        value={cityForPicker}
+        onClose={() => setCityOpen(false)}
+        onSelect={(c) =>
+          setFilters((f) => ({ ...f, city: c, districtId: "" }))
+        }
       />
     </div>
   );

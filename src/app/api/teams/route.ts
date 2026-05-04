@@ -41,6 +41,7 @@ export async function GET(req: NextRequest) {
     .from("teams")
     .select(
       "id, name, sport, city, description, created_at, looking_for_players, district_id, logo_url, districts(id, name), team_memberships(count)",
+      cursor ? undefined : { count: "exact" },
     );
 
   if (sort === "name_asc") {
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
   // Over-fetch by 1 to detect "has next page".
   query = query.limit(limit + 1);
 
-  const { data, error } = await query;
+  const { data, error, count } = await query;
   if (error) {
     console.error("Teams list error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
@@ -98,7 +99,7 @@ export async function GET(req: NextRequest) {
     nextCursor = encodeCursor({ v, id: last.id });
   }
 
-  return NextResponse.json({ teams, nextCursor });
+  return NextResponse.json({ teams, nextCursor, total: count ?? 0 });
 }
 
 export async function POST(req: NextRequest) {
