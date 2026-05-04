@@ -117,7 +117,6 @@ export async function GET(
   const cursor = decodeCursor(searchParams.get("cursor"));
 
   const supabase = getServiceClient();
-  const now = new Date().toISOString();
 
   // Membership probe runs in parallel with the page query.
   const membershipPromise = userId
@@ -138,13 +137,13 @@ export async function GET(
 
   if (direction === "upcoming") {
     pageQuery = pageQuery
-      .gte("date", now)
+      .eq("status", "planned")
       .order("date", { ascending: true })
       .order("id", { ascending: true });
     if (cursor) pageQuery = pageQuery.or(keysetClause("date", cursor, "asc"));
   } else {
     pageQuery = pageQuery
-      .lt("date", now)
+      .in("status", ["completed", "cancelled"])
       .order("date", { ascending: false })
       .order("id", { ascending: false });
     if (cursor) pageQuery = pageQuery.or(keysetClause("date", cursor, "desc"));
