@@ -168,7 +168,7 @@ export default function SearchTeamsPage() {
 
       <SearchSubnav />
 
-      <div className="px-4 pt-3.5 pb-2">
+      <div className="px-4 pt-3.5 pb-1">
         <ListSearchBar
           value={search}
           onChange={setSearch}
@@ -182,7 +182,7 @@ export default function SearchTeamsPage() {
         />
       </div>
 
-      <div className="px-4 pt-3 pb-2">
+      <div className="px-4 pt-2 pb-2">
         <ListMeta
           countLabel={countLabel}
           sort={{
