@@ -80,7 +80,7 @@ function EventListRowImpl({
     >
       <DateBlock weekday={weekday} day={day} month={month} time={time} />
 
-      <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <h3
             className="text-[16px] font-semibold truncate leading-[1.2]"
@@ -146,15 +146,15 @@ function DateBlock({
 }) {
   return (
     <div
-      className="shrink-0 w-[44px] pr-3 flex flex-col items-center justify-center text-center"
+      className="shrink-0 w-[56px] pr-3.5 flex flex-col items-center text-center"
       style={{ borderRight: "1px solid var(--ink-100)" }}
     >
       <div
         className="tabular-nums leading-none"
         style={{
           fontFamily: "var(--font-oswald)",
-          fontSize: 28,
-          fontWeight: 600,
+          fontSize: 30,
+          fontWeight: 700,
           color: "var(--ink-900)",
         }}
       >
@@ -172,7 +172,7 @@ function DateBlock({
         {month} · {weekday}
       </div>
       <div
-        className="tabular-nums mt-1.5"
+        className="tabular-nums mt-2"
         style={{
           fontSize: 11,
           fontWeight: 500,
