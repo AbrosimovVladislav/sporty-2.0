@@ -151,8 +151,8 @@ function Tag({
 }) {
   return (
     <span
-      className="inline-flex shrink-0 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase"
-      style={{ background: bg, color: fg, letterSpacing: "0.04em" }}
+      className="inline-flex shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold"
+      style={{ background: bg, color: fg }}
     >
       {children}
     </span>

@@ -53,7 +53,7 @@ export default function SearchVenuesPage() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filters, setFilters] = useState<VenueFilters>(EMPTY_FILTERS);
-  const [sort, setSort] = useState<VenueSort>("rating_desc");
+  const [sort, setSort] = useState<VenueSort>("price_asc");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
 
