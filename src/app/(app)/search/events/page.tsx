@@ -8,6 +8,7 @@ import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
+  HeaderIconButton,
   ListSearchBar,
   ListMeta,
   FilterPills,
@@ -298,12 +299,19 @@ function SearchEventsInner() {
   const cityForPicker = filters.city || activeCity;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PageHeader title="События" />
+    <div className="flex flex-1 flex-col" style={{ background: "var(--card)" }}>
+      <PageHeader
+        title="События"
+        actions={
+          <HeaderIconButton ariaLabel="Уведомления">
+            <BellIcon />
+          </HeaderIconButton>
+        }
+      />
 
       <SearchSubnav />
 
-      <div className="px-4 mt-3.5">
+      <div className="px-4 pt-3.5 pb-2">
         <ListSearchBar
           value={search}
           onChange={setSearch}
@@ -315,19 +323,23 @@ function SearchEventsInner() {
             onClick: () => setCityOpen(true),
           }}
         />
+      </div>
 
+      <div className="px-4 pb-2">
         <FilterPills
           options={TYPE_PILLS}
           value={typePill}
           onChange={setTypePill}
         />
-
-        {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} className="mt-3.5" />
-        )}
       </div>
 
-      <div className="px-4 mt-5">
+      {activeChips.length > 0 && (
+        <div className="px-4 pb-2">
+          <ActiveFilterChips chips={activeChips} />
+        </div>
+      )}
+
+      <div className="px-4 pt-1 pb-2">
         <ListMeta
           countLabel={countLabel}
           sort={{
@@ -336,10 +348,15 @@ function SearchEventsInner() {
             onChange: (v) => setSort(v as EventSort),
           }}
         />
+      </div>
+
+      <div className="flex-1">
         {showSkeleton ? (
-          <SkeletonList count={5} />
+          <div className="px-4 py-3">
+            <SkeletonList count={5} />
+          </div>
         ) : showEmpty ? (
-          <div className="py-10">
+          <div className="py-10 px-4">
             <EmptyState
               text="По выбранным фильтрам событий нет"
               action={{
@@ -381,8 +398,8 @@ function SearchEventsInner() {
                 <span
                   className="block w-6 h-6 rounded-full animate-spin"
                   style={{
-                    border: "2.5px solid var(--gray-200)",
-                    borderTopColor: "var(--green-500)",
+                    border: "2.5px solid var(--ink-200)",
+                    borderTopColor: "var(--green-700)",
                   }}
                 />
               </div>
@@ -409,6 +426,25 @@ function SearchEventsInner() {
         }
       />
     </div>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 8a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5Z" />
+      <path d="M10 18a2 2 0 0 0 4 0" />
+    </svg>
   );
 }
 
