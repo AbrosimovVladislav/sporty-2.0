@@ -1,4 +1,4 @@
-export type Tab = "about" | "results" | "reliability" | "achievements";
+export type Tab = "about" | "results" | "finances" | "achievements";
 
 export type Stats = {
   playedCount: number;
@@ -28,4 +28,28 @@ export type JoinRequestItem = {
   created_at: string;
   resolved_at: string | null;
   team: { id: string; name: string; city: string; sport: string };
+};
+
+export type FinancesPayload = {
+  teams: {
+    team_id: string;
+    team_name: string;
+    team_logo_url: string | null;
+    role: "organizer" | "player";
+    expected: number;
+    paid: number;
+    balance: number;
+  }[];
+  totals: { expected: number; paid: number; balance: number };
+  history: {
+    id: string;
+    team_id: string;
+    team_name: string | null;
+    amount: number;
+    type: "event_payment" | "deposit";
+    label: string;
+    note: string | null;
+    created_at: string;
+    event_id: string | null;
+  }[];
 };

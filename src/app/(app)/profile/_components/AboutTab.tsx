@@ -17,10 +17,10 @@ type Props = {
 };
 
 const TIER_LABEL: Record<RatingTier, string> = {
-  elite: "Элита",
-  high: "Высокий",
+  elite: "Элитный",
+  high: "Продвинутый",
   mid: "Средний",
-  low: "Развивается",
+  low: "Любитель",
   poor: "Новичок",
 };
 

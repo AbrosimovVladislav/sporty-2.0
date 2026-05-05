@@ -10,7 +10,7 @@ import type { User } from "@/types/database";
 import type { ProfileTeam, Stats, Tab } from "./_components/types";
 import { AboutTab } from "./_components/AboutTab";
 import { ResultsTab } from "./_components/ResultsTab";
-import { ReliabilityTab } from "./_components/ReliabilityTab";
+import { FinancesTab } from "./_components/FinancesTab";
 import { AchievementsTab } from "./_components/AchievementsTab";
 import { MyJoinRequests } from "./_components/MyJoinRequests";
 
@@ -115,7 +115,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   const tabs: { id: Tab; label: string }[] = [
     { id: "about", label: "Обо мне" },
     { id: "results", label: "Результаты" },
-    { id: "reliability", label: "Надёжность" },
+    { id: "finances", label: "Финансы" },
     { id: "achievements", label: "Награды" },
   ];
 
@@ -224,18 +224,19 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
 
       <div className="flex flex-col gap-3 px-4 py-4">
         {tab === "about" && (
-          <AboutTab
-            user={user}
-            districtName={districtName}
-            teams={teams}
-            stats={stats}
-          />
+          <>
+            <AboutTab
+              user={user}
+              districtName={districtName}
+              teams={teams}
+              stats={stats}
+            />
+            <MyJoinRequests userId={user.id} />
+          </>
         )}
         {tab === "results" && <ResultsTab stats={stats} />}
-        {tab === "reliability" && <ReliabilityTab stats={stats} />}
+        {tab === "finances" && <FinancesTab userId={user.id} />}
         {tab === "achievements" && <AchievementsTab />}
-
-        <MyJoinRequests userId={user.id} />
       </div>
     </div>
   );
