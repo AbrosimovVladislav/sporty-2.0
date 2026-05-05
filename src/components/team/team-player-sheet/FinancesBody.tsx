@@ -9,7 +9,7 @@ export function peekFinances(
   if (d === undefined) {
     return {
       primary: "—",
-      primaryColor: "var(--text-tertiary)",
+      primaryColor: "var(--ink-400)",
       secondary: "Загрузка",
     };
   }
@@ -23,7 +23,7 @@ export function peekFinances(
 
   return {
     primary: balanceStr,
-    primaryColor: positiveBalance ? "var(--green-600)" : "var(--danger)",
+    primaryColor: positiveBalance ? "var(--green-700)" : "var(--danger)",
     secondary: `Сдал ${formatMoney(paid)} из ${formatMoney(expected)} ₸`,
   };
 }
@@ -44,14 +44,14 @@ export function FinancesBody({
         <div>
           <p
             className="text-[11px] uppercase font-semibold"
-            style={{ letterSpacing: "0.06em", color: "var(--text-tertiary)" }}
+            style={{ letterSpacing: "0.06em", color: "var(--ink-500)" }}
           >
             {positiveBalance ? "Переплата" : "Долг"}
           </p>
           <p
-            className="font-display text-[28px] font-bold leading-none tabular-nums"
+            className="font-display text-[28px] font-bold leading-none tabular-nums mt-1"
             style={{
-              color: positiveBalance ? "var(--green-600)" : "var(--danger)",
+              color: positiveBalance ? "var(--green-700)" : "var(--danger)",
             }}
           >
             {formatMoney(Math.abs(balance))} ₸
@@ -66,8 +66,8 @@ export function FinancesBody({
 
       {data.history.length > 0 && (
         <ul
-          className="rounded-lg overflow-hidden"
-          style={{ background: "var(--bg-primary)" }}
+          className="rounded-[10px] overflow-hidden"
+          style={{ background: "var(--bg-secondary)" }}
         >
           {data.history.slice(0, 8).map((h, i) => {
             const clickable = !!h.event_id;
@@ -75,7 +75,7 @@ export function FinancesBody({
               <>
                 <span
                   className="text-[13px] truncate min-w-0 mr-2"
-                  style={{ color: "var(--text-primary)" }}
+                  style={{ color: "var(--ink-900)" }}
                 >
                   {h.label}
                 </span>
@@ -85,8 +85,8 @@ export function FinancesBody({
                     style={{
                       color:
                         h.type === "deposit"
-                          ? "var(--green-600)"
-                          : "var(--text-primary)",
+                          ? "var(--green-700)"
+                          : "var(--ink-900)",
                     }}
                   >
                     +{formatMoney(h.amount)} ₸
@@ -99,14 +99,14 @@ export function FinancesBody({
               <li
                 key={h.id}
                 style={{
-                  borderTop: i === 0 ? undefined : "1px solid var(--gray-100)",
+                  borderTop: i === 0 ? undefined : "1px solid var(--ink-100)",
                 }}
               >
                 {clickable ? (
                   <button
                     type="button"
                     onClick={() => onEventClick(h.event_id!)}
-                    className="w-full flex items-center justify-between px-3 py-2.5 text-left active:bg-gray-50"
+                    className="w-full flex items-center justify-between px-3 py-2.5 text-left active:opacity-70"
                   >
                     {inner}
                   </button>

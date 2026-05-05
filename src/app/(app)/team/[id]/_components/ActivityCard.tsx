@@ -26,6 +26,7 @@ export function ActivityCard({
       className="rounded-[16px] p-4"
       style={{
         background: "var(--card)",
+        border: "1px solid var(--ink-100)",
         boxShadow: "var(--shadow-sm)",
       }}
     >

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Accordion } from "./team-player-sheet/Accordion";
 import { Empty, SkeletonRow } from "./team-player-sheet/atoms";
-import { skillToNum } from "@/lib/playerBadges";
 import {
   FinancesBody,
   peekFinances,
@@ -60,8 +59,6 @@ export function TeamPlayerSheet({
   const isSelf = member.user.id === currentUserId;
   const isTargetOrganizer = member.role === "organizer";
   const canSeeFinances = isOrganizer || isSelf;
-
-  const skillNum = skillToNum(member.user.skill_level);
 
   useEffect(() => {
     if (!currentUserId) {
@@ -172,8 +169,9 @@ export function TeamPlayerSheet({
         onClick={onClose}
       />
       <div
-        className="relative w-full bg-white pb-8 max-h-[88vh] overflow-y-auto"
+        className="relative w-full pb-8 max-h-[88vh] overflow-y-auto"
         style={{
+          background: "var(--card)",
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           boxShadow: "0 -8px 24px rgba(0,0,0,0.12)",
@@ -182,14 +180,14 @@ export function TeamPlayerSheet({
         <div className="flex justify-center pt-2 pb-1">
           <span
             className="block w-9 h-1 rounded-full"
-            style={{ background: "var(--gray-300)" }}
+            style={{ background: "var(--ink-300)" }}
           />
         </div>
         <div className="flex items-center justify-end px-4 pt-1 pb-2">
           <button
             onClick={onClose}
             className="w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: "var(--gray-100)" }}
+            style={{ background: "var(--ink-100)", color: "var(--ink-700)" }}
             aria-label="Закрыть"
           >
             <CloseIcon />
@@ -200,7 +198,6 @@ export function TeamPlayerSheet({
           <SheetHeader
             member={member}
             isTargetOrganizer={isTargetOrganizer}
-            skillNum={skillNum}
             onOpenProfile={() => router.push(`/players/${member.user.id}`)}
           />
 
@@ -246,7 +243,13 @@ export function TeamPlayerSheet({
           </Accordion>
 
           {actionError && (
-            <p className="text-[12px] text-center" style={{ color: "#E53935" }}>
+            <p
+              className="text-[12px] text-center rounded-[10px] px-3 py-2"
+              style={{
+                background: "var(--danger-soft)",
+                color: "var(--danger)",
+              }}
+            >
               {actionError}
             </p>
           )}
@@ -257,10 +260,11 @@ export function TeamPlayerSheet({
                 <button
                   onClick={handlePromote}
                   disabled={busy}
-                  className="w-full h-11 rounded-xl text-[14px] font-semibold disabled:opacity-50"
+                  className="w-full h-11 rounded-[12px] text-[14px] font-semibold disabled:opacity-50 transition-colors active:opacity-80"
                   style={{
                     background: "var(--bg-secondary)",
-                    color: "var(--text-primary)",
+                    color: "var(--ink-900)",
+                    border: "1px solid var(--ink-200)",
                   }}
                 >
                   {busy ? "Обновляю…" : "Сделать организатором"}
@@ -269,8 +273,11 @@ export function TeamPlayerSheet({
               <button
                 onClick={handleRemove}
                 disabled={busy}
-                className="w-full h-11 rounded-xl text-[14px] font-semibold disabled:opacity-50"
-                style={{ background: "#FFF1F1", color: "#E53935" }}
+                className="w-full h-11 rounded-[12px] text-[14px] font-semibold disabled:opacity-50 transition-colors active:opacity-80"
+                style={{
+                  background: "var(--danger-soft)",
+                  color: "var(--danger)",
+                }}
               >
                 {busy ? "Удаляю…" : "Удалить из команды"}
               </button>
@@ -279,20 +286,23 @@ export function TeamPlayerSheet({
 
           {isSelf &&
             (confirmLeave ? (
-              <div className="rounded-xl p-3" style={{ background: "#FFF1F1" }}>
+              <div
+                className="rounded-[12px] p-3"
+                style={{ background: "var(--danger-soft)" }}
+              >
                 <p
                   className="text-[13px] text-center mb-3"
-                  style={{ color: "#E53935" }}
+                  style={{ color: "var(--danger)" }}
                 >
                   Вы уверены? Вы покинете команду.
                 </p>
                 <div className="flex gap-2">
                   <button
                     onClick={() => setConfirmLeave(false)}
-                    className="flex-1 h-10 rounded-xl text-[14px] font-semibold"
+                    className="flex-1 h-10 rounded-[10px] text-[14px] font-semibold transition-colors active:opacity-80"
                     style={{
-                      background: "var(--bg-secondary)",
-                      color: "var(--text-primary)",
+                      background: "var(--card)",
+                      color: "var(--ink-900)",
                     }}
                   >
                     Отмена
@@ -300,8 +310,8 @@ export function TeamPlayerSheet({
                   <button
                     onClick={handleLeave}
                     disabled={busy}
-                    className="flex-1 h-10 rounded-xl text-[14px] font-semibold disabled:opacity-50"
-                    style={{ background: "#E53935", color: "white" }}
+                    className="flex-1 h-10 rounded-[10px] text-[14px] font-semibold disabled:opacity-50 transition-colors active:opacity-90"
+                    style={{ background: "var(--danger)", color: "white" }}
                   >
                     {busy ? "Выхожу…" : "Выйти"}
                   </button>
@@ -310,8 +320,11 @@ export function TeamPlayerSheet({
             ) : (
               <button
                 onClick={() => setConfirmLeave(true)}
-                className="w-full h-12 rounded-full text-[15px] font-semibold inline-flex items-center justify-center gap-2"
-                style={{ background: "#FFF1F1", color: "#E53935" }}
+                className="w-full h-11 rounded-[12px] text-[14px] font-semibold inline-flex items-center justify-center gap-2 transition-colors active:opacity-80"
+                style={{
+                  background: "var(--danger-soft)",
+                  color: "var(--danger)",
+                }}
               >
                 <LogoutIcon />
                 Покинуть команду

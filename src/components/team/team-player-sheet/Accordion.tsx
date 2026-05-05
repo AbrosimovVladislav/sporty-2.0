@@ -16,8 +16,11 @@ export function Accordion({
 }) {
   return (
     <div
-      className="rounded-xl overflow-hidden"
-      style={{ background: "var(--bg-secondary)" }}
+      className="rounded-[14px] overflow-hidden"
+      style={{
+        background: "var(--card)",
+        border: "1px solid var(--ink-100)",
+      }}
     >
       <button
         type="button"
@@ -27,14 +30,14 @@ export function Accordion({
         <div className="flex flex-col min-w-0 flex-1">
           <span
             className="text-[14px] font-semibold leading-tight"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: "var(--ink-900)" }}
           >
             {label}
           </span>
           {!open && peek?.secondary && (
             <span
               className="text-[11px] mt-0.5 truncate"
-              style={{ color: "var(--text-tertiary)" }}
+              style={{ color: "var(--ink-500)" }}
             >
               {peek.secondary}
             </span>
@@ -44,7 +47,7 @@ export function Accordion({
           {!open && peek?.primary && (
             <span
               className="text-[15px] font-bold tabular-nums"
-              style={{ color: peek.primaryColor ?? "var(--text-primary)" }}
+              style={{ color: peek.primaryColor ?? "var(--ink-900)" }}
             >
               {peek.primary}
             </span>
@@ -57,7 +60,14 @@ export function Accordion({
           </span>
         </div>
       </button>
-      {open && <div className="px-4 pb-4 pt-1">{children}</div>}
+      {open && (
+        <div
+          className="px-4 pb-4 pt-2"
+          style={{ borderTop: "1px solid var(--ink-100)" }}
+        >
+          {children}
+        </div>
+      )}
     </div>
   );
 }

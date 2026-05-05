@@ -114,21 +114,20 @@ Query: `?userId=&city=`
 
 ### Профиль `/players/[id]`
 
-Read-only. На светлом фоне `--bg-secondary`, контент — карточки `bg-bg-primary rounded-[16px] shadow-sm` с `gap-3`.
+Read-only. Дизайн-токены v2 (`--ink-*`, `--green-*`, `--danger`). Карточки `--card` + `--shadow-sm`, `gap-3`.
 
-1. **Hero-карточка** (`relative`, центрированный контент):
-   - `BackButton` в `top-4 left-4` (40×40, white bg, shadow)
-   - Аватар 144×144 круглый, тонкая обводка `--gray-200`. Если без фото — белая инициалка на `--gray-100`. В правом-нижнем углу аватара — overlay-плашка рейтинга 44×44 (`--text-primary` фон, белый Oswald 16px, белая рамка 3px)
-   - Имя — Oswald 28px uppercase, центр
-   - Город — `📍 city` 14px secondary, центр
-   - Ряд бейджей (центрированы): `LevelChip` (hex `LevelBadge` + pill `«{skill_level} N/5»`), затем `PositionBadge` для каждой позиции
-2. **Карточка «О себе»** (видна, если есть `birth_date`): `Eyebrow` + строка «Возраст / N лет» с тортом-иконкой справа. Bio/позиция/уровень из карточки убраны — позиции отображаются hex-бейджами в hero, уровень — в `LevelChip`
-3. **Stats grid** (`grid-cols-2 gap-3`):
-   - Карточка «Сыграно» — серый круг 48px с иконкой мяча + Oswald 28px число + label
-   - Карточка «Надёжность» — зелёный (`--green-100`) круг с иконкой щита + Oswald 28px зелёное число + label. Если `reliability === null` — прочерк
-4. **Reliability summary** (если `votedYesCount > 0`): зелёный (`--green-500`) круг с белой галочкой + текст «Посетил X из Y записанных событий»
-5. **«Последние события»**: `Eyebrow` + карточка-список. Каждая строка: 40×40 квадрат (`--green-100` фон) с зелёной иконкой календаря + тип события + полная дата + status pill справа («Был» зелёный / «Не был» красный / «Не голосовал» серый)
+1. **Hero-карточка** (центрированный контент):
+   - `BackButton` в `top-3 left-3` (40×40, `bg-background-card` + `shadow-card`)
+   - Аватар 112×112 круглый, обводка `--ink-200`. Без фото — `--ink-100` фон + инициал `--ink-500`
+   - Имя — Oswald 26px uppercase, центр, `--ink-900`
+   - Под именем — `city · N лет` 13px `--ink-500`, центр (только если есть)
+   - Ряд `<PositionTag>` тегов (плоские, `--pos-{kind}-bg/fg`), центрированы
+2. **Rating-карточка** (`flex items-center gap-4`): `RatingRing` 72px слева + Eyebrow «Рейтинг» + название tier (`Элитный/Продвинутый/Средний/Любитель/Новичок` через `ratingTier`) + опц. `skill_level` подзаголовком
+3. **Stats grid** (`grid-cols-3 gap-2`): «Сыграно» / «Надёжность» (`--green-700`) / «Команд» — Oswald 24px, ink-токены
+4. **Карточка «О себе»** (если `bio` задан): Eyebrow + текст 14px `--ink-900`, `whitespace-pre-wrap`
+5. **Карточка «Команда/Команды»** (если есть membership-и): Eyebrow + строки команд: 44×44 лого (`logo_url` или цветной квадрат `rounded-[12px]` по `teamFallbackHue`) + название + подпись «Организатор/Игрок · город» + chevron. Тап → `/team/[id]`. Источник — `GET /api/users/[id]/teams`
+6. **«Последние события»**: Eyebrow + карточка-список. Каждая строка: 36×36 квадрат `--green-50` с иконкой календаря `--green-700` + тип события + полная дата + status pill справа («Был» `--green-50/--green-700` / «Не был» `--danger-soft/--danger` / «Не голосовал» `--ink-100/--ink-500`)
 
-**Bottom action bar** «Пригласить в команду» — виден только если просмотрщик не сам игрок и состоит организатором хотя бы в одной команде. Открывает bottom-sheet выбора команды (`POST /api/teams/[id]/invites`).
+**Bottom action bar** «Пригласить в команду» — виден только если просмотрщик не сам игрок и состоит организатором хотя бы в одной команде. Открывает bottom-sheet выбора команды на `--card` фоне (`POST /api/teams/[id]/invites`).
 
-`LevelChip` (`@/components/players/badges/LevelChip`) — общий компонент: hex-LevelBadge + pill `{skill_level} N/5`. Используется также в `TeamPlayerSheet`.
+`RatingRing` и `PositionTag` (v2) — общие компоненты из `@/components/ui`. Используются также в `/profile`.

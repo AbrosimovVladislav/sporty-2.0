@@ -28,6 +28,7 @@ export function FinanceCard({
       className="block rounded-[16px] p-4 transition-colors active:opacity-90"
       style={{
         background: "var(--card)",
+        border: "1px solid var(--ink-100)",
         boxShadow: "var(--shadow-sm)",
       }}
     >

@@ -10,7 +10,7 @@ export function peekReliability(
   if (d === undefined) {
     return {
       primary: "—",
-      primaryColor: "var(--text-tertiary)",
+      primaryColor: "var(--ink-400)",
       secondary: "Загрузка",
     };
   }
@@ -32,9 +32,9 @@ export function peekReliability(
     primary: reliability !== null ? `${reliability}%` : "—",
     primaryColor:
       reliability !== null && reliability >= 90
-        ? "var(--green-600)"
+        ? "var(--green-700)"
         : reliability !== null && reliability >= 70
-          ? "var(--text-primary)"
+          ? "var(--ink-900)"
           : "var(--danger)",
     secondary: issues.length > 0 ? issues.join(" · ") : "Без нарушений",
   };
@@ -65,14 +65,14 @@ export function ReliabilityBody({
         <div>
           <p
             className="font-display text-[28px] font-bold leading-none tabular-nums"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: "var(--ink-900)" }}
           >
             {reliability !== null ? `${reliability}%` : "—"}
           </p>
           {reliability !== null && (
             <p
               className="text-[12px] mt-1"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--ink-500)" }}
             >
               {reliabilityLabel}
             </p>
@@ -80,7 +80,7 @@ export function ReliabilityBody({
         </div>
         <p
           className="text-[12px] tabular-nums text-right"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--ink-500)" }}
         >
           {played} из {votedYes} записей
         </p>
@@ -93,16 +93,16 @@ export function ReliabilityBody({
 
       {data.recentEvents.length > 0 && (
         <ul
-          className="rounded-lg overflow-hidden"
-          style={{ background: "var(--bg-primary)" }}
+          className="rounded-[10px] overflow-hidden"
+          style={{ background: "var(--bg-secondary)" }}
         >
           {data.recentEvents.map((e, i) => {
             const dotColor =
               e.attended === true
-                ? "var(--green-500)"
+                ? "var(--green-700)"
                 : e.attended === false
                   ? "var(--danger)"
-                  : "var(--text-tertiary)";
+                  : "var(--ink-400)";
             const label =
               e.attended === true
                 ? e.type === "training"
@@ -117,13 +117,13 @@ export function ReliabilityBody({
               <li
                 key={e.event_id}
                 style={{
-                  borderTop: i === 0 ? undefined : "1px solid var(--gray-100)",
+                  borderTop: i === 0 ? undefined : "1px solid var(--ink-100)",
                 }}
               >
                 <button
                   type="button"
                   onClick={() => onEventClick(e.event_id)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 text-left active:bg-gray-50"
+                  className="w-full flex items-center justify-between px-3 py-2.5 text-left active:opacity-70"
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
                     <span
@@ -132,7 +132,7 @@ export function ReliabilityBody({
                     />
                     <span
                       className="text-[13px] truncate"
-                      style={{ color: "var(--text-primary)" }}
+                      style={{ color: "var(--ink-900)" }}
                     >
                       {label}
                     </span>
@@ -140,7 +140,7 @@ export function ReliabilityBody({
                   <div className="flex items-center gap-1 shrink-0 ml-2">
                     <span
                       className="text-[12px] tabular-nums"
-                      style={{ color: "var(--text-tertiary)" }}
+                      style={{ color: "var(--ink-400)" }}
                     >
                       {formatShortDate(e.date)}
                     </span>

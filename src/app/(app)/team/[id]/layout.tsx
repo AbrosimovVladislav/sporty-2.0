@@ -17,7 +17,6 @@ import { teamGradient } from "@/lib/format";
 const ROSTER_PATH_RE = /\/team\/[^/]+\/roster(\/|$)/;
 const EVENT_DETAIL_PATH_RE = /\/team\/[^/]+\/events\/[^/]+/;
 const SETTINGS_PATH_RE = /\/team\/[^/]+\/settings(\/|$)/;
-const HOME_PATH_RE = /\/team\/[^/]+\/?$/;
 
 type TeamSubTabDef = {
   label: string;
@@ -166,7 +165,6 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
   const isRoster = ROSTER_PATH_RE.test(path);
   const isEventDetail = EVENT_DETAIL_PATH_RE.test(path);
   const isSettings = SETTINGS_PATH_RE.test(path);
-  const isHome = HOME_PATH_RE.test(path);
   const [requestsOpen, setRequestsOpen] = useState(false);
 
   const userId = auth.status === "authenticated" ? auth.user.id : null;
@@ -203,10 +201,7 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
 
   return (
     <TeamUIProvider value={ui}>
-      <div
-        className="flex flex-1 flex-col"
-        style={isHome ? { background: "var(--bg-secondary)" } : undefined}
-      >
+      <div className="flex flex-1 flex-col">
         <TeamPageHeader teamId={id} />
         <TeamSubNav id={id} />
         <div className={contentClass}>{children}</div>

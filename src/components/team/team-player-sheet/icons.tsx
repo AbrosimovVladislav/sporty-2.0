@@ -26,7 +26,7 @@ export function ChevronDownIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ color: "var(--text-secondary)" }}
+      style={{ color: "var(--ink-500)" }}
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
@@ -44,7 +44,7 @@ export function ChevronRightIcon() {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ color: "var(--text-tertiary)" }}
+      style={{ color: "var(--ink-400)" }}
     >
       <polyline points="9 18 15 12 9 6" />
     </svg>
