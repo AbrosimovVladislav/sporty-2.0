@@ -75,12 +75,17 @@ function EventListRowImpl({
   return (
     <Link
       href={`/team/${teamId}/events/${id}`}
-      className="flex items-stretch gap-3 px-4 py-3.5 last:border-b-0 transition-colors active:bg-bg-secondary"
+      className="flex items-stretch px-4 py-4 last:border-b-0 transition-colors active:bg-bg-secondary"
       style={{ borderBottom: "1px solid var(--ink-100)" }}
     >
       <DateBlock weekday={weekday} day={day} month={month} time={time} />
 
-      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+      <div
+        className="self-stretch shrink-0 mx-3.5"
+        style={{ width: 1, background: "var(--ink-100)" }}
+      />
+
+      <div className="flex-1 min-w-0 self-stretch flex flex-col justify-between gap-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <h3
             className="text-[16px] font-semibold truncate leading-[1.2]"
@@ -106,14 +111,10 @@ function EventListRowImpl({
             {venueAddress}
           </p>
         )}
-        {isPublic === false && (
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <PrivateBadge />
-          </div>
-        )}
+        {isPublic === false && <PrivateBadge />}
       </div>
 
-      <div className="shrink-0 flex flex-col items-end justify-between py-0.5">
+      <div className="shrink-0 self-stretch ml-3 flex flex-col items-end justify-between">
         <PeoplePill count={yesCount} />
         <span
           className="text-[14px] font-bold tabular-nums whitespace-nowrap"
@@ -145,23 +146,18 @@ function DateBlock({
   time: string;
 }) {
   return (
-    <div
-      className="shrink-0 w-[56px] pr-3.5 flex flex-col items-center text-center"
-      style={{ borderRight: "1px solid var(--ink-100)" }}
-    >
+    <div className="shrink-0 w-[52px] self-stretch flex flex-col items-center justify-between text-center">
       <div
-        className="tabular-nums leading-none"
+        className="font-display font-bold tabular-nums leading-none"
         style={{
-          fontFamily: "var(--font-oswald)",
           fontSize: 30,
-          fontWeight: 700,
           color: "var(--ink-900)",
         }}
       >
         {day}
       </div>
       <div
-        className="uppercase mt-1.5"
+        className="uppercase"
         style={{
           fontSize: 10,
           fontWeight: 700,
@@ -172,7 +168,7 @@ function DateBlock({
         {month} · {weekday}
       </div>
       <div
-        className="tabular-nums mt-2"
+        className="tabular-nums"
         style={{
           fontSize: 11,
           fontWeight: 500,
