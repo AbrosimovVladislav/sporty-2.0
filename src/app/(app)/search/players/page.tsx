@@ -6,13 +6,11 @@ import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
+  HeaderIconButton,
   ListSearchBar,
   ListMeta,
-  FilterPills,
-  ActiveFilterChips,
   EmptyState,
   CityPickerSheet,
-  type FilterChip,
 } from "@/components/ui";
 import { SearchSubnav } from "@/components/search/SearchSubnav";
 import { PlayerListRow } from "@/components/players/PlayerListRow";
@@ -38,33 +36,24 @@ type Player = {
 
 type SortMode = "skill" | "recent" | "name_asc";
 
-const POSITION_PILLS = [
-  { value: "", label: "Все" },
-  { value: "Вратарь", label: "ВРТ" },
-  { value: "Защитник", label: "ЗАЩ" },
-  { value: "Полузащитник", label: "ПЗЩ" },
-  { value: "Нападающий", label: "НАП" },
-];
-
 const SORT_OPTIONS = [
-  { value: "skill", label: "По уровню" },
-  { value: "name_asc", label: "По имени (А-Я)" },
-  { value: "recent", label: "Недавно зарегистрированные" },
+  { value: "skill", label: "По рейтингу" },
+  { value: "name_asc", label: "По имени" },
+  { value: "recent", label: "Новые" },
 ];
 
 const EMPTY_FILTERS: PlayerFilters = {
   city: "",
   districtId: "",
+  position: "",
   lookingForTeam: false,
 };
-
 
 export default function SearchPlayersPage() {
   const { activeCity } = useCity();
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [positionPill, setPositionPill] = useState("");
   const [sort, setSort] = useState<SortMode>("skill");
   const [filters, setFilters] = useState<PlayerFilters>(EMPTY_FILTERS);
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -79,15 +68,13 @@ export default function SearchPlayersPage() {
     return () => clearTimeout(t);
   }, [search]);
 
-  const effectivePosition = positionPill;
-
   const queryString = useMemo(() => {
     const params = new URLSearchParams();
     if (debouncedSearch) params.set("q", debouncedSearch);
     if (filters.city) params.set("city", filters.city);
     if (filters.districtId) params.set("district_id", filters.districtId);
     if (filters.lookingForTeam) params.set("looking_for_team", "true");
-    if (effectivePosition) params.set("position", effectivePosition);
+    if (filters.position) params.set("position", filters.position);
     params.set("sort", sort);
     return params.toString();
   }, [
@@ -95,7 +82,7 @@ export default function SearchPlayersPage() {
     filters.city,
     filters.districtId,
     filters.lookingForTeam,
-    effectivePosition,
+    filters.position,
     sort,
   ]);
 
@@ -125,34 +112,30 @@ export default function SearchPlayersPage() {
     if (!playersQuery.isFetchingNextPage) playersQuery.fetchNextPage();
   };
 
-  const activeChips = useMemo<FilterChip[]>(() => {
-    const chips: FilterChip[] = [];
-    if (filters.lookingForTeam) {
-      chips.push({
-        id: "looking",
-        label: "Ищет команду",
-        onRemove: () => setFilters((f) => ({ ...f, lookingForTeam: false })),
-      });
-    }
-    return chips;
-  }, [filters]);
-
   const sheetActiveCount =
-    (filters.districtId ? 1 : 0) + (filters.lookingForTeam ? 1 : 0);
+    (filters.districtId ? 1 : 0) +
+    (filters.position ? 1 : 0) +
+    (filters.lookingForTeam ? 1 : 0);
 
   const showSkeleton = players.length === 0 && playersQuery.isPending;
   const showEmpty = !loading && players.length === 0;
-  const countLabel = total != null ? `Результаты · ${total}` : null;
 
   const cityForPicker = filters.city || activeCity;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PageHeader title="Игроки" />
+    <div className="flex flex-1 flex-col" style={{ background: "var(--card)" }}>
+      <PageHeader
+        title="Игроки"
+        actions={
+          <HeaderIconButton ariaLabel="Уведомления">
+            <BellIcon />
+          </HeaderIconButton>
+        }
+      />
 
       <SearchSubnav />
 
-      <div className="px-4 mt-3.5">
+      <div className="px-4 pt-3.5 pb-2">
         <ListSearchBar
           value={search}
           onChange={setSearch}
@@ -164,38 +147,32 @@ export default function SearchPlayersPage() {
             onClick: () => setCityOpen(true),
           }}
         />
-
-        <FilterPills
-          options={POSITION_PILLS}
-          value={positionPill}
-          onChange={setPositionPill}
-        />
-
-        {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} className="mt-3.5" />
-        )}
       </div>
 
-      <div className="px-4 mt-5">
+      <div className="px-4 pt-3 pb-2">
         <ListMeta
-          countLabel={countLabel}
+          countLabel={total != null ? `Результаты · ${total}` : null}
           sort={{
             value: sort,
             options: SORT_OPTIONS,
             onChange: (v) => setSort(v as SortMode),
           }}
         />
+      </div>
+
+      <div className="flex-1">
         {showSkeleton ? (
-          <SkeletonList count={5} />
+          <div className="px-4 py-3">
+            <SkeletonList count={6} />
+          </div>
         ) : showEmpty ? (
-          <div className="py-10">
+          <div className="py-10 px-4">
             <EmptyState
               text="По выбранным фильтрам никого не нашли"
               action={{
                 label: "Сбросить фильтры",
                 onClick: () => {
                   setSearch("");
-                  setPositionPill("");
                   setFilters({ ...EMPTY_FILTERS, city: activeCity });
                 },
               }}
@@ -226,8 +203,8 @@ export default function SearchPlayersPage() {
                 <span
                   className="block w-6 h-6 rounded-full animate-spin"
                   style={{
-                    border: "2.5px solid var(--gray-200)",
-                    borderTopColor: "var(--green-500)",
+                    border: "2.5px solid var(--ink-200)",
+                    borderTopColor: "var(--green-700)",
                   }}
                 />
               </div>
@@ -254,5 +231,24 @@ export default function SearchPlayersPage() {
         }
       />
     </div>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 8a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5Z" />
+      <path d="M10 18a2 2 0 0 0 4 0" />
+    </svg>
   );
 }

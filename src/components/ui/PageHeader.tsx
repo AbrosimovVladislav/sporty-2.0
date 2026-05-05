@@ -36,35 +36,38 @@ export function PageHeader({
 
   return (
     <div
-      className="relative overflow-hidden px-4 pt-5 pb-5"
+      className="relative overflow-hidden px-5 pt-2 pb-5"
       style={{
-        background: "var(--green-600)",
-        borderRadius: "0 0 28px 28px",
+        background: "var(--green-700)",
+        borderRadius: "0 0 18px 18px",
       }}
     >
       <div
         className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "repeating-linear-gradient(120deg, transparent, transparent 30px, rgba(255,255,255,0.03) 30px, rgba(255,255,255,0.03) 32px)",
+            "repeating-linear-gradient(-55deg, transparent, transparent 14px, rgba(255,255,255,0.06) 14px, rgba(255,255,255,0.06) 16px)",
         }}
       />
       {hasTopRight && (
-        <div className="absolute top-5 right-4 flex items-center gap-2 z-10">
+        <div className="absolute top-3 right-5 flex items-center gap-2 z-10">
           {actions}
           {onSettingsClick && (
             <button
               type="button"
               onClick={onSettingsClick}
               aria-label={settingsAriaLabel}
-              className="relative w-10 h-10 rounded-full flex items-center justify-center transition-transform active:scale-95"
-              style={{ background: "rgba(255,255,255,0.15)" }}
+              className="relative w-[34px] h-[34px] rounded-[10px] flex items-center justify-center transition-transform active:scale-95"
+              style={{
+                background: "rgba(255,255,255,0.12)",
+                border: "1px solid rgba(255,255,255,0.08)",
+              }}
             >
               <GearIcon />
               {hasSettingsDot && (
                 <span
-                  className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                  style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
+                  className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full"
+                  style={{ background: "#ff4444", border: "2px solid var(--green-700)" }}
                 />
               )}
             </button>
@@ -83,8 +86,8 @@ export function PageHeader({
           <div className={`flex-1 min-w-0${hasTopRight ? " pr-12" : ""}`}>
             {titleSlot ?? (
               <h1
-                className="font-display font-bold uppercase text-white text-[30px] leading-tight break-words"
-                style={{ letterSpacing: "0.02em" }}
+                className="font-display uppercase text-white text-[30px] leading-none wrap-break-word"
+                style={{ letterSpacing: "0.04em", fontWeight: 600 }}
               >
                 {title}
               </h1>
@@ -153,6 +156,32 @@ export function HeaderActionButton({
       aria-label={ariaLabel}
       className="h-10 inline-flex items-center gap-1.5 px-3.5 rounded-full text-white text-[13px] font-semibold transition-transform active:scale-95"
       style={{ background: "rgba(255,255,255,0.18)", letterSpacing: "0.01em" }}
+    >
+      {children}
+    </button>
+  );
+}
+
+/** Small 34×34 icon button on green header (bell, etc.). */
+export function HeaderIconButton({
+  onClick,
+  ariaLabel,
+  children,
+}: {
+  onClick?: () => void;
+  ariaLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={ariaLabel}
+      className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center text-white transition-transform active:scale-95"
+      style={{
+        background: "rgba(255,255,255,0.12)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}
     >
       {children}
     </button>

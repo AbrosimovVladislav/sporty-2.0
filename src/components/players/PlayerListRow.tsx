@@ -3,16 +3,12 @@
 import Image from "next/image";
 import Link from "next/link";
 import { memo } from "react";
-import {
-  LevelBadge,
-  PositionBadge,
-  RatingCircle,
-  TeamLogosStack,
-  type TeamLogo,
-} from "./badges";
-import { levelFromRating, positionCode } from "@/lib/playerBadges";
+import { PositionTag, RatingRing } from "@/components/ui";
+import { positionCode, teamFallbackHue } from "@/lib/playerBadges";
+import type { TeamLogo } from "./badges";
 
-const AVATAR_SIZE = 52;
+const AVATAR_SIZE = 54;
+const TEAM_BADGE_SIZE = 22;
 
 type Props = {
   id: string;
@@ -41,42 +37,40 @@ function PlayerListRowImpl({
   roleBadge,
 }: Props) {
   const sharedClass =
-    "flex items-center gap-3.5 py-3 last:border-b-0 transition-colors active:bg-bg-secondary";
-  const sharedStyle = { borderBottom: "1px solid var(--gray-100)" };
+    "flex items-center gap-3.5 px-4 py-3 last:border-b-0 transition-colors active:bg-bg-secondary";
+  const sharedStyle = { borderBottom: "1px solid var(--ink-100)" };
 
-  const positionCodes = (position ?? [])
+  const codes = (position ?? [])
     .map((p) => positionCode(p))
-    .filter((c): c is NonNullable<typeof c> => c != null)
-    .slice(0, 2);
-
-  const level = levelFromRating(rating ?? null);
+    .filter((c): c is NonNullable<ReturnType<typeof positionCode>> => c != null);
+  const primaryPos = codes[0] ?? null;
+  const primaryTeam = teams && teams.length > 0 ? teams[0] : null;
 
   const inner = (
     <>
-      <div className="relative shrink-0">
+      <div className="relative shrink-0" style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}>
         <PlayerAvatar src={avatarUrl} name={name} />
-        {teams && teams.length > 0 && <TeamLogosStack teams={teams} />}
+        {primaryTeam && <TeamBadge team={primaryTeam} />}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
           <span
-            className="text-[16px] font-semibold truncate"
-            style={{ color: "var(--text-primary)" }}
+            className="text-[16px] font-semibold truncate leading-[1.2]"
+            style={{ color: "var(--ink-900)" }}
           >
             {name}
           </span>
           {lookingForTeam && <SeekingBadge />}
           {roleBadge && <RoleBadge label={roleBadge} />}
         </div>
-        <div className="flex items-center gap-1.5 mt-1.5 min-w-0">
-          <LevelBadge code={level} />
-          {positionCodes.map((c, i) => (
-            <PositionBadge key={`${c}-${i}`} code={c} />
-          ))}
-        </div>
+        {primaryPos && (
+          <div className="mt-1.5">
+            <PositionTag code={primaryPos} />
+          </div>
+        )}
       </div>
       <div className="shrink-0">
-        <RatingCircle rating={rating ?? null} level={level} size={48} />
+        <RatingRing rating={rating} size={56} />
       </div>
     </>
   );
@@ -113,12 +107,11 @@ function PlayerAvatar({ src, name }: { src?: string | null; name: string }) {
 
   return (
     <div
-      className="rounded-full overflow-hidden flex items-center justify-center bg-bg-card"
+      className="rounded-full overflow-hidden flex items-center justify-center"
       style={{
         width: AVATAR_SIZE,
         height: AVATAR_SIZE,
-        border: "2px solid white",
-        boxShadow: "0 0 0 1px var(--gray-200)",
+        background: src ? "var(--ink-100)" : "var(--ink-100)",
       }}
     >
       {src ? (
@@ -130,10 +123,7 @@ function PlayerAvatar({ src, name }: { src?: string | null; name: string }) {
           className="w-full h-full object-cover"
         />
       ) : (
-        <span
-          className="text-[17px] font-bold"
-          style={{ color: "var(--text-secondary)" }}
-        >
+        <span className="text-[17px] font-bold" style={{ color: "var(--ink-500)" }}>
           {initials}
         </span>
       )}
@@ -141,11 +131,60 @@ function PlayerAvatar({ src, name }: { src?: string | null; name: string }) {
   );
 }
 
+function TeamBadge({ team }: { team: TeamLogo }) {
+  const initial = team.name.trim().charAt(0).toUpperCase() || "?";
+  const hue = teamFallbackHue(team.id);
+  const fallbackBg = `oklch(0.45 0.10 ${hue})`;
+
+  if (team.logo_url) {
+    return (
+      <span
+        className="absolute rounded-full overflow-hidden bg-white"
+        style={{
+          width: TEAM_BADGE_SIZE,
+          height: TEAM_BADGE_SIZE,
+          right: -2,
+          bottom: -2,
+          border: "2px solid var(--card)",
+        }}
+      >
+        <Image
+          src={team.logo_url}
+          alt={team.name}
+          width={TEAM_BADGE_SIZE}
+          height={TEAM_BADGE_SIZE}
+          className="w-full h-full object-cover"
+        />
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className="absolute inline-flex items-center justify-center rounded-full text-white"
+      style={{
+        width: TEAM_BADGE_SIZE,
+        height: TEAM_BADGE_SIZE,
+        right: -2,
+        bottom: -2,
+        background: fallbackBg,
+        border: "2px solid var(--card)",
+        fontSize: 9,
+        fontWeight: 700,
+        lineHeight: 1,
+        letterSpacing: "0.02em",
+      }}
+    >
+      {initial}
+    </span>
+  );
+}
+
 function SeekingBadge() {
   return (
     <span
       className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 shrink-0"
-      style={{ background: "var(--green-50)", color: "var(--green-700)" }}
+      style={{ background: "var(--green-50)", color: "var(--green-800)" }}
     >
       Ищет команду
     </span>
@@ -157,8 +196,8 @@ function RoleBadge({ label }: { label: string }) {
     <span
       className="text-[10px] font-semibold rounded-full px-1.5 py-0.5 shrink-0 uppercase"
       style={{
-        background: "var(--gray-100)",
-        color: "var(--text-secondary)",
+        background: "var(--ink-100)",
+        color: "var(--ink-500)",
         letterSpacing: "0.4px",
       }}
     >

@@ -1,6 +1,20 @@
 export type PositionCode = "vrt" | "zash" | "pzsh" | "nap";
 export type LevelCode = "aplus" | "a" | "b" | "c" | "d";
 
+/** Design System v2 position keys (forward/midfielder/defender/goalkeeper) */
+export type PositionKind = "fwd" | "mid" | "def" | "gk";
+
+const CODE_TO_KIND: Record<PositionCode, PositionKind> = {
+  nap: "fwd",
+  pzsh: "mid",
+  zash: "def",
+  vrt: "gk",
+};
+
+export function positionKind(code: PositionCode): PositionKind {
+  return CODE_TO_KIND[code];
+}
+
 const POSITION_MAP: Record<string, PositionCode> = {
   "Вратарь": "vrt",
   "Защитник": "zash",

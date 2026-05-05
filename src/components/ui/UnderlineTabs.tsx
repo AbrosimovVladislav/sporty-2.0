@@ -37,21 +37,21 @@ export function UnderlineTabs({
   return (
     <nav
       className={className}
-      style={{ borderBottom: "1px solid var(--gray-100)" }}
+      style={{ borderBottom: "1px solid var(--ink-100)" }}
     >
       <div className="flex">
         {tabs.map((t, i) => {
           const active = isActive(t);
           const cls =
-            "relative flex-1 text-center pt-2 pb-2.5 text-[14px] transition-colors whitespace-nowrap";
+            "relative flex-1 text-center pt-3.5 pb-3 text-[14px] transition-colors whitespace-nowrap";
           const style = {
-            color: active ? "var(--green-700)" : "var(--text-secondary)",
-            fontWeight: active ? 700 : 500,
+            color: active ? "var(--ink-900)" : "var(--ink-500)",
+            fontWeight: active ? 600 : 500,
           } as const;
           const indicator = active ? (
             <span
-              className="absolute left-1/2 -translate-x-1/2 bottom-0 h-[2.5px] rounded-full"
-              style={{ background: "var(--green-500)", width: "calc(100% - 16px)" }}
+              className="absolute left-1/2 -translate-x-1/2 -bottom-px h-[2.5px] rounded-full"
+              style={{ background: "var(--green-700)", width: 36 }}
             />
           ) : null;
 

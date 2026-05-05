@@ -1,53 +1,90 @@
 @import "tailwindcss";
 
 :root {
-  /* ===== COLOR SCALES ===== */
+  /* ═════════════════════════════════════════════════════════════
+     SportyX Design Tokens v2 (см. docs/design/design-system.md)
+     ═════════════════════════════════════════════════════════════ */
 
-  /* Emerald Green (hue 155) */
-  --green-50:  oklch(0.97 0.02 155);
-  --green-100: oklch(0.93 0.05 155);
-  --green-200: oklch(0.85 0.10 155);
-  --green-300: oklch(0.75 0.15 155);
-  --green-400: oklch(0.65 0.18 155);
-  --green-500: oklch(0.58 0.17 155);
-  --green-600: oklch(0.50 0.15 155);
-  --green-700: oklch(0.42 0.13 155);
-  --green-800: oklch(0.34 0.10 155);
-  --green-900: oklch(0.26 0.07 155);
+  /* ───── Brand Green ───── */
+  --green-900: #0e4a35;
+  --green-800: #125a3f;
+  --green-700: #15694a;  /* primary, headers, active states */
+  --green-600: #1a7a55;
+  --green-500: #1f8a60;
+  --green-400: #3da078;
+  --green-300: #6cb898;
+  --green-200: #a6d4ba;
+  --green-100: #d8eadf;
+  --green-50:  #eaf3ee;
 
-  /* Warm Gray (hue 80) */
-  --gray-50:  oklch(0.985 0.003 80);
-  --gray-100: oklch(0.96 0.005 80);
-  --gray-200: oklch(0.92 0.005 80);
-  --gray-300: oklch(0.87 0.005 80);
-  --gray-400: oklch(0.70 0.005 80);
-  --gray-500: oklch(0.55 0.005 80);
-  --gray-600: oklch(0.44 0.005 80);
-  --gray-700: oklch(0.35 0.005 80);
-  --gray-800: oklch(0.25 0.005 80);
-  --gray-900: oklch(0.18 0.005 80);
+  /* ───── Ink (Neutral) ───── */
+  --ink-900: #0c1411;  /* primary text */
+  --ink-700: #2b3733;  /* secondary text */
+  --ink-500: #5c6a65;  /* tertiary text */
+  --ink-400: #8a9994;  /* placeholder, disabled */
+  --ink-300: #b8c2bd;  /* borders subtle */
+  --ink-200: #dde3df;  /* borders */
+  --ink-100: #eef2ef;  /* dividers, bg tint */
 
-  /* ===== SEMANTIC STATUS ===== */
-  --danger:  oklch(0.63 0.20 25);
-  --warning: oklch(0.75 0.15 70);
-  --success: var(--green-500);
-  --info:    oklch(0.65 0.15 250);
+  /* ───── Surfaces ───── */
+  --bg:   #f6f7f5;     /* page background */
+  --card: #ffffff;     /* cards, sheets */
 
-  /* ===== SURFACES ===== */
-  --bg-primary:   #ffffff;
-  --bg-secondary: var(--gray-50);
-  --bg-card:      var(--gray-100);
-  --bg-elevated:  #ffffff;
-  --bg-dark:      var(--gray-900);
+  /* ───── Position Colors (semantic) ───── */
+  --pos-fwd-bg: #fde8ea;
+  --pos-fwd-fg: #c93545;
+  --pos-mid-bg: #fff4dd;
+  --pos-mid-fg: #c48a14;
+  --pos-def-bg: #e2f3e8;
+  --pos-def-fg: #1a7a45;
+  --pos-gk-bg:  #e0effd;
+  --pos-gk-fg:  #2a6ec2;
 
-  /* ===== TEXT ===== */
-  --text-primary:   var(--gray-900);
-  --text-secondary: var(--gray-500);
-  --text-tertiary:  var(--gray-400);
-  --text-inverse:   #ffffff;
-  --text-accent:    var(--green-500);
+  /* ───── Rating Tiers (gradient ring + tier text) ───── */
+  --rating-elite-c1:    #6366f1;
+  --rating-elite-c2:    #4338ca;
+  --rating-elite-text:  #4338ca;
+  --rating-elite-track: #e0e0f8;
 
-  /* ===== SPACING (4px base) ===== */
+  --rating-high-c1:    #f5b800;
+  --rating-high-c2:    #d4920a;
+  --rating-high-text:  #b8860b;
+  --rating-high-track: #fdf0c8;
+
+  --rating-mid-c1:    #b0b5ba;
+  --rating-mid-c2:    #8a8e93;
+  --rating-mid-text:  #6b7280;
+  --rating-mid-track: #e8eaec;
+
+  --rating-low-c1:    #d4783a;
+  --rating-low-c2:    #a85828;
+  --rating-low-text:  #8b4a20;
+  --rating-low-track: #f2e0d0;
+
+  --rating-poor-c1:    #3f3f46;
+  --rating-poor-c2:    #18181b;
+  --rating-poor-text:  #1c1917;
+  --rating-poor-track: #e4e4e7;
+
+  /* ───── Status ───── */
+  --danger:       #c93545;
+  --danger-soft:  #fde8ea;
+  --warning:      #d4920a;
+  --warning-soft: #fff4dd;
+  --success:      var(--green-500);
+  --info:         #2a6ec2;
+
+  /* ───── Typography ───── */
+  --text-xs:   11px;
+  --text-sm:   13px;
+  --text-base: 14px;
+  --text-md:   16px;
+  --text-lg:   20px;
+  --text-xl:   24px;
+  --text-2xl:  30px;
+  --text-3xl:  40px;
+
+  /* ───── Spacing ───── */
   --space-1:  4px;
   --space-2:  8px;
   --space-3:  12px;
@@ -59,56 +96,90 @@
   --space-12: 48px;
   --page-px:  16px;
 
-  /* ===== RADII ===== */
-  --radius-sm:   8px;
-  --radius-md:   12px;
-  --radius-lg:   16px;
-  --radius-xl:   20px;
+  /* ───── Radii ───── */
+  --radius-sm:   6px;   /* tags, small chips */
+  --radius-md:   10px;  /* icon buttons */
+  --radius-lg:   12px;  /* inputs, chips, cards */
+  --radius-xl:   18px;  /* page header bottom corners */
+  --radius-2xl:  24px;  /* bottom-sheet top corners */
   --radius-full: 9999px;
 
-  /* ===== SHADOWS ===== */
-  --shadow-sm: 0 1px 2px oklch(0.2 0 0 / 0.06);
-  --shadow-md: 0 2px 8px oklch(0.2 0 0 / 0.08);
-  --shadow-lg: 0 4px 16px oklch(0.2 0 0 / 0.10);
+  /* ───── Shadows ───── */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.06);
+  --shadow-md: 0 4px 12px rgba(0,0,0,.08);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,.12);
 
-  /* ===== BACKWARD COMPAT ALIASES ===== */
+  /* ───── Transitions ───── */
+  --ease-out:        cubic-bezier(0.16, 1, 0.3, 1);
+  --duration-fast:   150ms;
+  --duration-normal: 250ms;
 
-  /* Background */
-  --background:               var(--bg-secondary);
-  --background-card:          var(--bg-primary);
-  --background-muted:         var(--bg-card);
-  --background-overlay:       oklch(0.2 0 0 / 0.4);
-  --background-dark:          var(--bg-dark);
-  --background-dark-elevated: oklch(0.25 0.005 80);
+  /* ═════════════════════════════════════════════════════════════
+     Backward-compat aliases (старые токены → новые)
+     Все экраны, не мигрированные на v2, продолжают работать.
+     ═════════════════════════════════════════════════════════════ */
 
-  /* Foreground */
-  --foreground:               var(--text-primary);
-  --foreground-secondary:     var(--text-secondary);
-  --foreground-muted:         var(--text-tertiary);
-  --foreground-on-dark:       var(--text-inverse);
-  --foreground-on-dark-muted: oklch(0.65 0 0);
+  /* Старая шкала gray → новая ink */
+  --gray-50:  var(--ink-100);
+  --gray-100: var(--ink-100);
+  --gray-200: var(--ink-200);
+  --gray-300: var(--ink-300);
+  --gray-400: var(--ink-400);
+  --gray-500: var(--ink-500);
+  --gray-600: var(--ink-700);
+  --gray-700: var(--ink-700);
+  --gray-800: var(--ink-900);
+  --gray-900: var(--ink-900);
 
-  /* Primary */
-  --primary:             var(--green-500);
-  --primary-hover:       var(--green-600);
+  /* Surfaces */
+  --bg-primary:   var(--card);
+  --bg-secondary: var(--bg);
+  --bg-card:      var(--ink-100);
+  --bg-elevated:  var(--card);
+  --bg-dark:      var(--ink-900);
+
+  /* Text */
+  --text-primary:   var(--ink-900);
+  --text-secondary: var(--ink-500);
+  --text-tertiary:  var(--ink-400);
+  --text-inverse:   #ffffff;
+  --text-accent:    var(--green-700);
+
+  /* Legacy semantic */
+  --background:               var(--bg);
+  --background-card:          var(--card);
+  --background-muted:         var(--ink-100);
+  --background-overlay:       rgba(0,0,0,0.4);
+  --background-dark:          var(--ink-900);
+  --background-dark-elevated: var(--ink-700);
+
+  --foreground:               var(--ink-900);
+  --foreground-secondary:     var(--ink-500);
+  --foreground-muted:         var(--ink-400);
+  --foreground-on-dark:       #ffffff;
+  --foreground-on-dark-muted: rgba(255,255,255,0.7);
+
+  --primary:             var(--green-700);
+  --primary-hover:       var(--green-800);
   --primary-foreground:  #ffffff;
-  --primary-soft:        var(--green-100);
+  --primary-soft:        var(--green-50);
 
-  /* Status soft variants */
-  --danger-soft:  oklch(0.95 0.06 25);
-  --warning-soft: oklch(0.95 0.06 70);
-
-  /* Borders */
-  --border:        var(--gray-200);
-  --border-strong: var(--gray-300);
-  --border-dark:   var(--gray-700);
+  --border:        var(--ink-200);
+  --border-strong: var(--ink-300);
+  --border-dark:   var(--ink-700);
 
   /* Legacy shadow names */
   --shadow-card: var(--shadow-sm);
   --shadow-pop:  var(--shadow-md);
 
-  /* ===== PLAYER BADGES — POSITIONS ===== */
-  /* Нападающий */
+  /* ═════════════════════════════════════════════════════════════
+     LEGACY (v1) — старые hex/oklch бейджи для не-мигрированных
+     компонентов: HexBadge, LevelBadge, PositionBadge (hex+pill),
+     RatingCircle. Используются в TeamPlayerSheet, profile/[id].
+     Мигрируем на новые компоненты при переписи каждого экрана.
+     ═════════════════════════════════════════════════════════════ */
+
+  /* Старые позиции (hex+pill) */
   --pos-nap-border:      oklch(0.45 0.21 25);
   --pos-nap-fill-from:   oklch(0.66 0.22 25);
   --pos-nap-fill-to:     oklch(0.52 0.21 25);
@@ -116,7 +187,6 @@
   --pos-nap-pill-fg:     oklch(0.55 0.22 25);
   --pos-nap-pill-border: oklch(0.86 0.10 25);
 
-  /* Полузащитник */
   --pos-pzsh-border:      oklch(0.62 0.16 85);
   --pos-pzsh-fill-from:   oklch(0.86 0.18 85);
   --pos-pzsh-fill-to:     oklch(0.72 0.18 85);
@@ -124,7 +194,6 @@
   --pos-pzsh-pill-fg:     oklch(0.62 0.16 85);
   --pos-pzsh-pill-border: oklch(0.84 0.13 85);
 
-  /* Защитник */
   --pos-zash-border:      oklch(0.42 0.14 145);
   --pos-zash-fill-from:   oklch(0.58 0.16 145);
   --pos-zash-fill-to:     oklch(0.46 0.16 145);
@@ -132,7 +201,6 @@
   --pos-zash-pill-fg:     oklch(0.48 0.16 145);
   --pos-zash-pill-border: oklch(0.84 0.10 145);
 
-  /* Вратарь */
   --pos-vrt-border:      oklch(0.55 0.13 240);
   --pos-vrt-fill-from:   oklch(0.78 0.12 240);
   --pos-vrt-fill-to:     oklch(0.64 0.14 240);
@@ -140,8 +208,7 @@
   --pos-vrt-pill-fg:     oklch(0.56 0.16 240);
   --pos-vrt-pill-border: oklch(0.85 0.08 240);
 
-  /* ===== PLAYER BADGES — LEVELS ===== */
-  /* A+ — Daimond */
+  /* Старые уровни (LevelBadge A+/A/B/C/D + RatingCircle) */
   --lvl-aplus-border:    oklch(0.35 0.22 280);
   --lvl-aplus-fill-from: oklch(0.72 0.18 220);
   --lvl-aplus-fill-mid:  oklch(0.58 0.22 270);
@@ -150,7 +217,6 @@
   --lvl-aplus-ring-bg:   oklch(0.90 0.08 280);
   --lvl-aplus-number:    oklch(0.45 0.22 280);
 
-  /* A — Gold */
   --lvl-a-border:    oklch(0.55 0.16 85);
   --lvl-a-fill-from: oklch(0.92 0.16 95);
   --lvl-a-fill-mid:  oklch(0.84 0.18 85);
@@ -159,7 +225,6 @@
   --lvl-a-ring-bg:   oklch(0.93 0.10 85);
   --lvl-a-number:    oklch(0.62 0.18 85);
 
-  /* B — Silver */
   --lvl-b-border:    oklch(0.62 0.01 250);
   --lvl-b-fill-from: oklch(0.90 0.01 250);
   --lvl-b-fill-mid:  oklch(0.82 0.01 250);
@@ -168,7 +233,6 @@
   --lvl-b-ring-bg:   oklch(0.90 0.01 250);
   --lvl-b-number:    oklch(0.55 0.02 250);
 
-  /* C — Bronze */
   --lvl-c-border:    oklch(0.50 0.10 55);
   --lvl-c-fill-from: oklch(0.78 0.08 60);
   --lvl-c-fill-mid:  oklch(0.68 0.10 55);
@@ -177,7 +241,6 @@
   --lvl-c-ring-bg:   oklch(0.90 0.04 55);
   --lvl-c-number:    oklch(0.52 0.12 55);
 
-  /* D — Graphite */
   --lvl-d-border:    oklch(0.25 0.01 80);
   --lvl-d-fill-from: oklch(0.48 0.01 80);
   --lvl-d-fill-mid:  oklch(0.38 0.01 80);
@@ -186,18 +249,17 @@
   --lvl-d-ring-bg:   oklch(0.80 0.01 80);
   --lvl-d-number:    oklch(0.32 0.02 80);
 
-  /* Empty (rating = null) */
-  --lvl-empty-border:    var(--gray-300);
-  --lvl-empty-fill-from: var(--gray-100);
-  --lvl-empty-fill-mid:  var(--gray-200);
-  --lvl-empty-fill-to:   var(--gray-200);
-  --lvl-empty-ring:      var(--gray-300);
-  --lvl-empty-ring-bg:   var(--gray-100);
-  --lvl-empty-number:    var(--text-tertiary);
+  --lvl-empty-border:    var(--ink-300);
+  --lvl-empty-fill-from: var(--ink-100);
+  --lvl-empty-fill-mid:  var(--ink-200);
+  --lvl-empty-fill-to:   var(--ink-200);
+  --lvl-empty-ring:      var(--ink-300);
+  --lvl-empty-ring-bg:   var(--ink-100);
+  --lvl-empty-number:    var(--ink-400);
 }
 
 @theme inline {
-  /* Color scales */
+  /* ── Brand ── */
   --color-green-50:  var(--green-50);
   --color-green-100: var(--green-100);
   --color-green-200: var(--green-200);
@@ -209,6 +271,16 @@
   --color-green-800: var(--green-800);
   --color-green-900: var(--green-900);
 
+  /* ── Ink (new) ── */
+  --color-ink-100: var(--ink-100);
+  --color-ink-200: var(--ink-200);
+  --color-ink-300: var(--ink-300);
+  --color-ink-400: var(--ink-400);
+  --color-ink-500: var(--ink-500);
+  --color-ink-700: var(--ink-700);
+  --color-ink-900: var(--ink-900);
+
+  /* ── Gray (legacy alias) ── */
   --color-gray-50:  var(--gray-50);
   --color-gray-100: var(--gray-100);
   --color-gray-200: var(--gray-200);
@@ -220,27 +292,29 @@
   --color-gray-800: var(--gray-800);
   --color-gray-900: var(--gray-900);
 
-  /* Semantic status */
+  /* ── Status ── */
   --color-success: var(--success);
   --color-danger:  var(--danger);
   --color-warning: var(--warning);
   --color-info:    var(--info);
 
-  /* Surfaces */
+  /* ── Surfaces ── */
+  --color-bg:           var(--bg);
+  --color-card:         var(--card);
   --color-bg-primary:   var(--bg-primary);
   --color-bg-secondary: var(--bg-secondary);
   --color-bg-card:      var(--bg-card);
   --color-bg-elevated:  var(--bg-elevated);
   --color-bg-dark:      var(--bg-dark);
 
-  /* Text */
+  /* ── Text ── */
   --color-text-primary:   var(--text-primary);
   --color-text-secondary: var(--text-secondary);
   --color-text-tertiary:  var(--text-tertiary);
   --color-text-inverse:   var(--text-inverse);
   --color-text-accent:    var(--text-accent);
 
-  /* Backward compat Tailwind colors */
+  /* ── Legacy ── */
   --color-background:               var(--background);
   --color-background-card:          var(--background-card);
   --color-background-muted:         var(--background-muted);
@@ -266,26 +340,28 @@
   --color-border-strong: var(--border-strong);
   --color-border-dark:   var(--border-dark);
 
-  /* Shadows */
+  /* ── Shadows ── */
   --shadow-sm:   var(--shadow-sm);
   --shadow-md:   var(--shadow-md);
   --shadow-lg:   var(--shadow-lg);
   --shadow-card: var(--shadow-card);
   --shadow-pop:  var(--shadow-pop);
 
-  /* Radii */
+  /* ── Radii ── */
   --radius-sm:   var(--radius-sm);
   --radius-md:   var(--radius-md);
   --radius-lg:   var(--radius-lg);
   --radius-xl:   var(--radius-xl);
+  --radius-2xl:  var(--radius-2xl);
   --radius-full: var(--radius-full);
 
-  /* Fonts */
+  /* ── Fonts ── */
   --font-sans:    var(--font-geist-sans);
   --font-display: var(--font-oswald);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--ink-900);
+  font-family: var(--font-geist-sans);
 }

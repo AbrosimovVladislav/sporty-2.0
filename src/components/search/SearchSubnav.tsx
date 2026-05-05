@@ -17,5 +17,5 @@ export function SearchSubnav() {
     active: pathname === t.href || (pathname?.startsWith(t.href + "/") ?? false),
   }));
 
-  return <UnderlineTabs tabs={tabs} className="px-4 mt-2" />;
+  return <UnderlineTabs tabs={tabs} className="px-3" />;
 }

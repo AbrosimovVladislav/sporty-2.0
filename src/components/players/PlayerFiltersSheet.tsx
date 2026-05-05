@@ -6,8 +6,16 @@ import { SheetChipGroup, type ChipOption } from "@/components/ui";
 export type PlayerFilters = {
   city: string;
   districtId: string;
+  position: string;
   lookingForTeam: boolean;
 };
+
+const POSITION_OPTIONS: ChipOption[] = [
+  { value: "Вратарь", label: "Вратарь" },
+  { value: "Защитник", label: "Защитник" },
+  { value: "Полузащитник", label: "Полузащитник" },
+  { value: "Нападающий", label: "Нападающий" },
+];
 
 type Props = {
   open: boolean;
@@ -61,6 +69,7 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
     setFilters({
       city: "",
       districtId: "",
+      position: "",
       lookingForTeam: false,
     });
   }
@@ -110,6 +119,13 @@ export function PlayerFiltersSheet({ open, initial, onClose, onApply }: Props) {
             value={filters.districtId}
             onChange={(d) => setFilters((f) => ({ ...f, districtId: d }))}
             emptyHint="Сначала выбери город"
+          />
+
+          <SheetChipGroup
+            label="Позиция"
+            options={POSITION_OPTIONS}
+            value={filters.position}
+            onChange={(p) => setFilters((f) => ({ ...f, position: p }))}
           />
 
           <button

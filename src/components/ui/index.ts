@@ -16,6 +16,7 @@ export {
   HeaderStatGroup,
   HeaderStat,
   HeaderActionButton,
+  HeaderIconButton,
 } from "./PageHeader";
 export { ListSearchBar } from "./ListSearchBar";
 export { ListMeta } from "./ListMeta";
@@ -25,3 +26,6 @@ export type { FilterChip } from "./ActiveFilterChips";
 export { SheetChipGroup } from "./SheetChipGroup";
 export type { ChipOption } from "./SheetChipGroup";
 export { CityPickerSheet } from "./CityPickerSheet";
+export { PositionTag } from "./PositionTag";
+export { RatingRing } from "./RatingRing";
+export { SortPill } from "./SortPill";

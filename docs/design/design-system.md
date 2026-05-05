@@ -1,13 +1,12 @@
-# Дизайн-система Sporty
+# Дизайн-система Sporty (v2)
 
 Главный документ для любых изменений интерфейса. Перед задачей по UI читать целиком.
 
-Референсы: [ref.png](ref.png), скриншоты в Figma — экраны «Состав» и «Карточка события».
+Источник: [docs/design/new design handoff/](new%20design%20handoff/) — `design-system/HANDOFF.md`, `tokens.css`, `Players.html`. Все токены — в [src/app/globals.css](../../src/app/globals.css).
 
-> **Итерация 53 (1.6).** Семейство бейджей игрока: `HexBadge` (общий шестиугольник), `PositionBadge` (4 позиции + pill), `LevelBadge` (5 уровней A+/A/B/C/D + плейсхолдер), `RatingCircle` (SVG-кольцо), `TeamLogosStack` (стек лого команд на аватаре). `LevelBadge` и цвет `RatingCircle` считаются из `users.rating` по бакетам (см. ниже). Также: `CityPickerSheet` — bottom-sheet для inline-пикера города в search-row, и опц. `cityPicker` prop у `ListSearchBar`. Сабтайтл «позиция · район/город» в `PlayerListRow` удалён.
-> **Итерация 35 (1.4).** Шапка «Моя команда» переведена на `PageHeader` (green hero). Добавлен `UnderlineTabs` — общий примитив для `SearchSubnav` и нового `TeamSubNav`. `PageHeader` получил `titleSlot` и `subtitle`.
-> **Итерация 30 (1.4).** Внедрены Sporty Design Tokens v1: цветовые шкалы `oklch()`, семантические поверхности `--bg-*` / текст `--text-*`, тени `--shadow-sm/md/lg`. Старые Tailwind-классы продолжают работать как алиасы.
-> **Итерация 24 (1.3).** Базовые компоненты `src/components/ui/` созданы. `UIChromeContext` + `BottomTabs` скрывают нижние табы при активном `BottomActionBar`. `BackButton` поддерживает `kind="light"|"on-photo"`. `Skeleton` использует `bg-background-muted`.
+> **v2 (2026-05).** Новая палитра: hex-зелёный (`--green-700` основной), ink-нейтрали (`--ink-100..900`), плотные позиции `pos-{fwd|mid|def|gk}-{bg|fg}`, рейтинг — 5 tier'ов с градиентным кольцом (`elite/high/mid/low/poor`). Новые компоненты: `PositionTag` (плоский тег вместо hex+pill), `RatingRing` (градиент-кольцо вместо `RatingCircle`), `SortPill` (зелёная pill-сортировка). Старые `LevelBadge`/`PositionBadge`/`RatingCircle` помечены legacy — мигрируем экранами.
+> **Итерация 53 (v1).** Семейство hex-бейджей игрока: `HexBadge`, `PositionBadge` (hex+pill), `LevelBadge` (A+/A/B/C/D), `RatingCircle`. — *Legacy, используется в `TeamPlayerSheet` и публичном профиле до миграции*
+> **Итерация 24.** Базовые компоненты `src/components/ui/`. `UIChromeContext` + `BottomTabs`. `BackButton` поддерживает `kind="light"|"on-photo"`.
 
 ---
 
@@ -23,35 +22,78 @@
 
 ## Цветовые токены
 
-Все цвета определены в [src/app/globals.css](../../src/app/globals.css) на базе **Sporty Design Tokens v1**. Используй только токены, никаких хардкод-хексов в компонентах.
+Все цвета — hex, в [src/app/globals.css](../../src/app/globals.css). Никаких хардкод-цветов в компонентах: только `var(--token)`.
 
-### Цветовые шкалы
+### Brand Green
 
-| Переменная | Описание |
-|------------|----------|
-| `--green-50` … `--green-900` | Emerald Green (hue 155, oklch) — основной акцентный цвет |
-| `--gray-50` … `--gray-900` | Warm Gray (hue 80, oklch) — нейтральные поверхности и текст |
+| Переменная | Hex | Где |
+|------------|-----|-----|
+| `--green-900` | `#0e4a35` | — |
+| `--green-800` | `#125a3f` | hover на primary |
+| `--green-700` | `#15694a` | **primary**: PageHeader, активный таб, кнопка primary |
+| `--green-600` | `#1a7a55` | — |
+| `--green-500` | `#1f8a60` | — |
+| `--green-100` | `#d8eadf` | мягкие подложки бейджей |
+| `--green-50`  | `#eaf3ee` | sort-pill bg, soft-success |
 
-В Tailwind: `bg-green-500`, `text-gray-400` и т.д.
+### Ink (нейтрали)
 
-### Семантические поверхности
+| Переменная | Hex | Где |
+|------------|-----|-----|
+| `--ink-900` | `#0c1411` | основной текст, имена, активный таб |
+| `--ink-700` | `#2b3733` | вторичный текст в чипах |
+| `--ink-500` | `#5c6a65` | мета, подписи, неактивный таб |
+| `--ink-400` | `#8a9994` | плейсхолдер, disabled |
+| `--ink-300` | `#b8c2bd` | тонкие границы |
+| `--ink-200` | `#dde3df` | границы карточек, чипов |
+| `--ink-100` | `#eef2ef` | разделители, фон-ин-карточке |
 
-| CSS-переменная | Tailwind-класс | Где |
-|----------------|----------------|-----|
-| `--bg-primary` | `bg-bg-primary` | Карточки, bottom-sheet, инпуты — белый |
-| `--bg-secondary` | `bg-bg-secondary` | Фон страниц (тёплый светло-серый) |
-| `--bg-card` | `bg-bg-card` | Вторичные блоки внутри карточек, скелетоны |
-| `--bg-dark` | `bg-bg-dark` | Тёмные фото-баннеры (без фото) |
+Старая шкала `--gray-*` остаётся как алиас на `--ink-*` для не-мигрированных экранов.
 
-### Семантический текст
+### Surfaces
 
-| CSS-переменная | Tailwind-класс | Где |
-|----------------|----------------|-----|
-| `--text-primary` | `text-text-primary` | Заголовки, имена, числа |
-| `--text-secondary` | `text-text-secondary` | Подписи, мета, роль/позиция |
-| `--text-tertiary` | `text-text-tertiary` | Подсказки, плейсхолдеры |
-| `--text-inverse` | `text-text-inverse` | Текст на тёмных подложках и баннерах |
-| `--text-accent` | `text-text-accent` | Акцентные числа, ссылки |
+| Переменная | Hex | Где |
+|------------|-----|-----|
+| `--bg`   | `#f6f7f5` | фон страницы (тёплый off-white) |
+| `--card` | `#ffffff` | карточки, sheets, инпуты, фон списков |
+
+Алиасы для совместимости: `--bg-secondary` → `--bg`, `--bg-primary` → `--card`.
+
+### Position Colors
+
+Простой плоский тег: `bg` + `fg` (без бордера, без градиента).
+
+| Позиция | Код | BG | FG | Иконка |
+|---------|-----|----|----|--------|
+| Нападающий | `fwd` | `#fde8ea` | `#c93545` | boot.png (mask) |
+| Полузащитник | `mid` | `#fff4dd` | `#c48a14` | crosshair (SVG) |
+| Защитник | `def` | `#e2f3e8` | `#1a7a45` | shield (SVG) |
+| Вратарь | `gk` | `#e0effd` | `#2a6ec2` | glove.png (mask) |
+
+CSS: `var(--pos-{fwd|mid|def|gk}-{bg|fg})`. Маппинг кодов — в [`src/lib/playerBadges.ts`](../../src/lib/playerBadges.ts) (`positionKind`).
+
+### Rating Tiers (градиент-кольцо)
+
+5 уровней по `users.rating` (0..100). Используются в `RatingRing`. Цвет числа = `text`, фон кольца = `track`, градиент = `c1 → c2`.
+
+| Tier | Range | c1 → c2 | text | track |
+|------|-------|---------|------|-------|
+| `elite` | 90-100 | `#6366f1` → `#4338ca` | `#4338ca` | `#e0e0f8` (индиго) |
+| `high` | 80-89 | `#f5b800` → `#d4920a` | `#b8860b` | `#fdf0c8` (золото) |
+| `mid` | 70-79 | `#b0b5ba` → `#8a8e93` | `#6b7280` | `#e8eaec` (серый) |
+| `low` | 55-69 | `#d4783a` → `#a85828` | `#8b4a20` | `#f2e0d0` (бронза) |
+| `poor` | <55 | `#3f3f46` → `#18181b` | `#1c1917` | `#e4e4e7` (графит) |
+
+Хелпер `ratingTier(rating)` → tier в [`src/lib/ratingTier.ts`](../../src/lib/ratingTier.ts).
+
+### Семантический текст (legacy-алиасы)
+
+| CSS | Tailwind | Где |
+|-----|----------|-----|
+| `--text-primary` (= `--ink-900`) | `text-text-primary` | заголовки, имена, числа |
+| `--text-secondary` (= `--ink-500`) | `text-text-secondary` | мета, статус |
+| `--text-tertiary` (= `--ink-400`) | `text-text-tertiary` | плейсхолдеры |
+| `--text-inverse` | `text-text-inverse` | текст на тёмных подложках |
 
 ### Смысловые токены
 
@@ -95,13 +137,14 @@
 
 | Токен | px | Где |
 |-------|----|-----|
-| `radius-sm` | 8 | Бейджи, мини-индикаторы |
-| `radius-md` | 12 | Инпуты, мелкие пилюли |
-| `radius-lg` | 16 | Карточки, секции, фото-баннеры |
-| `radius-xl` | 20 | Bottom-sheet верхние углы |
-| `radius-full` | 9999 | Аватарки, чипы, кнопки-пилюли |
+| `radius-sm` | 6 | Position-теги, мини-чипы |
+| `radius-md` | 10 | Icon-кнопки на хедере (bell, gear) |
+| `radius-lg` | 12 | Инпуты, фильтр-кнопки, чипы, карточки |
+| `radius-xl` | 18 | Page header bottom corners |
+| `radius-2xl` | 24 | Bottom-sheet верхние углы |
+| `radius-full` | 9999 | Аватарки, sort-pill, кнопки-пилюли |
 
-Внутренние блоки крупных карточек скругляем `radius-md`. Кнопки и фильтр-чипы — `radius-full`.
+Кнопки и pill-сортировка — `radius-full`. Карточки в фиде — `radius-lg`.
 
 ---
 
@@ -120,18 +163,17 @@
 
 | Назначение | Класс | Пример |
 |------------|-------|--------|
-| Page title (зелёный хедер) | `font-display text-[30px] font-bold uppercase tracking-[0.02em]` | «ИГРОКИ» |
-| Экран-заголовок (внутренний) | `text-[28px] leading-tight font-bold` | «Состав» |
-| Заголовок секции | `text-[17px] leading-snug font-semibold` | «Управление», «Финансы» |
-| Заголовок карточки | `text-[15px] font-semibold` | Имя игрока |
+| Page title (зелёный хедер) | `font-display text-[30px] uppercase` weight 600, tracking 0.04em | «ИГРОКИ» |
+| Имя в строке списка | `text-[16px] font-semibold` | «Илья Петров» |
+| Заголовок секции | `text-[17px] font-semibold` | «Управление», «Финансы» |
 | Event type (hero) | `font-display text-[22-28px] font-bold uppercase` | «ТРЕНИРОВКА» |
 | Sport-метрика главная | `font-display text-[34-40px] font-bold tabular-nums` | «36», «9 / 12» |
-| Метрика вторичная | `text-[28px] leading-none font-semibold tabular-nums` | «3 под вопросом» |
-| Тело | `text-[15px] leading-normal` | Описание события |
-| Подпись/мета | `text-[13px] text-foreground-secondary` | «ЦЗ · Основной», адрес |
+| Rating в RatingRing | `font-display text-[24px] font-bold tabular-nums` | «100» |
+| Тело | `text-[14-15px]` | Описание события |
+| Подпись/мета | `text-[13px]` color `--ink-500` | адрес, дата |
 | Эйбрау-секция | `text-[11px] uppercase tracking-[0.06em] font-semibold` | «РЕЗУЛЬТАТЫ · 36» |
-| Бейдж/чип | `text-[12px] font-semibold` | «МАТЧ» |
-| Число в бейдже-справа | `text-[15px] font-bold tabular-nums` | «75» |
+| Position tag | `text-[11px] font-semibold` tracking 0.04em | «НАП» |
+| Sort pill / tab | `text-[13-14px] font-medium-semibold` | «По рейтингу» |
 
 Числа — всегда `tabular-nums`, чтобы списки не «прыгали».
 
@@ -149,6 +191,45 @@
 | Высота тапа | мин. 44px (Apple HIG) |
 
 Не лепи карточки впритык — между ними всегда `gap-3`. Не добавляй вертикальные хедеры в каждую секцию — эйбрау достаточно.
+
+---
+
+## Компоненты v2 (TS)
+
+Использовать всегда, когда есть готовый компонент. Все — в [`src/components/ui/`](../../src/components/ui/) кроме отмеченного.
+
+### Layout
+
+| Компонент | Назначение |
+|-----------|-----------|
+| `PageHeader` | Зелёный хедер (`--green-700`), радиус `0 0 18px 18px`, паттерн полос `-55deg`. Поддерживает `title`/`titleSlot`/`subtitle`/`leadingSlot`/`actions`/`onSettingsClick`/`children` (под title — например `HeaderStatGroup`) |
+| `HeaderIconButton` | 34×34, `radius-md`, полупрозрачный белый фон (для bell, поиска и пр. в `actions`-слоте `PageHeader`) |
+| `HeaderActionButton` | Pill-кнопка на хедере (`Все события` и т.п.) |
+| `UnderlineTabs` | Подчёркнутые табы (sticky или статичные). Активный — `--ink-900` weight 600, индикатор 36×2.5px `--green-700` |
+| `BottomActionBar` | Sticky CTA снизу. Скрывает `BottomTabs` |
+
+### Search & Lists
+
+| Компонент | Назначение |
+|-----------|-----------|
+| `ListSearchBar` | h-42 поисковая строка (bg `--bg`, border `--ink-100`) + опц. `cityPicker` chip + опц. filter-кнопка с бейджем активных |
+| `ListMeta` | Левый счётчик «Результаты · N» + правый `SortPill` |
+| `SortPill` | Зелёная pill-сортировка: bg `--green-50`, fg `--green-800`, h-8, radius-full |
+| `FilterPills` | Grid-разделённый ряд фильтр-кнопок (legacy — на migrated screens прячем в filter sheet) |
+| `EmptyState` | Иконка + текст + опц. action |
+| `CityPickerSheet` | Bottom-sheet выбора города |
+
+### Player widgets
+
+| Компонент | Назначение |
+|-----------|-----------|
+| `PositionTag` | Плоский тег позиции: иконка + 3-буквенный label, h-22, radius-6, цвет от `--pos-{kind}-{bg|fg}` |
+| `RatingRing` | SVG градиент-кольцо 56×56 (опц. размер). Цвет числа и градиент — от `ratingTier()` |
+| `PlayerListRow` ([players/](../../src/components/players/PlayerListRow.tsx)) | Строка списка игрока: аватар 54px + team-badge 22px (bottom-right) + имя 16px/600 + `PositionTag` + `RatingRing` |
+
+### Legacy (мигрируем по экранам)
+
+`HexBadge`, `LevelBadge`, `RatingCircle`, `PositionBadge` (hex+pill), `LevelChip` — используются в `TeamPlayerSheet` и публичном профиле игрока. При переписи экранов — заменять на `PositionTag` + `RatingRing`.
 
 ---
 
