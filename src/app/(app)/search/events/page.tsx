@@ -59,9 +59,9 @@ const TYPE_PILLS = [
 ];
 
 const SORT_OPTIONS = [
-  { value: "date_asc", label: "Сначала ближайшие" },
+  { value: "date_asc", label: "По дате" },
   { value: "date_desc", label: "Сначала далёкие" },
-  { value: "price_asc", label: "По цене (дешевле)" },
+  { value: "price_asc", label: "По цене" },
 ];
 
 const PRESET_LABEL: Record<DatePreset, string> = {
