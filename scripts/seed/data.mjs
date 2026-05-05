@@ -17,14 +17,15 @@ export const DISTRICTS = [
   { city: "Астана", name: "Сарыарка" },
 ];
 
-// Football venues — реальные карточки из Яндекс Карт.
-// photo_filename — ожидаемое имя файла в bucket `venues`. Файлы кладёшь сам.
+// Football venues — реальные карточки из Яндекс Карт. Все в Алматы.
+// photo_filename — ожидаемое имя файла в bucket `venues`. Сидер проверяет
+// фактическое наличие файла: если есть — ставит publicUrl, нет — photo_url=null
+// (UI покажет плейсхолдер). Так можно загружать фотки по одной и не плодить битые ссылки.
 // website — линк на карточку в Яндекс Картах (телефоны Яндекс в публичной выдаче
 // показывает не всегда, поэтому где `phone: null` — звони через карточку).
 export const VENUES = [
-  // ── Алматы ──
   {
-    name: "Центральный стадион",
+    name: "Стадион Центральный",
     city: "Алматы",
     district: "Бостандыкский",
     address: "ул. Каныша Сатпаева, 29/3",
@@ -33,7 +34,7 @@ export const VENUES = [
     description:
       "Главный стадион Алматы. Полноразмерное поле, открытые трибуны. Рейтинг 4.9 в Яндекс Картах.",
     default_cost: 30000,
-    photo_filename: "centralnyy-stadion.jpg",
+    photo_filename: "stadion-tsentralnyy.png",
   },
   {
     name: "Стадион Динамо",
@@ -45,10 +46,10 @@ export const VENUES = [
     description:
       "Стадион «Динамо» в центре Алматы. Аренда от 30 000 ₸. Рейтинг 4.5.",
     default_cost: 30000,
-    photo_filename: "dynamo-stadium.jpg",
+    photo_filename: "dynamo-stadium.png",
   },
   {
-    name: "Pole.kz",
+    name: "Поле Аль-Фараби",
     city: "Алматы",
     district: "Бостандыкский",
     address: "пр. Аль-Фараби, 71/2",
@@ -57,19 +58,19 @@ export const VENUES = [
     description:
       "Футбольное поле на Аль-Фараби. Круглосуточно. Рейтинг 5.0 в Яндекс Картах.",
     default_cost: 18000,
-    photo_filename: "pole-kz.jpg",
+    photo_filename: "pole-al-farabi.png",
   },
   {
     name: "Стадион Спартак",
     city: "Алматы",
     district: "Медеуский",
-    address: "Центральный парк культуры и отдыха",
+    address: "ЦПКиО",
     phone: null,
     website: "https://yandex.kz/maps/162/almaty/?text=Стадион+Спартак+ЦПКиО+Алматы",
     description:
       "Стадион в Центральном парке культуры. Открытое поле, дружеские матчи. Рейтинг 4.6.",
     default_cost: 12000,
-    photo_filename: "spartak-stadium.jpg",
+    photo_filename: "stadion-spartak.png",
   },
   {
     name: "Стадион Алаш",
@@ -81,10 +82,10 @@ export const VENUES = [
     description:
       "Стадион в Турксибском районе. Открытое поле, локальные турниры. Рейтинг 4.5.",
     default_cost: 10000,
-    photo_filename: "alash-stadium.jpg",
+    photo_filename: "stadion-alash.png",
   },
   {
-    name: "Туран футбольное поле",
+    name: "Поле Туран",
     city: "Алматы",
     district: "Алмалинский",
     address: "ул. Каныша Сатпаева, 16-18А",
@@ -93,10 +94,10 @@ export const VENUES = [
     description:
       "Футбольное поле «Туран». Рейтинг 4.2 в Яндекс Картах.",
     default_cost: 11000,
-    photo_filename: "turan-field.jpg",
+    photo_filename: "pole-turan.png",
   },
   {
-    name: "Футбольное поле на Байтурсынова",
+    name: "Поле Байтурсынова",
     city: "Алматы",
     district: "Бостандыкский",
     address: "ул. Ахмета Байтұрсынова, 124",
@@ -105,10 +106,10 @@ export const VENUES = [
     description:
       "Открытое поле, работает до 02:00. Подходит для вечерних игр.",
     default_cost: 9000,
-    photo_filename: "baytursynov-field.jpg",
+    photo_filename: "pole-baytursynova.png",
   },
   {
-    name: "Футбольное поле в 7-м микрорайоне",
+    name: "Поле 7й микрорайон",
     city: "Алматы",
     district: "Ауэзовский",
     address: "мкр. 7",
@@ -117,57 +118,7 @@ export const VENUES = [
     description:
       "Открытое поле в 7-м микрорайоне. Круглосуточно.",
     default_cost: 7000,
-    photo_filename: "mkr-7-field.jpg",
-  },
-
-  // ── Астана ──
-  {
-    name: "Стадион в парке Жетысу",
-    city: "Астана",
-    district: "Сарыарка",
-    address: "Парк Жетысу",
-    phone: null,
-    website: "https://yandex.kz/maps/163/astana/?text=Футбольное+поле+парк+Жетысу+Астана",
-    description:
-      "Открытое футбольное поле в парке Жетысу.",
-    default_cost: 8000,
-    photo_filename: "zhetysu-park-field.jpg",
-  },
-  {
-    name: "Qsi Astana",
-    city: "Астана",
-    district: "Сарыарка",
-    address: "мкр. Комсомольский-2",
-    phone: null,
-    website: "https://yandex.kz/maps/163/astana/?text=Qsi+Astana+Комсомольский+футбол",
-    description:
-      "Футбольный стадион и спортивный комплекс. Круглосуточно.",
-    default_cost: 11000,
-    photo_filename: "qsi-astana.jpg",
-  },
-  {
-    name: "Футбольное поле в Шубаре",
-    city: "Астана",
-    district: "Есильский",
-    address: "мкр. Шубар, ул. Зорге",
-    phone: null,
-    website: "https://yandex.kz/maps/163/astana/?text=Футбольное+поле+Шубар+Зорге+Астана",
-    description:
-      "Открытое поле в микрорайоне Шубар, левый берег.",
-    default_cost: 9000,
-    photo_filename: "shubar-field.jpg",
-  },
-  {
-    name: "Футбольное поле на Юго-Востоке",
-    city: "Астана",
-    district: "Сарыарка",
-    address: "мкр. Юго-Восток",
-    phone: null,
-    website: "https://yandex.kz/maps/163/astana/?text=Футбольное+поле+Юго-Восток+Астана",
-    description:
-      "Открытое поле в Юго-Восточном микрорайоне. Круглосуточно.",
-    default_cost: 7000,
-    photo_filename: "yugo-vostok-field.jpg",
+    photo_filename: "pole-7-mkr.png",
   },
 ];
 

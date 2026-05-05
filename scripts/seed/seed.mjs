@@ -93,9 +93,18 @@ export async function seedPlayers(supabase, log, districtMap) {
 }
 
 export async function seedVenues(supabase, log, districtMap, systemUserId) {
+  // Сверяемся с реальным содержимым bucket'а: если файла нет, ставим photo_url=null,
+  // а не битый URL. Так можно докидывать фотки по одной и не править сидер каждый раз.
+  const { data: existingFiles, error: listError } = await supabase.storage
+    .from("venues")
+    .list("", { limit: 1000 });
+  if (listError) throw new Error(`List venues bucket: ${listError.message}`);
+  const existing = new Set((existingFiles ?? []).map((f) => f.name));
+
   const rows = VENUES.map((v) => {
     const districtId = districtMap.get(`${v.city}::${v.district}`);
     if (!districtId) throw new Error(`District not found: ${v.city}/${v.district}`);
+    const hasPhoto = v.photo_filename && existing.has(v.photo_filename);
     return {
       id: randomUUID(),
       name: v.name,
@@ -106,14 +115,21 @@ export async function seedVenues(supabase, log, districtMap, systemUserId) {
       website: v.website,
       description: v.description,
       default_cost: v.default_cost,
-      photo_url: publicUrl(supabase, "venues", v.photo_filename),
+      photo_url: hasPhoto ? publicUrl(supabase, "venues", v.photo_filename) : null,
       created_by: systemUserId,
     };
   });
 
   const { error } = await supabase.from("venues").insert(rows);
   if (error) throw new Error(`Insert venues: ${error.message}`);
-  log(`  inserted ${rows.length} venues (photo_url ссылается на bucket venues)`);
+  const matched = rows.filter((r) => r.photo_url).length;
+  log(`  inserted ${rows.length} venues (${matched}/${rows.length} с фото из bucket venues)`);
+  if (matched < rows.length) {
+    const missing = VENUES
+      .filter((v) => !existing.has(v.photo_filename))
+      .map((v) => v.photo_filename);
+    log(`  · нет в bucket: ${missing.join(", ")}`);
+  }
 
   return rows;
 }
