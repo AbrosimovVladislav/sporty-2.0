@@ -75,7 +75,7 @@ function EventListRowImpl({
   return (
     <Link
       href={`/team/${teamId}/events/${id}`}
-      className="flex items-stretch px-4 py-6 last:border-b-0 transition-colors active:bg-bg-secondary"
+      className="flex items-stretch px-4 py-4 min-h-[120px] last:border-b-0 transition-colors active:bg-bg-secondary"
       style={{ borderBottom: "1px solid var(--ink-100)" }}
     >
       <DateBlock weekday={weekday} day={day} month={month} time={time} />
