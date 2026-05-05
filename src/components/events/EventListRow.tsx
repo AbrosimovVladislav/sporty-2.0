@@ -85,7 +85,7 @@ function EventListRowImpl({
         style={{ width: 1, background: "var(--ink-100)" }}
       />
 
-      <div className="flex-1 min-w-0 self-stretch flex flex-col justify-between gap-1">
+      <div className="flex-1 min-w-0 self-stretch flex flex-col justify-between gap-2">
         <div className="flex items-center gap-1.5 min-w-0">
           <h3
             className="text-[16px] font-semibold truncate leading-[1.2]"
@@ -95,24 +95,28 @@ function EventListRowImpl({
           </h3>
           <TypeChip label={typeLabel} chip={chip} />
         </div>
-        {venueName && (
-          <div
-            className="flex items-center gap-1 min-w-0 text-[14px] leading-tight"
-            style={{ color: "var(--ink-900)" }}
-          >
-            <PinIcon />
-            <span className="truncate">{venueName}</span>
+        {(venueName || venueAddress || isPublic === false) && (
+          <div className="flex flex-col gap-0.5 min-w-0">
+            {venueName && (
+              <div
+                className="flex items-center gap-1 min-w-0 text-[14px] leading-tight"
+                style={{ color: "var(--ink-900)" }}
+              >
+                <PinIcon />
+                <span className="truncate">{venueName}</span>
+              </div>
+            )}
+            {venueAddress && (
+              <p
+                className="text-[12px] truncate leading-tight"
+                style={{ color: "var(--ink-400)" }}
+              >
+                {venueAddress}
+              </p>
+            )}
+            {isPublic === false && <PrivateBadge />}
           </div>
         )}
-        {venueAddress && (
-          <p
-            className="text-[12px] truncate leading-tight"
-            style={{ color: "var(--ink-400)" }}
-          >
-            {venueAddress}
-          </p>
-        )}
-        {isPublic === false && <PrivateBadge />}
       </div>
 
       <div className="shrink-0 self-stretch ml-3 flex flex-col items-end justify-between">
