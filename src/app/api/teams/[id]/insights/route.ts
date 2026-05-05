@@ -214,40 +214,13 @@ export async function GET(
       .slice(0, 3);
   })();
 
-  // Finance (organizer-only).
-  let finance30d: {
-    collected: number;
-    venuePaid: number;
-    netDelta: number;
-    prevNetDelta: number;
-  } | null = null;
+  // 6-month finance flow (organizer-only) — для FlowChart на /finances.
+  // Сам реальный баланс главной команды берётся напрямую из /api/teams/[id]/finances,
+  // чтобы числа на главной и на /finances были один-в-один.
   let financeFlowByMonth: { month: string; collected: number; venuePaid: number }[] | null = null;
 
   if (role === "organizer") {
     const txSix = (rawTx ?? []) as TxRow[];
-
-    const txCurrent = txSix.filter(
-      (t) => new Date(t.created_at).getTime() >= windowStart.getTime(),
-    );
-    const txPrev = txSix.filter((t) => {
-      const ts = new Date(t.created_at).getTime();
-      return ts >= prevWindowStart.getTime() && ts < windowStart.getTime();
-    });
-
-    const collectedCur = txCurrent.reduce((s, t) => s + (t.amount ?? 0), 0);
-    const collectedPrev = txPrev.reduce((s, t) => s + (t.amount ?? 0), 0);
-
-    const venuePaidCur = completedCurrent.reduce((s, e) => s + (e.venue_paid ?? 0), 0);
-    const venuePaidPrev = completedPrev.reduce((s, e) => s + (e.venue_paid ?? 0), 0);
-
-    finance30d = {
-      collected: collectedCur,
-      venuePaid: venuePaidCur,
-      netDelta: collectedCur - venuePaidCur,
-      prevNetDelta: collectedPrev - venuePaidPrev,
-    };
-
-    // 6-month flow по месяцам — события уже в `events` (fetch с lower bound = sixMonthsAgo).
     const completedSix = events.filter((e) => e.status === "completed");
     financeFlowByMonth = [];
     for (let i = 5; i >= 0; i--) {
@@ -283,7 +256,6 @@ export async function GET(
       attendancePrevAvg,
     },
     topPlayers,
-    finance30d,
     financeFlowByMonth,
   });
 }

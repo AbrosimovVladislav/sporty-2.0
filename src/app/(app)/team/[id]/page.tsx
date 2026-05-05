@@ -14,7 +14,7 @@ import { NextEventCard } from "./_components/NextEventCard";
 import { RequestsCounter } from "./_components/RequestsCounter";
 import { SkeletonHome } from "./_components/SkeletonHome";
 import { TopPlayersCard } from "./_components/TopPlayersCard";
-import type { Insights } from "./_components/types";
+import type { FinanceMetrics, Insights } from "./_components/types";
 
 export default function TeamHomePage() {
   const team = useTeam();
@@ -23,10 +23,15 @@ export default function TeamHomePage() {
   const router = useRouter();
   const userId = auth.status === "authenticated" ? auth.user.id : null;
   const teamId = team.status === "ready" ? team.team.id : null;
+  const isOrganizerRole =
+    team.status === "ready" && team.role === "organizer";
 
   const [insights, setInsights] = useState<Insights | null | undefined>(
     undefined,
   );
+  const [financeMetrics, setFinanceMetrics] = useState<
+    FinanceMetrics | null | undefined
+  >(undefined);
   const [activePlayer, setActivePlayer] = useState<TeamMember | null>(null);
 
   function handleLeaderClick(playerId: string) {
@@ -56,6 +61,27 @@ export default function TeamHomePage() {
     };
   }, [teamId, userId]);
 
+  useEffect(() => {
+    if (!teamId || !userId || !isOrganizerRole) {
+      setFinanceMetrics(null);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/teams/${teamId}/finances?userId=${userId}`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => {
+        if (!cancelled) {
+          setFinanceMetrics(d?.metrics ?? null);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setFinanceMetrics(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [teamId, userId, isOrganizerRole]);
+
   if (team.status === "loading") {
     return <SkeletonHome />;
   }
@@ -81,7 +107,7 @@ export default function TeamHomePage() {
       <TopPlayersCard insights={insights} onPlayerClick={handleLeaderClick} />
 
       {isOrganizer && (
-        <FinanceCard insights={insights} teamId={team.team.id} />
+        <FinanceCard metrics={financeMetrics} teamId={team.team.id} />
       )}
 
       {isOrganizer && pendingRequestsCount > 0 && (

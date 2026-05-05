@@ -52,7 +52,7 @@
 ## API
 
 - `GET /api/teams/[id]/finances?userId=...` — метрики + debtors + creditors + venueEvents. Только организатор.
-- `GET /api/teams/[id]/insights?userId=...` → поля `finance30d` (используется в других местах) + `financeFlowByMonth` (6 месяцев × {month, collected, venuePaid}). Только для организатора.
+- `GET /api/teams/[id]/insights?userId=...` → `financeFlowByMonth` (6 месяцев × {month, collected, venuePaid}). Только для организатора.
 - `POST /api/teams/[id]/transactions` — создать транзакцию (deposit или event_payment). Только организатор.
 - `GET /api/teams/[id]/transactions?userId=&player_id=&type=` — список транзакций.
 - `GET /api/teams/[id]/members/[userId]/finances?userId=...` — история транзакций + сальдо конкретного игрока.

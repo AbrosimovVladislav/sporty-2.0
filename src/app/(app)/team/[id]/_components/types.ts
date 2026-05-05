@@ -22,10 +22,16 @@ export type Insights = {
     played: number;
     attendancePct: number;
   }[];
-  finance30d: {
-    collected: number;
-    venuePaid: number;
-    netDelta: number;
-    prevNetDelta: number;
-  } | null;
+};
+
+export type FinanceMetrics = {
+  collected: number;
+  expected: number;
+  venueCostTotal: number;
+  venuePaidTotal: number;
+  venueOutstanding: number;
+  playersDebt: number;
+  playersOverpaid: number;
+  cash: number;
+  realBalance: number;
 };
