@@ -75,7 +75,7 @@ function EventListRowImpl({
   return (
     <Link
       href={`/team/${teamId}/events/${id}`}
-      className="flex items-stretch px-4 py-4 last:border-b-0 transition-colors active:bg-bg-secondary"
+      className="flex items-stretch px-4 py-5 last:border-b-0 transition-colors active:bg-bg-secondary"
       style={{ borderBottom: "1px solid var(--ink-100)" }}
     >
       <DateBlock weekday={weekday} day={day} month={month} time={time} />
@@ -85,7 +85,7 @@ function EventListRowImpl({
         style={{ width: 1, background: "var(--ink-100)" }}
       />
 
-      <div className="flex-1 min-w-0 self-stretch flex flex-col justify-between gap-0.5">
+      <div className="flex-1 min-w-0 self-stretch flex flex-col justify-between gap-1">
         <div className="flex items-center gap-1.5 min-w-0">
           <h3
             className="text-[16px] font-semibold truncate leading-[1.2]"
@@ -96,16 +96,17 @@ function EventListRowImpl({
           <TypeChip label={typeLabel} chip={chip} />
         </div>
         {venueName && (
-          <p
-            className="text-[14px] truncate leading-tight"
+          <div
+            className="flex items-center gap-1 min-w-0 text-[14px] leading-tight"
             style={{ color: "var(--ink-900)" }}
           >
-            {venueName}
-          </p>
+            <PinIcon />
+            <span className="truncate">{venueName}</span>
+          </div>
         )}
         {venueAddress && (
           <p
-            className="text-[12px] truncate leading-tight"
+            className="text-[12px] truncate leading-tight pl-[18px]"
             style={{ color: "var(--ink-400)" }}
           >
             {venueAddress}
@@ -235,6 +236,26 @@ function LockIcon() {
     >
       <rect x="4" y="11" width="16" height="10" rx="2" />
       <path d="M8 11V7a4 4 0 0 1 8 0v4" />
+    </svg>
+  );
+}
+
+function PinIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--ink-400)"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+      className="shrink-0"
+    >
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z" />
+      <circle cx="12" cy="10" r="3" />
     </svg>
   );
 }
