@@ -171,6 +171,9 @@ export type Database = {
           district_id: string | null;
           photo_url: string | null;
           default_cost: number | null;
+          type: "open" | "indoor" | "covered" | null;
+          format: string | null;
+          rating: number | null;
         };
         Insert: {
           id?: string;
@@ -182,6 +185,9 @@ export type Database = {
           district_id?: string | null;
           photo_url?: string | null;
           default_cost?: number | null;
+          type?: "open" | "indoor" | "covered" | null;
+          format?: string | null;
+          rating?: number | null;
         };
         Update: {
           name?: string;
@@ -190,6 +196,9 @@ export type Database = {
           district_id?: string | null;
           photo_url?: string | null;
           default_cost?: number | null;
+          type?: "open" | "indoor" | "covered" | null;
+          format?: string | null;
+          rating?: number | null;
         };
         Relationships: [];
       };

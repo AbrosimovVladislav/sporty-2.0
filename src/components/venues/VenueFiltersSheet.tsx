@@ -6,7 +6,15 @@ import { SheetChipGroup, type ChipOption } from "@/components/ui";
 export type VenueFilters = {
   city: string;
   districtId: string;
+  /** "" | "open" | "indoor" | "covered" */
+  type: string;
 };
+
+const TYPE_OPTIONS: ChipOption[] = [
+  { value: "open", label: "Открытое" },
+  { value: "indoor", label: "Манеж" },
+  { value: "covered", label: "Крытое" },
+];
 
 type Props = {
   open: boolean;
@@ -57,7 +65,7 @@ export function VenueFiltersSheet({ open, initial, onClose, onApply }: Props) {
   if (!open) return null;
 
   function reset() {
-    setFilters({ city: "", districtId: "" });
+    setFilters({ city: "", districtId: "", type: "" });
   }
 
   function apply() {
@@ -105,6 +113,13 @@ export function VenueFiltersSheet({ open, initial, onClose, onApply }: Props) {
             value={filters.districtId}
             onChange={(d) => setFilters((f) => ({ ...f, districtId: d }))}
             emptyHint="Сначала выбери город"
+          />
+
+          <SheetChipGroup
+            label="Тип покрытия"
+            options={TYPE_OPTIONS}
+            value={filters.type}
+            onChange={(t) => setFilters((f) => ({ ...f, type: t }))}
           />
         </div>
 
