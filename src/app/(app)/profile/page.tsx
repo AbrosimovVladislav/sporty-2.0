@@ -23,7 +23,7 @@ export default function ProfilePage() {
         <div
           className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
           style={{
-            borderColor: "var(--green-500)",
+            borderColor: "var(--green-700)",
             borderTopColor: "transparent",
           }}
         />
@@ -218,10 +218,9 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
         </p>
       )}
 
-      <UnderlineTabs
-        tabs={tabsForUI}
-        className="sticky top-0 z-10 bg-white"
-      />
+      <div className="sticky top-0 z-10" style={{ background: "var(--card)" }}>
+        <UnderlineTabs tabs={tabsForUI} />
+      </div>
 
       <div className="flex flex-col gap-3 px-4 py-4">
         {tab === "about" && (

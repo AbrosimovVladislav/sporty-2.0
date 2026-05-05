@@ -26,7 +26,7 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
         {!hasData ? (
           <p
             className="text-[15px]"
-            style={{ color: "var(--text-secondary)" }}
+            style={{ color: "var(--ink-500)" }}
           >
             Появится после первых завершённых событий
           </p>
@@ -36,20 +36,20 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
               <div className="flex items-baseline gap-1">
                 <span
                   className="font-display text-[48px] font-bold leading-none tabular-nums"
-                  style={{ color: "var(--text-primary)" }}
+                  style={{ color: "var(--ink-900)" }}
                 >
                   {reliability ?? 0}
                 </span>
                 <span
                   className="font-display text-[24px] font-bold"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--ink-500)" }}
                 >
                   %
                 </span>
               </div>
               <p
                 className="text-[14px] mt-1"
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--ink-500)" }}
               >
                 {reliabilityLabel(reliability ?? 0)}
               </p>
@@ -66,7 +66,7 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
               <Eyebrow className="mb-1.5">Неприходы</Eyebrow>
               <p
                 className="font-display text-[32px] font-bold leading-none tabular-nums"
-                style={{ color: "var(--primary)" }}
+                style={{ color: "var(--ink-900)" }}
               >
                 {noShows}
               </p>
@@ -75,7 +75,7 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
               <Eyebrow className="mb-1.5">Отмены</Eyebrow>
               <p
                 className="font-display text-[32px] font-bold leading-none tabular-nums"
-                style={{ color: "var(--primary)" }}
+                style={{ color: "var(--ink-900)" }}
               >
                 {cancellationsPct}%
               </p>
@@ -87,32 +87,32 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
             <div className="flex items-center justify-between mb-2">
               <span
                 className="text-[14px]"
-                style={{ color: "var(--text-secondary)" }}
+                style={{ color: "var(--ink-500)" }}
               >
                 из записанных событий
               </span>
               <span
                 className="font-display text-[24px] font-bold tabular-nums"
-                style={{ color: "var(--text-primary)" }}
+                style={{ color: "var(--ink-900)" }}
               >
                 {stats!.attendedCount} / {stats!.votedYesCount}
               </span>
             </div>
             <div
               className="h-2 rounded-full overflow-hidden"
-              style={{ background: "var(--green-100)" }}
+              style={{ background: "var(--ink-100)" }}
             >
               <div
                 className="h-full rounded-full transition-all"
                 style={{
                   width: `${attendedPct}%`,
-                  background: "var(--green-600)",
+                  background: "var(--green-700)",
                 }}
               />
             </div>
             <p
               className="text-[13px] mt-1.5"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--ink-500)" }}
             >
               {attendedPct}%
             </p>
@@ -127,10 +127,10 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
             {stats.recentEvents.map((e, i, arr) => {
               const dotColor =
                 e.attended === true
-                  ? "var(--green-600)"
+                  ? "var(--green-700)"
                   : e.attended === false
                     ? "var(--danger)"
-                    : "var(--text-tertiary)";
+                    : "var(--ink-400)";
               const statusLabel =
                 e.attended === true
                   ? "Был"
@@ -146,7 +146,7 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
                   style={{
                     borderBottom: isLast
                       ? undefined
-                      : "1px solid var(--gray-100)",
+                      : "1px solid var(--ink-100)",
                   }}
                 >
                   <span
@@ -154,11 +154,11 @@ export function ReliabilityTab({ stats }: { stats: Stats | null | undefined }) {
                     style={{ background: dotColor }}
                   />
                   <p className="flex-1 text-[15px] truncate">
-                    <span style={{ color: "var(--text-primary)" }}>
+                    <span style={{ color: "var(--ink-900)" }}>
                       {formatAbsoluteDate(e.date)}
                     </span>
-                    <span style={{ color: "var(--text-tertiary)" }}> · </span>
-                    <span style={{ color: "var(--text-primary)" }}>
+                    <span style={{ color: "var(--ink-400)" }}> · </span>
+                    <span style={{ color: "var(--ink-900)" }}>
                       {typeLabel}
                     </span>
                   </p>
@@ -201,7 +201,7 @@ function ReliabilityCircle({ percent }: { percent: number }) {
         cy={cy}
         r={r}
         fill="none"
-        stroke="var(--green-100)"
+        stroke="var(--ink-100)"
         strokeWidth={stroke}
       />
       <circle
@@ -209,7 +209,7 @@ function ReliabilityCircle({ percent }: { percent: number }) {
         cy={cy}
         r={r}
         fill="none"
-        stroke="var(--green-600)"
+        stroke="var(--green-700)"
         strokeWidth={stroke}
         strokeLinecap="round"
         strokeDasharray={circ}

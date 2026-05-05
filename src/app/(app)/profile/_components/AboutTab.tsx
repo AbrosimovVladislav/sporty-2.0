@@ -2,14 +2,9 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { LevelBadge, PositionBadge, RatingCircle } from "@/components/players/badges";
-import {
-  levelFromRating,
-  levelName,
-  positionCode,
-  teamFallbackHue,
-  type PositionCode,
-} from "@/lib/playerBadges";
+import { PositionTag, RatingRing } from "@/components/ui";
+import { positionCode, teamFallbackHue } from "@/lib/playerBadges";
+import { ratingTier, type RatingTier } from "@/lib/ratingTier";
 import type { User } from "@/types/database";
 import type { ProfileTeam } from "./types";
 import { Card, Eyebrow } from "./atoms";
@@ -21,15 +16,22 @@ type Props = {
   stats: { playedCount: number; reliability: number | null } | null | undefined;
 };
 
+const TIER_LABEL: Record<RatingTier, string> = {
+  elite: "Элита",
+  high: "Высокий",
+  mid: "Средний",
+  low: "Развивается",
+  poor: "Новичок",
+};
+
 export function AboutTab({ user, districtName, teams, stats }: Props) {
   const age = user.birth_date ? calcAge(user.birth_date) : null;
-  const lvl = levelFromRating(user.rating);
+  const tier = ratingTier(user.rating);
   const positions = (user.position ?? [])
-    .map(positionCode)
-    .filter((c): c is PositionCode => c !== null);
+    .map((p) => positionCode(p))
+    .filter((c): c is NonNullable<ReturnType<typeof positionCode>> => c != null);
 
-  const ratingValue = user.rating != null ? String(user.rating) : "—";
-  const lvlText = lvl ? levelName(lvl) : "—";
+  const tierLabel = tier ? TIER_LABEL[tier] : "Без рейтинга";
 
   const playedCount = stats?.playedCount ?? 0;
   const reliabilityText =
@@ -38,49 +40,31 @@ export function AboutTab({ user, districtName, teams, stats }: Props) {
 
   return (
     <>
-      <div className="flex gap-3">
-        <Card className="flex-1 p-4 flex items-center gap-3.5">
-          <RatingCircle rating={user.rating} level={lvl} size={56} />
-          <div className="min-w-0">
-            <Eyebrow>Рейтинг</Eyebrow>
-            <p
-              className="font-display text-[28px] font-bold leading-[1.1] tabular-nums"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {ratingValue}
-            </p>
-          </div>
-        </Card>
-        <Card className="flex-1 p-4 flex items-center gap-3.5">
-          <LevelBadge code={lvl} size="large" />
-          <div className="min-w-0">
-            <Eyebrow>Уровень</Eyebrow>
-            <p
-              className="text-[17px] font-bold leading-[1.2]"
-              style={{ color: "var(--text-primary)" }}
-            >
-              {lvlText}
-            </p>
-          </div>
-        </Card>
-      </div>
+      <Card className="p-4 flex items-center gap-4">
+        <RatingRing rating={user.rating} size={80} />
+        <div className="min-w-0 flex-1">
+          <Eyebrow>Рейтинг</Eyebrow>
+          <p
+            className="text-[18px] font-bold leading-[1.2] mt-1"
+            style={{ color: "var(--ink-900)" }}
+          >
+            {tierLabel}
+          </p>
+          {positions.length > 0 && (
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {positions.map((p) => (
+                <PositionTag key={p} code={p} />
+              ))}
+            </div>
+          )}
+        </div>
+      </Card>
 
       <div className="grid grid-cols-3 gap-3">
         <StatCell value={playedCount} label="Сыграно" />
         <StatCell value={reliabilityText} label="Надёжность" tone="primary" />
         <StatCell value={teamsCount} label="Команд" />
       </div>
-
-      {positions.length > 0 && (
-        <Card className="p-4">
-          <Eyebrow className="mb-2.5">На поле</Eyebrow>
-          <div className="flex flex-wrap gap-2.5">
-            {positions.map((p) => (
-              <PositionBadge key={p} code={p} />
-            ))}
-          </div>
-        </Card>
-      )}
 
       {(age !== null || user.city || districtName) && (
         <Card className="overflow-hidden">
@@ -94,7 +78,7 @@ export function AboutTab({ user, districtName, teams, stats }: Props) {
 
       {teams && teams.length > 0 && (
         <Card className="overflow-hidden">
-          <Eyebrow className="px-4 pt-3.5 pb-1.5">Команда</Eyebrow>
+          <Eyebrow className="px-4 pt-3.5 pb-1.5">Команды</Eyebrow>
           {teams.map((t, i) => (
             <Link
               key={t.id}
@@ -103,13 +87,13 @@ export function AboutTab({ user, districtName, teams, stats }: Props) {
               style={{
                 paddingTop: i === 0 ? 6 : 14,
                 borderTop:
-                  i === 0 ? undefined : "1px solid var(--gray-100)",
+                  i === 0 ? undefined : "1px solid var(--ink-100)",
               }}
             >
               <TeamLogo team={t} />
               <span
-                className="flex-1 min-w-0 text-[15px] font-semibold truncate"
-                style={{ color: "var(--text-primary)" }}
+                className="flex-1 min-w-0 text-[16px] font-semibold truncate"
+                style={{ color: "var(--ink-900)" }}
               >
                 {t.name}
               </span>
@@ -132,7 +116,7 @@ function StatCell({
   tone?: "default" | "primary";
 }) {
   const valueColor =
-    tone === "primary" ? "var(--primary)" : "var(--text-primary)";
+    tone === "primary" ? "var(--green-700)" : "var(--ink-900)";
   return (
     <Card className="px-4 py-3.5 text-center">
       <p
@@ -142,8 +126,8 @@ function StatCell({
         {value}
       </p>
       <p
-        className="text-[11px] mt-0.5"
-        style={{ color: "var(--text-secondary)" }}
+        className="text-[11px] mt-1"
+        style={{ color: "var(--ink-500)" }}
       >
         {label}
       </p>
@@ -164,18 +148,18 @@ function InfoRow({
     <div
       className="flex items-center justify-between px-4 py-3"
       style={{
-        borderBottom: isLast ? undefined : "1px solid var(--gray-100)",
+        borderBottom: isLast ? undefined : "1px solid var(--ink-100)",
       }}
     >
       <span
         className="text-[14px]"
-        style={{ color: "var(--text-secondary)" }}
+        style={{ color: "var(--ink-500)" }}
       >
         {label}
       </span>
       <span
         className="text-[14px] font-semibold"
-        style={{ color: "var(--text-primary)" }}
+        style={{ color: "var(--ink-900)" }}
       >
         {value}
       </span>
@@ -223,16 +207,18 @@ function TeamLogo({ team }: { team: ProfileTeam }) {
 function ChevronRight() {
   return (
     <svg
-      width="18"
-      height="18"
+      width="16"
+      height="16"
       viewBox="0 0 24 24"
       fill="none"
-      stroke="var(--text-tertiary)"
-      strokeWidth="2"
+      stroke="var(--ink-400)"
+      strokeWidth="2.2"
       strokeLinecap="round"
       strokeLinejoin="round"
+      aria-hidden
+      className="shrink-0"
     >
-      <polyline points="9 18 15 12 9 6" />
+      <path d="m9 6 6 6-6 6" />
     </svg>
   );
 }

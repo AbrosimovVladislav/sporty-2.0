@@ -12,7 +12,7 @@ export function Eyebrow({
       className={`text-[11px] font-semibold uppercase ${className}`}
       style={{
         letterSpacing: "0.06em",
-        color: "var(--text-tertiary)",
+        color: "var(--ink-500)",
       }}
     >
       {children}
@@ -33,7 +33,7 @@ export function Card({
     <div
       className={`rounded-[16px] ${className}`}
       style={{
-        background: "var(--bg-primary)",
+        background: "var(--card)",
         boxShadow: "var(--shadow-sm)",
         ...style,
       }}
@@ -47,7 +47,7 @@ export function SkeletonBlock() {
   return (
     <div
       className="rounded-[16px] h-32 animate-pulse"
-      style={{ background: "var(--bg-card)" }}
+      style={{ background: "var(--ink-100)" }}
     />
   );
 }

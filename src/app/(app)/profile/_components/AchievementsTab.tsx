@@ -16,14 +16,14 @@ export function AchievementsTab() {
     <>
       <Card className="px-5 py-6 text-center">
         <p
-          className="text-[17px] font-bold mb-1.5"
-          style={{ color: "var(--text-primary)" }}
+          className="text-[16px] font-bold mb-1.5"
+          style={{ color: "var(--ink-900)" }}
         >
           Достижения копятся с каждым матчем
         </p>
         <p
           className="text-[14px] leading-normal"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--ink-500)" }}
         >
           Скоро появятся первые значки за активность и стабильность
         </p>
@@ -47,13 +47,13 @@ export function AchievementsTab() {
             </p>
             <p
               className="text-[13px] font-semibold leading-tight"
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: "var(--ink-900)" }}
             >
               {a.label}
             </p>
             <p
               className="text-[11px] mt-1"
-              style={{ color: "var(--text-tertiary)" }}
+              style={{ color: "var(--ink-400)" }}
             >
               скоро
             </p>

@@ -98,7 +98,7 @@ export function MyJoinRequests({ userId }: { userId: string }) {
             <RequestItemBase key={r.id} item={r}>
               <p
                 className="text-[13px] mt-0.5"
-                style={{ color: "var(--text-tertiary)" }}
+                style={{ color: "var(--ink-400)" }}
               >
                 Пригласил
                 {r.inviter_name ? ` ${r.inviter_name}` : ""} ·{" "}
@@ -139,7 +139,7 @@ export function MyJoinRequests({ userId }: { userId: string }) {
                   className="text-[12px] font-semibold rounded-full px-2 py-0.5"
                   style={{
                     background: "var(--green-50)",
-                    color: "var(--green-700)",
+                    color: "var(--green-800)",
                   }}
                 >
                   На рассмотрении
@@ -149,14 +149,14 @@ export function MyJoinRequests({ userId }: { userId: string }) {
                   disabled={busy === r.id}
                   onClick={() => withdraw(r.id)}
                   className="text-[13px] font-semibold disabled:opacity-50"
-                  style={{ color: "var(--text-secondary)" }}
+                  style={{ color: "var(--ink-500)" }}
                 >
                   {busy === r.id ? "…" : "Отозвать"}
                 </button>
               </div>
               <p
                 className="text-[12px] mt-1"
-                style={{ color: "var(--text-tertiary)" }}
+                style={{ color: "var(--ink-400)" }}
               >
                 Подана {formatRelative(r.created_at)}
               </p>
@@ -173,7 +173,7 @@ export function MyJoinRequests({ userId }: { userId: string }) {
             className="flex items-center gap-1.5 text-[12px] font-semibold uppercase"
             style={{
               letterSpacing: "0.06em",
-              color: "var(--text-tertiary)",
+              color: "var(--ink-500)",
             }}
           >
             {historyOpen
@@ -184,27 +184,27 @@ export function MyJoinRequests({ userId }: { userId: string }) {
           {historyOpen && (
             <ul
               className="mt-2 rounded-[16px] overflow-hidden"
-              style={{ background: "var(--bg-primary)" }}
+              style={{ background: "var(--card)" }}
             >
               {history.map((r, i) => (
                 <li
                   key={r.id}
                   className="px-4 py-3"
                   style={{
-                    borderTop: i === 0 ? undefined : "1px solid var(--gray-100)",
+                    borderTop: i === 0 ? undefined : "1px solid var(--ink-100)",
                   }}
                 >
                   <div className="flex items-start justify-between gap-3">
                     <Link href={`/team/${r.team.id}`} className="flex-1 min-w-0">
                       <p
                         className="text-[15px] font-semibold truncate"
-                        style={{ color: "var(--text-primary)" }}
+                        style={{ color: "var(--ink-900)" }}
                       >
                         {r.team.name}
                       </p>
                       <p
                         className="text-[12px] mt-0.5"
-                        style={{ color: "var(--text-tertiary)" }}
+                        style={{ color: "var(--ink-400)" }}
                       >
                         {r.direction === "team_to_player"
                           ? "Приглашение"
@@ -241,7 +241,7 @@ function RequestsList({
       <Eyebrow>{eyebrow}</Eyebrow>
       <ul
         className="mt-2 rounded-[16px] overflow-hidden flex flex-col"
-        style={{ background: "var(--bg-primary)" }}
+        style={{ background: "var(--card)", boxShadow: "var(--shadow-sm)" }}
       >
         {Array.isArray(children) ? (
           children.map((c, i) => (
@@ -249,7 +249,7 @@ function RequestsList({
               key={i}
               className="px-4 py-3"
               style={{
-                borderTop: i === 0 ? undefined : "1px solid var(--gray-100)",
+                borderTop: i === 0 ? undefined : "1px solid var(--ink-100)",
               }}
             >
               {c}
@@ -275,13 +275,13 @@ function RequestItemBase({
       <Link href={`/team/${item.team.id}`} className="block min-w-0">
         <p
           className="text-[15px] font-semibold truncate"
-          style={{ color: "var(--text-primary)" }}
+          style={{ color: "var(--ink-900)" }}
         >
           {item.team.name}
         </p>
         <p
           className="text-[13px] mt-0.5"
-          style={{ color: "var(--text-secondary)" }}
+          style={{ color: "var(--ink-500)" }}
         >
           {item.team.city} · {SPORT_LABEL[item.team.sport] ?? item.team.sport}
         </p>
