@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth-context";
 import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
@@ -11,7 +10,6 @@ import {
   HeaderIconButton,
   ListSearchBar,
   ListMeta,
-  FilterPills,
   ActiveFilterChips,
   EmptyState,
   CityPickerSheet,
@@ -46,17 +44,7 @@ type PublicEvent = {
   yes_count: number;
 };
 
-type MyTeam = { id: string };
-
 type EventSort = "date_asc" | "date_desc" | "price_asc";
-
-const TYPE_PILLS = [
-  { value: "", label: "Все" },
-  { value: "game", label: "Игра" },
-  { value: "training", label: "Трен." },
-  { value: "gathering", label: "Сбор" },
-  { value: "other", label: "Другое" },
-];
 
 const SORT_OPTIONS = [
   { value: "date_asc", label: "По дате" },
@@ -134,20 +122,16 @@ function formatChipDate(iso: string): string {
 }
 
 function SearchEventsInner() {
-  const auth = useAuth();
-  const userId = auth.status === "authenticated" ? auth.user.id : null;
   const { activeCity } = useCity();
   const searchParams = useSearchParams();
   const venueId = searchParams.get("venue");
 
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [typePill, setTypePill] = useState("");
   const [filters, setFilters] = useState<EventFilters>(EMPTY_FILTERS);
   const [sort, setSort] = useState<EventSort>("date_asc");
   const [sheetOpen, setSheetOpen] = useState(false);
   const [cityOpen, setCityOpen] = useState(false);
-  const [myTeamIds, setMyTeamIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     setFilters((f) => (f.city ? f : { ...f, city: activeCity }));
@@ -158,27 +142,7 @@ function SearchEventsInner() {
     return () => clearTimeout(t);
   }, [search]);
 
-  useEffect(() => {
-    if (!userId) {
-      setMyTeamIds(new Set());
-      return;
-    }
-    let cancelled = false;
-    fetch(`/api/users/${userId}/teams`)
-      .then((r) => r.json())
-      .then((d) => {
-        if (!cancelled) {
-          const teams = (d.teams ?? []) as MyTeam[];
-          setMyTeamIds(new Set(teams.map((t) => t.id)));
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  const effectiveType = typePill || filters.type;
+  const effectiveType = filters.type;
 
   const dateRange = useMemo(() => {
     const preset = resolvePreset(filters.datePreset);
@@ -240,7 +204,7 @@ function SearchEventsInner() {
 
   const activeChips = useMemo<FilterChip[]>(() => {
     const chips: FilterChip[] = [];
-    if (filters.type && !typePill) {
+    if (filters.type) {
       chips.push({
         id: "type",
         label: EVENT_TYPE_LABEL[filters.type] ?? filters.type,
@@ -283,11 +247,11 @@ function SearchEventsInner() {
       });
     }
     return chips;
-  }, [filters, typePill]);
+  }, [filters]);
 
   const sheetActiveCount =
     (filters.districtId ? 1 : 0) +
-    (filters.type && !typePill ? 1 : 0) +
+    (filters.type ? 1 : 0) +
     (filters.datePreset || filters.dateFrom || filters.dateTo ? 1 : 0) +
     (filters.priceMax ? 1 : 0) +
     (filters.hasSpots ? 1 : 0);
@@ -325,14 +289,6 @@ function SearchEventsInner() {
         />
       </div>
 
-      <div className="px-4 pb-2">
-        <FilterPills
-          options={TYPE_PILLS}
-          value={typePill}
-          onChange={setTypePill}
-        />
-      </div>
-
       {activeChips.length > 0 && (
         <div className="px-4 pb-2">
           <ActiveFilterChips chips={activeChips} />
@@ -363,7 +319,6 @@ function SearchEventsInner() {
                 label: "Сбросить фильтры",
                 onClick: () => {
                   setSearch("");
-                  setTypePill("");
                   setFilters({ ...EMPTY_FILTERS, city: activeCity });
                 },
               }}
@@ -388,7 +343,6 @@ function SearchEventsInner() {
                     }
                     yesCount={e.yes_count}
                     pricePerPlayer={e.price_per_player}
-                    myTeam={myTeamIds.has(e.team_id)}
                   />
                 </li>
               ))}

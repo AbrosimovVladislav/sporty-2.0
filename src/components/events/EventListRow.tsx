@@ -17,7 +17,6 @@ type Props = {
   venueAddress: string | null;
   yesCount: number;
   pricePerPlayer: number;
-  myTeam?: boolean;
   /** Hide private indicator when undefined; show "Приватное" badge when false. */
   isPublic?: boolean;
 };
@@ -66,7 +65,6 @@ function EventListRowImpl({
   venueAddress,
   yesCount,
   pricePerPlayer,
-  myTeam,
   isPublic,
 }: Props) {
   const { weekday, day, month, time } = formatDateBlock(date);
@@ -77,15 +75,15 @@ function EventListRowImpl({
   return (
     <Link
       href={`/team/${teamId}/events/${id}`}
-      className="flex items-center gap-3 px-4 py-3.5 last:border-b-0 transition-colors active:bg-bg-secondary"
+      className="flex items-stretch gap-3 px-4 py-3.5 last:border-b-0 transition-colors active:bg-bg-secondary"
       style={{ borderBottom: "1px solid var(--ink-100)" }}
     >
       <DateBlock weekday={weekday} day={day} month={month} time={time} />
 
-      <div className="flex-1 min-w-0 flex flex-col gap-0.5">
+      <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
         <div className="flex items-center gap-1.5 min-w-0">
           <h3
-            className="text-[16px] font-bold truncate leading-[1.2]"
+            className="text-[16px] font-semibold truncate leading-[1.2]"
             style={{ color: "var(--ink-900)" }}
           >
             {primary}
@@ -94,7 +92,7 @@ function EventListRowImpl({
         </div>
         {venueName && (
           <p
-            className="text-[14px] truncate font-medium leading-tight"
+            className="text-[14px] truncate leading-tight"
             style={{ color: "var(--ink-900)" }}
           >
             {venueName}
@@ -108,15 +106,14 @@ function EventListRowImpl({
             {venueAddress}
           </p>
         )}
-        {(myTeam || isPublic === false) && (
+        {isPublic === false && (
           <div className="flex items-center gap-1.5 mt-0.5">
-            {myTeam && <RoleBadge>Моя команда</RoleBadge>}
-            {isPublic === false && <PrivateBadge />}
+            <PrivateBadge />
           </div>
         )}
       </div>
 
-      <div className="shrink-0 flex flex-col items-end justify-center gap-1.5">
+      <div className="shrink-0 flex flex-col items-end justify-between py-0.5">
         <PeoplePill count={yesCount} />
         <span
           className="text-[14px] font-bold tabular-nums whitespace-nowrap"
@@ -148,19 +145,23 @@ function DateBlock({
   time: string;
 }) {
   return (
-    <div className="shrink-0 w-[56px] flex flex-col items-center text-center">
+    <div
+      className="shrink-0 w-[44px] pr-3 flex flex-col items-center justify-center text-center"
+      style={{ borderRight: "1px solid var(--ink-100)" }}
+    >
       <div
         className="tabular-nums leading-none"
         style={{
-          fontSize: 26,
-          fontWeight: 800,
+          fontFamily: "var(--font-oswald)",
+          fontSize: 28,
+          fontWeight: 600,
           color: "var(--ink-900)",
         }}
       >
         {day}
       </div>
       <div
-        className="uppercase mt-1"
+        className="uppercase mt-1.5"
         style={{
           fontSize: 10,
           fontWeight: 700,
@@ -207,17 +208,6 @@ function PeoplePill({ count }: { count: number }) {
     >
       <PeopleIcon />
       {count}
-    </span>
-  );
-}
-
-function RoleBadge({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="inline-flex shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-semibold"
-      style={{ background: "var(--green-50)", color: "var(--green-800)" }}
-    >
-      {children}
     </span>
   );
 }
@@ -279,7 +269,7 @@ function ChevronRight() {
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
-      className="shrink-0"
+      className="shrink-0 self-center"
     >
       <path d="m9 6 6 6-6 6" />
     </svg>
