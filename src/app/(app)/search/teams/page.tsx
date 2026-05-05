@@ -7,12 +7,11 @@ import InfiniteScrollSentinel from "@/components/InfiniteScrollSentinel";
 import { SkeletonList } from "@/components/Skeleton";
 import {
   PageHeader,
+  HeaderIconButton,
   ListSearchBar,
   ListMeta,
-  ActiveFilterChips,
   EmptyState,
   CityPickerSheet,
-  type FilterChip,
 } from "@/components/ui";
 import { SearchSubnav } from "@/components/search/SearchSubnav";
 import { TeamListRow } from "@/components/teams/TeamListRow";
@@ -20,7 +19,6 @@ import {
   TeamFiltersSheet,
   type TeamFilters,
 } from "@/components/teams/TeamFiltersSheet";
-import { SPORT_LABEL } from "@/lib/catalogs";
 import { useCity, KZ_CITIES } from "@/lib/city-context";
 
 type Team = {
@@ -146,26 +144,6 @@ export default function SearchTeamsPage() {
     if (!teamsQuery.isFetchingNextPage) teamsQuery.fetchNextPage();
   };
 
-  const activeChips = useMemo<FilterChip[]>(() => {
-    const chips: FilterChip[] = [];
-    if (filters.sport) {
-      chips.push({
-        id: "sport",
-        label: SPORT_LABEL[filters.sport] ?? filters.sport,
-        onRemove: () => setFilters((f) => ({ ...f, sport: "" })),
-      });
-    }
-    if (filters.lookingForPlayers) {
-      chips.push({
-        id: "looking",
-        label: "Ищут игроков",
-        onRemove: () =>
-          setFilters((f) => ({ ...f, lookingForPlayers: false })),
-      });
-    }
-    return chips;
-  }, [filters]);
-
   const sheetActiveCount =
     (filters.districtId ? 1 : 0) +
     (filters.sport ? 1 : 0) +
@@ -178,12 +156,19 @@ export default function SearchTeamsPage() {
   const cityForPicker = filters.city || activeCity;
 
   return (
-    <div className="flex flex-1 flex-col">
-      <PageHeader title="Команды" />
+    <div className="flex flex-1 flex-col" style={{ background: "var(--card)" }}>
+      <PageHeader
+        title="Команды"
+        actions={
+          <HeaderIconButton ariaLabel="Уведомления">
+            <BellIcon />
+          </HeaderIconButton>
+        }
+      />
 
       <SearchSubnav />
 
-      <div className="px-4 mt-3.5">
+      <div className="px-4 pt-3.5 pb-2">
         <ListSearchBar
           value={search}
           onChange={setSearch}
@@ -195,13 +180,9 @@ export default function SearchTeamsPage() {
             onClick: () => setCityOpen(true),
           }}
         />
-
-        {activeChips.length > 0 && (
-          <ActiveFilterChips chips={activeChips} className="mt-3.5" />
-        )}
       </div>
 
-      <div className="px-4 mt-3">
+      <div className="px-4 pt-3 pb-2">
         <ListMeta
           countLabel={countLabel}
           sort={{
@@ -210,10 +191,15 @@ export default function SearchTeamsPage() {
             onChange: (v) => setSort(v as TeamSort),
           }}
         />
+      </div>
+
+      <div className="flex-1">
         {showSkeleton ? (
-          <SkeletonList count={5} />
+          <div className="px-4 py-3">
+            <SkeletonList count={6} />
+          </div>
         ) : showEmpty ? (
-          <div className="py-10">
+          <div className="py-10 px-4">
             <EmptyState
               text="По выбранным фильтрам команд не нашли"
               action={{
@@ -249,8 +235,8 @@ export default function SearchTeamsPage() {
                 <span
                   className="block w-6 h-6 rounded-full animate-spin"
                   style={{
-                    border: "2.5px solid var(--gray-200)",
-                    borderTopColor: "var(--green-500)",
+                    border: "2.5px solid var(--ink-200)",
+                    borderTopColor: "var(--green-700)",
                   }}
                 />
               </div>
@@ -277,5 +263,24 @@ export default function SearchTeamsPage() {
         }
       />
     </div>
+  );
+}
+
+function BellIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <path d="M6 8a6 6 0 1 1 12 0c0 4 1.5 5.5 2 6.5H4c.5-1 2-2.5 2-6.5Z" />
+      <path d="M10 18a2 2 0 0 0 4 0" />
+    </svg>
   );
 }

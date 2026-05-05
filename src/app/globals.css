@@ -27,7 +27,7 @@
   --ink-100: #eef2ef;  /* dividers, bg tint */
 
   /* ───── Surfaces ───── */
-  --bg:   #f6f7f5;     /* page background */
+  --bg:   #ffffff;     /* page background (unified with card) */
   --card: #ffffff;     /* cards, sheets */
 
   /* ───── Position Colors (semantic) ───── */
@@ -133,7 +133,7 @@
 
   /* Surfaces */
   --bg-primary:   var(--card);
-  --bg-secondary: var(--bg);
+  --bg-secondary: #f6f7f5;       /* off-white for filled chips/cards */
   --bg-card:      var(--ink-100);
   --bg-elevated:  var(--card);
   --bg-dark:      var(--ink-900);

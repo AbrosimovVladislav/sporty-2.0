@@ -64,7 +64,7 @@ export function BottomTabs({ tabs }: { tabs: Tab[] }) {
 
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 bg-background-card border-t border-border"
+      className="fixed bottom-0 left-0 right-0 z-40 bg-background-card border-t border-border"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
     >
       <div className="flex px-3">

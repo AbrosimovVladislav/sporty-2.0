@@ -47,7 +47,10 @@ function PlayerListRowImpl({
 
   const inner = (
     <>
-      <div className="relative shrink-0" style={{ width: AVATAR_SIZE, height: AVATAR_SIZE }}>
+      <div
+        className="relative shrink-0"
+        style={{ width: AVATAR_SIZE, height: AVATAR_SIZE, isolation: "isolate" }}
+      >
         <PlayerAvatar src={avatarUrl} name={name} />
         {visibleTeams.length > 0 && <TeamStack teams={visibleTeams} />}
       </div>
