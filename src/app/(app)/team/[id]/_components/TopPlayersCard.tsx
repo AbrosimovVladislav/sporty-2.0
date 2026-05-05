@@ -12,7 +12,7 @@ export function TopPlayersCard({
     return (
       <div
         className="rounded-[16px] h-[148px] animate-pulse"
-        style={{ background: "var(--bg-card)" }}
+        style={{ background: "var(--ink-100)" }}
       />
     );
   }
@@ -21,7 +21,10 @@ export function TopPlayersCard({
   return (
     <div
       className="rounded-[16px] p-4"
-      style={{ background: "var(--bg-primary)" }}
+      style={{
+        background: "var(--card)",
+        boxShadow: "var(--shadow-sm)",
+      }}
     >
       <Eyebrow>Лидеры по посещаемости · 30 дней</Eyebrow>
       <div className="grid grid-cols-3 gap-2 mt-3">
@@ -30,7 +33,7 @@ export function TopPlayersCard({
             key={p.id}
             type="button"
             onClick={() => onPlayerClick(p.id)}
-            className="flex flex-col items-center text-center gap-2 rounded-[12px] p-2 transition-colors active:bg-bg-card"
+            className="flex flex-col items-center text-center gap-2 rounded-[12px] p-2 transition-colors active:bg-bg-secondary"
           >
             <div className="relative">
               {p.avatarUrl ? (
@@ -58,10 +61,10 @@ export function TopPlayersCard({
                 style={{
                   background:
                     i === 0
-                      ? "var(--green-500)"
+                      ? "var(--green-700)"
                       : i === 1
-                        ? "var(--gray-400)"
-                        : "var(--gray-300)",
+                        ? "var(--ink-500)"
+                        : "var(--ink-300)",
                   color: "white",
                 }}
               >
@@ -70,13 +73,13 @@ export function TopPlayersCard({
             </div>
             <p
               className="text-[12px] font-semibold leading-tight truncate w-full"
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: "var(--ink-900)" }}
             >
               {firstName(p.name)}
             </p>
             <p
               className="text-[11px] tabular-nums"
-              style={{ color: "var(--text-tertiary)" }}
+              style={{ color: "var(--ink-400)" }}
             >
               {p.played} матчей · {p.attendancePct}%
             </p>

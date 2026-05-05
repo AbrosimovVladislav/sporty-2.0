@@ -32,6 +32,7 @@
 - Toggle «Ищем игроков» (`looking_for_players`) — управляет видимостью команды в каталоге
 - Карточка «Заявки и приглашения» → открывает `TeamRequestsSheet` (см. [[team]-join-requests.md]([team]-join-requests.md))
 - Базовые поля команды — название, спорт, город, район, описание. Сохраняются вместе через `PATCH /api/teams/[id]`
+- Город — кнопка-дропдаун (`var(--bg-secondary)` + chevron) → `<CityPickerSheet>` (`KZ_CITIES`); район — `<DistrictPicker>` под тем же паттерном, что в `/profile/settings`
 
 ## Экран команды (`/team/[id]`)
 

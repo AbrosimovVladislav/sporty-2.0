@@ -6,7 +6,7 @@ export function Eyebrow({ children }: { children: React.ReactNode }) {
       className="text-[11px] font-bold uppercase"
       style={{
         letterSpacing: "0.06em",
-        color: "var(--text-tertiary)",
+        color: "var(--ink-500)",
       }}
     >
       {children}
@@ -21,7 +21,7 @@ export function TrendChip({ delta, unit }: { delta: number; unit: string }) {
     <p
       className="text-[12px] font-semibold mt-1.5 inline-flex items-center gap-0.5"
       style={{
-        color: positive ? "var(--green-600)" : "var(--text-secondary)",
+        color: positive ? "var(--green-700)" : "var(--ink-500)",
       }}
     >
       {positive ? "↑" : "↓"} {positive ? "+" : ""}

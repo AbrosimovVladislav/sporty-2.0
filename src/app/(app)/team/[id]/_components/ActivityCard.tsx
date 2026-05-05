@@ -10,7 +10,7 @@ export function ActivityCard({
     return (
       <div
         className="rounded-[16px] h-[156px] animate-pulse"
-        style={{ background: "var(--bg-card)" }}
+        style={{ background: "var(--ink-100)" }}
       />
     );
   }
@@ -24,19 +24,22 @@ export function ActivityCard({
   return (
     <div
       className="rounded-[16px] p-4"
-      style={{ background: "var(--bg-primary)" }}
+      style={{
+        background: "var(--card)",
+        boxShadow: "var(--shadow-sm)",
+      }}
     >
       <div className="flex items-start justify-between mb-3">
         <div>
           <Eyebrow>Активность · 30 дней</Eyebrow>
           <p
             className="font-display text-[28px] font-bold leading-none mt-2 tabular-nums"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: "var(--ink-900)" }}
           >
             {a.eventsCount}
             <span
               className="text-[14px] font-normal ml-1.5"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--ink-500)" }}
             >
               {a.eventsCount === 1
                 ? "событие"
@@ -51,13 +54,13 @@ export function ActivityCard({
           <div className="text-right">
             <p
               className="text-[11px] font-semibold uppercase"
-              style={{ letterSpacing: "0.06em", color: "var(--text-tertiary)" }}
+              style={{ letterSpacing: "0.06em", color: "var(--ink-500)" }}
             >
               Явка
             </p>
             <p
               className="font-display text-[22px] font-bold leading-none mt-1 tabular-nums"
-              style={{ color: "var(--green-600)" }}
+              style={{ color: "var(--green-700)" }}
             >
               {a.attendanceAvg}%
             </p>
@@ -72,12 +75,12 @@ export function ActivityCard({
               style={{
                 height: `${Math.max(4, (w.count / maxCount) * 32)}px`,
                 background:
-                  w.count > 0 ? "var(--green-500)" : "var(--gray-200)",
+                  w.count > 0 ? "var(--green-700)" : "var(--ink-100)",
               }}
             />
             <span
               className="text-[10px] tabular-nums"
-              style={{ color: "var(--text-tertiary)" }}
+              style={{ color: "var(--ink-400)" }}
             >
               {w.count}
             </span>
