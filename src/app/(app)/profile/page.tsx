@@ -225,12 +225,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
       <div className="flex flex-col gap-3 px-4 py-4">
         {tab === "about" && (
           <>
-            <AboutTab
-              user={user}
-              districtName={districtName}
-              teams={teams}
-              stats={stats}
-            />
+            <AboutTab user={user} teams={teams} stats={stats} />
             <MyJoinRequests userId={user.id} />
           </>
         )}

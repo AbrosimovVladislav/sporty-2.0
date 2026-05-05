@@ -51,11 +51,11 @@ export default function DistrictPicker({
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-between rounded-[12px] px-3.5 h-[46px] text-[15px] transition-colors outline-none"
+        className="w-full flex items-center justify-between rounded-[12px] px-3.5 h-[46px] text-[15px] font-medium transition-colors outline-none"
         style={{
-          background: "var(--bg-card)",
-          border: "1.5px solid var(--gray-200)",
-          color: isPlaceholder ? "var(--text-tertiary)" : "var(--text-primary)",
+          background: "var(--bg-secondary)",
+          border: "1px solid var(--ink-200)",
+          color: isPlaceholder ? "var(--ink-400)" : "var(--ink-900)",
         }}
       >
         <span className="truncate text-left">{label}</span>
@@ -74,8 +74,9 @@ export default function DistrictPicker({
             onClick={() => setOpen(false)}
           />
           <div
-            className="relative w-full bg-white pb-8 max-h-[70vh] flex flex-col"
+            className="relative w-full pb-8 max-h-[70vh] flex flex-col"
             style={{
+              background: "var(--card)",
               borderTopLeftRadius: 24,
               borderTopRightRadius: 24,
               boxShadow: "0 -8px 24px rgba(0,0,0,0.12)",
@@ -84,20 +85,20 @@ export default function DistrictPicker({
             <div className="flex justify-center pt-2 pb-1 shrink-0">
               <span
                 className="block w-9 h-1 rounded-full"
-                style={{ background: "var(--gray-300)" }}
+                style={{ background: "var(--ink-300)" }}
               />
             </div>
             <div className="flex items-center justify-between px-4 pt-1 pb-3 shrink-0">
               <h2
                 className="text-[16px] font-bold"
-                style={{ color: "var(--text-primary)" }}
+                style={{ color: "var(--ink-900)" }}
               >
                 Выберите район
               </h2>
               <button
                 onClick={() => setOpen(false)}
                 className="w-7 h-7 rounded-full flex items-center justify-center"
-                style={{ background: "var(--gray-100)" }}
+                style={{ background: "var(--ink-100)" }}
                 aria-label="Закрыть"
               >
                 <CloseIcon />
@@ -151,7 +152,7 @@ function DistrictRow({
     >
       <span
         className="text-[15px] font-medium"
-        style={{ color: selected ? "var(--green-700)" : "var(--text-primary)" }}
+        style={{ color: selected ? "var(--green-800)" : "var(--ink-900)" }}
       >
         {label}
       </span>
@@ -168,10 +169,10 @@ function ChevronDownIcon() {
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="2.5"
+      strokeWidth="2.4"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ color: "var(--text-tertiary)", flexShrink: 0 }}
+      style={{ color: "var(--ink-400)", flexShrink: 0 }}
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
@@ -189,7 +190,7 @@ function CheckIcon() {
       strokeWidth="2.5"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ color: "var(--green-600)" }}
+      style={{ color: "var(--green-700)" }}
     >
       <polyline points="20 6 9 17 4 12" />
     </svg>

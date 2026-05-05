@@ -11,7 +11,6 @@ import { Card, Eyebrow } from "./atoms";
 
 type Props = {
   user: User;
-  districtName: string | null;
   teams: ProfileTeam[] | null;
   stats: { playedCount: number; reliability: number | null } | null | undefined;
 };
@@ -24,7 +23,7 @@ const TIER_LABEL: Record<RatingTier, string> = {
   poor: "Новичок",
 };
 
-export function AboutTab({ user, districtName, teams, stats }: Props) {
+export function AboutTab({ user, teams, stats }: Props) {
   const age = user.birth_date ? calcAge(user.birth_date) : null;
   const tier = ratingTier(user.rating);
   const positions = (user.position ?? [])
@@ -66,13 +65,9 @@ export function AboutTab({ user, districtName, teams, stats }: Props) {
         <StatCell value={teamsCount} label="Команд" />
       </div>
 
-      {(age !== null || user.city || districtName) && (
+      {age !== null && (
         <Card className="overflow-hidden">
-          {age !== null && <InfoRow label="Возраст" value={`${age} лет`} />}
-          {user.city && <InfoRow label="Город" value={user.city} />}
-          {districtName && (
-            <InfoRow label="Район" value={districtName} isLast />
-          )}
+          <InfoRow label="Возраст" value={`${age} лет`} isLast />
         </Card>
       )}
 

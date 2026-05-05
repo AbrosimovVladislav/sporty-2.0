@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { formatMoney } from "@/lib/format";
 import { teamFallbackHue } from "@/lib/playerBadges";
-import type { FinancesPayload } from "./types";
+import type { FinancesHistoryEntry, FinancesPayload } from "./types";
 import { Card, Eyebrow, SkeletonBlock } from "./atoms";
 
 export function FinancesTab({ userId }: { userId: string }) {
@@ -117,46 +117,13 @@ export function FinancesTab({ userId }: { userId: string }) {
         <div>
           <Eyebrow className="mb-2 px-1">История</Eyebrow>
           <Card className="overflow-hidden">
-            {history.map((h, i) => {
-              const isLast = i === history.length - 1;
-              const isDeposit = h.type === "deposit";
-              return (
-                <div
-                  key={h.id}
-                  className="flex items-start gap-3 px-4 py-3.5"
-                  style={{
-                    borderBottom: isLast
-                      ? undefined
-                      : "1px solid var(--ink-100)",
-                  }}
-                >
-                  <TxIcon kind={isDeposit ? "deposit" : "payment"} />
-                  <div className="min-w-0 flex-1">
-                    <p
-                      className="text-[14px] font-semibold leading-tight truncate"
-                      style={{ color: "var(--ink-900)" }}
-                    >
-                      {h.label}
-                    </p>
-                    <p
-                      className="text-[12px] mt-1"
-                      style={{ color: "var(--ink-400)" }}
-                    >
-                      {h.team_name ?? "Команда"} · {formatRelative(h.created_at)}
-                    </p>
-                  </div>
-                  <span
-                    className="text-[14px] font-bold tabular-nums whitespace-nowrap"
-                    style={{
-                      color: isDeposit ? "var(--green-700)" : "var(--ink-900)",
-                    }}
-                  >
-                    {isDeposit ? "+" : ""}
-                    {formatMoney(h.amount)}
-                  </span>
-                </div>
-              );
-            })}
+            {history.map((h, i) => (
+              <HistoryRow
+                key={h.id}
+                entry={h}
+                isLast={i === history.length - 1}
+              />
+            ))}
           </Card>
         </div>
       )}
@@ -266,16 +233,98 @@ function TeamLogo({
   );
 }
 
-function TxIcon({ kind }: { kind: "deposit" | "payment" }) {
-  const isDeposit = kind === "deposit";
+function HistoryRow({
+  entry,
+  isLast,
+}: {
+  entry: FinancesHistoryEntry;
+  isLast: boolean;
+}) {
+  const isExpense = entry.kind === "event_expense";
+  const isCredit = entry.amount > 0;
+  const valueColor = isCredit
+    ? "var(--green-700)"
+    : isExpense
+      ? "var(--danger)"
+      : "var(--ink-900)";
+  const sign = entry.amount > 0 ? "+" : entry.amount < 0 ? "−" : "";
+  const valueText = `${sign}${formatMoney(Math.abs(entry.amount))}`;
+
+  return (
+    <div
+      className="flex items-start gap-3 px-4 py-3.5"
+      style={{
+        borderBottom: isLast ? undefined : "1px solid var(--ink-100)",
+      }}
+    >
+      <HistoryIcon kind={entry.kind} />
+      <div className="min-w-0 flex-1">
+        <p
+          className="text-[14px] font-semibold leading-tight truncate"
+          style={{ color: "var(--ink-900)" }}
+        >
+          {entry.label}
+        </p>
+        <p
+          className="text-[12px] mt-1"
+          style={{ color: "var(--ink-400)" }}
+        >
+          {entry.team_name ?? "Команда"} · {formatRelative(entry.date)}
+        </p>
+      </div>
+      <span
+        className="text-[14px] font-bold tabular-nums whitespace-nowrap"
+        style={{ color: valueColor }}
+      >
+        {valueText}
+      </span>
+    </div>
+  );
+}
+
+function HistoryIcon({ kind }: { kind: FinancesHistoryEntry["kind"] }) {
+  const cfg =
+    kind === "deposit"
+      ? {
+          bg: "var(--green-50)",
+          fg: "var(--green-700)",
+          path: (
+            <>
+              <line x1="12" y1="5" x2="12" y2="19" />
+              <polyline points="5 12 12 5 19 12" />
+            </>
+          ),
+        }
+      : kind === "event_expense"
+        ? {
+            bg: "var(--danger-soft)",
+            fg: "var(--danger)",
+            path: (
+              <>
+                <line x1="12" y1="5" x2="12" y2="19" />
+                <polyline points="19 12 12 19 5 12" />
+              </>
+            ),
+          }
+        : {
+            bg: "var(--ink-100)",
+            fg: "var(--ink-500)",
+            path: (
+              <>
+                <polyline points="9 12 11 14 15 10" />
+                <circle cx="12" cy="12" r="9" />
+              </>
+            ),
+          };
+
   return (
     <span
       className="inline-flex items-center justify-center rounded-[10px] shrink-0 mt-0.5"
       style={{
         width: 32,
         height: 32,
-        background: isDeposit ? "var(--green-50)" : "var(--ink-100)",
-        color: isDeposit ? "var(--green-700)" : "var(--ink-500)",
+        background: cfg.bg,
+        color: cfg.fg,
       }}
     >
       <svg
@@ -289,17 +338,7 @@ function TxIcon({ kind }: { kind: "deposit" | "payment" }) {
         strokeLinejoin="round"
         aria-hidden
       >
-        {isDeposit ? (
-          <>
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <polyline points="5 12 12 5 19 12" />
-          </>
-        ) : (
-          <>
-            <line x1="12" y1="5" x2="12" y2="19" />
-            <polyline points="19 12 12 19 5 12" />
-          </>
-        )}
+        {cfg.path}
       </svg>
     </span>
   );

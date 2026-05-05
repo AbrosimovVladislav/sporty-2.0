@@ -5,18 +5,7 @@ import { useAuth } from "@/lib/auth-context";
 
 const DEFAULT_CITY = "Алматы";
 
-export const KZ_CITIES = [
-  "Алматы",
-  "Астана",
-  "Шымкент",
-  "Актобе",
-  "Атырау",
-  "Актау",
-  "Павлодар",
-  "Семей",
-  "Тараз",
-  "Костанай",
-];
+export const KZ_CITIES = ["Алматы", "Астана"];
 
 type CityContextValue = {
   activeCity: string;

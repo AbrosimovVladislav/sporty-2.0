@@ -5,11 +5,24 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import BackButton from "@/components/BackButton";
 import DistrictPicker from "@/components/DistrictPicker";
-import { Button, BottomActionBar, SheetChipGroup } from "@/components/ui";
+import {
+  Button,
+  BottomActionBar,
+  CityPickerSheet,
+  SheetChipGroup,
+} from "@/components/ui";
 import { POSITIONS, SKILL_LEVELS } from "@/lib/catalogs";
 import { useCity, KZ_CITIES } from "@/lib/city-context";
-import { levelFromRating, levelLetter } from "@/lib/playerBadges";
+import { ratingTier, type RatingTier } from "@/lib/ratingTier";
 import type { User } from "@/types/database";
+
+const TIER_LABEL: Record<RatingTier, string> = {
+  elite: "Элитный",
+  high: "Продвинутый",
+  mid: "Средний",
+  low: "Любитель",
+  poor: "Новичок",
+};
 
 export default function ProfileSettingsPage() {
   const auth = useAuth();
@@ -21,7 +34,7 @@ export default function ProfileSettingsPage() {
         <div
           className="w-8 h-8 rounded-full border-2 border-t-transparent animate-spin"
           style={{
-            borderColor: "var(--green-500)",
+            borderColor: "var(--green-700)",
             borderTopColor: "transparent",
           }}
         />
@@ -61,6 +74,7 @@ function SettingsContent({
   const [lookingForTeam, setLookingForTeam] = useState(
     initialUser.looking_for_team,
   );
+  const [cityOpen, setCityOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
@@ -87,7 +101,7 @@ function SettingsContent({
   const ratingValid =
     ratingNum === null ||
     (Number.isInteger(ratingNum) && ratingNum >= 0 && ratingNum <= 100);
-  const ratingLevel = levelFromRating(ratingNum);
+  const tier = ratingTier(ratingNum);
 
   async function handleSave() {
     if (!ratingValid) return;
@@ -125,42 +139,40 @@ function SettingsContent({
       style={{ background: "var(--bg-secondary)" }}
     >
       <header
-        className="flex items-center gap-3 px-4 pt-4 pb-3"
-        style={{ background: "var(--bg-primary)" }}
+        className="sticky top-0 z-10 flex items-center gap-3 px-4 pt-4 pb-3"
+        style={{
+          background: "var(--card)",
+          borderBottom: "1px solid var(--ink-100)",
+        }}
       >
         <BackButton fallbackHref="/profile" />
         <h1
-          className="text-[22px] font-bold leading-tight"
-          style={{ color: "var(--text-primary)" }}
+          className="text-[20px] font-bold leading-tight"
+          style={{ color: "var(--ink-900)" }}
         >
           Настройки профиля
         </h1>
       </header>
 
-      <div className="flex flex-col gap-4 px-4 py-4 pb-28">
+      <div className="flex flex-col gap-3 px-4 py-4 pb-28">
         <Section>
-          <SheetChipGroup
-            label="Город"
-            options={KZ_CITIES.map((c) => ({ value: c, label: c }))}
-            value={city}
-            onChange={(v) => {
-              setCity(v);
-              setDistrictId("");
-            }}
-            emptyLabel={null}
+          <FieldLabel>Город</FieldLabel>
+          <DropdownTrigger
+            label={city || "Выберите город"}
+            isPlaceholder={!city}
+            onClick={() => setCityOpen(true)}
           />
+          {city && (
+            <>
+              <FieldLabel className="mt-3">Район</FieldLabel>
+              <DistrictPicker
+                city={city}
+                value={districtId}
+                onChange={setDistrictId}
+              />
+            </>
+          )}
         </Section>
-
-        {city && (
-          <Section>
-            <FieldLabel>Район</FieldLabel>
-            <DistrictPicker
-              city={city}
-              value={districtId}
-              onChange={setDistrictId}
-            />
-          </Section>
-        )}
 
         <Section>
           <FieldLabel>О себе</FieldLabel>
@@ -172,9 +184,9 @@ function SettingsContent({
             maxLength={500}
             className="w-full rounded-[12px] px-3.5 py-3 text-[15px] resize-none transition-colors outline-none"
             style={{
-              background: "var(--bg-card)",
-              border: "1.5px solid var(--gray-200)",
-              color: "var(--text-primary)",
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--ink-200)",
+              color: "var(--ink-900)",
             }}
           />
           <FieldHint>{bio.length} / 500</FieldHint>
@@ -183,7 +195,7 @@ function SettingsContent({
         <Section>
           <FieldLabel>На поле</FieldLabel>
           <FieldHint>Можно выбрать несколько</FieldHint>
-          <div className="flex flex-wrap gap-1.5 mt-2">
+          <div className="flex flex-wrap gap-1.5 mt-1">
             {positionOptions.map((pos) => {
               const active = positions.includes(pos);
               return (
@@ -193,11 +205,11 @@ function SettingsContent({
                   onClick={() => togglePosition(pos)}
                   className="px-3.5 py-2 rounded-full text-[13px] font-semibold transition-colors"
                   style={{
-                    background: active ? "var(--gray-900)" : "var(--bg-card)",
-                    color: active ? "white" : "var(--text-secondary)",
+                    background: active ? "var(--ink-900)" : "var(--bg-secondary)",
+                    color: active ? "white" : "var(--ink-700)",
                     border: active
-                      ? "1.5px solid var(--gray-900)"
-                      : "1.5px solid var(--gray-200)",
+                      ? "1px solid var(--ink-900)"
+                      : "1px solid var(--ink-200)",
                   }}
                 >
                   {pos}
@@ -220,7 +232,7 @@ function SettingsContent({
         <Section>
           <FieldLabel>Рейтинг</FieldLabel>
           <FieldHint>Целое число от 0 до 100. Можно оставить пустым.</FieldHint>
-          <div className="flex items-center gap-2.5 mt-2">
+          <div className="flex items-center gap-2.5 mt-1">
             <input
               type="number"
               inputMode="numeric"
@@ -232,30 +244,29 @@ function SettingsContent({
               placeholder="—"
               className="flex-1 rounded-[12px] px-3.5 h-[46px] text-[15px] outline-none transition-colors tabular-nums"
               style={{
-                background: "var(--bg-card)",
+                background: "var(--bg-secondary)",
                 border: ratingValid
-                  ? "1.5px solid var(--gray-200)"
-                  : "1.5px solid var(--red-500, #e5484d)",
-                color: "var(--text-primary)",
+                  ? "1px solid var(--ink-200)"
+                  : "1px solid var(--danger)",
+                color: "var(--ink-900)",
               }}
             />
-            {ratingLevel && (
+            {tier && (
               <span
-                className="inline-flex items-center justify-center px-3 h-[46px] rounded-[12px] font-display font-bold text-[18px] tabular-nums"
+                className="inline-flex items-center justify-center px-3.5 h-[46px] rounded-[12px] text-[14px] font-semibold whitespace-nowrap"
                 style={{
-                  background: `var(--lvl-${ratingLevel}-ring-bg)`,
-                  color: `var(--lvl-${ratingLevel}-ring)`,
-                  minWidth: 64,
+                  background: `var(--rating-${tier}-track)`,
+                  color: `var(--rating-${tier}-text)`,
                 }}
               >
-                {levelLetter(ratingLevel)}
+                {TIER_LABEL[tier]}
               </span>
             )}
           </div>
           {!ratingValid && (
             <p
               className="text-[12px] mt-1"
-              style={{ color: "var(--red-500, #e5484d)" }}
+              style={{ color: "var(--danger)" }}
             >
               Рейтинг должен быть целым числом от 0 до 100
             </p>
@@ -268,11 +279,11 @@ function SettingsContent({
             type="date"
             value={birthDate}
             onChange={(e) => setBirthDate(e.target.value)}
-            className="w-full rounded-[12px] px-3.5 h-[46px] text-[15px] outline-none transition-colors"
+            className="w-full rounded-[12px] px-3.5 h-[46px] text-[15px] outline-none transition-colors mt-1"
             style={{
-              background: "var(--bg-card)",
-              border: "1.5px solid var(--gray-200)",
-              color: "var(--text-primary)",
+              background: "var(--bg-secondary)",
+              border: "1px solid var(--ink-200)",
+              color: "var(--ink-900)",
             }}
           />
         </Section>
@@ -282,22 +293,23 @@ function SettingsContent({
           onClick={() => setLookingForTeam((v) => !v)}
           className="flex items-center justify-between w-full rounded-[16px] px-4 py-3.5 transition-colors"
           style={{
-            background: "var(--bg-primary)",
+            background: "var(--card)",
+            boxShadow: "var(--shadow-sm)",
             border: lookingForTeam
-              ? "1.5px solid var(--green-500)"
-              : "1.5px solid var(--gray-200)",
+              ? "1.5px solid var(--green-700)"
+              : "1.5px solid transparent",
           }}
         >
           <div className="text-left flex-1">
             <p
               className="text-[15px] font-semibold"
-              style={{ color: "var(--text-primary)" }}
+              style={{ color: "var(--ink-900)" }}
             >
               Ищу команду
             </p>
             <p
               className="text-[13px] mt-0.5"
-              style={{ color: "var(--text-secondary)" }}
+              style={{ color: "var(--ink-500)" }}
             >
               {lookingForTeam
                 ? "Видим в каталоге игроков"
@@ -308,8 +320,8 @@ function SettingsContent({
             className="relative w-11 h-6 rounded-full transition-colors shrink-0"
             style={{
               background: lookingForTeam
-                ? "var(--green-500)"
-                : "var(--gray-300)",
+                ? "var(--green-700)"
+                : "var(--ink-300)",
             }}
           >
             <div
@@ -336,6 +348,17 @@ function SettingsContent({
           Сохранить
         </Button>
       </BottomActionBar>
+
+      <CityPickerSheet
+        open={cityOpen}
+        cities={KZ_CITIES}
+        value={city}
+        onClose={() => setCityOpen(false)}
+        onSelect={(c) => {
+          setCity(c);
+          setDistrictId("");
+        }}
+      />
     </div>
   );
 }
@@ -344,20 +367,29 @@ function Section({ children }: { children: React.ReactNode }) {
   return (
     <div
       className="rounded-[16px] p-4 flex flex-col gap-2"
-      style={{ background: "var(--bg-primary)" }}
+      style={{
+        background: "var(--card)",
+        boxShadow: "var(--shadow-sm)",
+      }}
     >
       {children}
     </div>
   );
 }
 
-function FieldLabel({ children }: { children: React.ReactNode }) {
+function FieldLabel({
+  children,
+  className = "",
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
     <label
-      className="text-[12px] font-semibold uppercase"
+      className={`text-[11px] font-semibold uppercase ${className}`}
       style={{
         letterSpacing: "0.06em",
-        color: "var(--text-tertiary)",
+        color: "var(--ink-500)",
       }}
     >
       {children}
@@ -367,8 +399,53 @@ function FieldLabel({ children }: { children: React.ReactNode }) {
 
 function FieldHint({ children }: { children: React.ReactNode }) {
   return (
-    <p className="text-[12px]" style={{ color: "var(--text-tertiary)" }}>
+    <p className="text-[12px]" style={{ color: "var(--ink-400)" }}>
       {children}
     </p>
+  );
+}
+
+function DropdownTrigger({
+  label,
+  isPlaceholder,
+  onClick,
+}: {
+  label: string;
+  isPlaceholder: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="w-full flex items-center justify-between rounded-[12px] px-3.5 h-[46px] text-[15px] transition-colors outline-none"
+      style={{
+        background: "var(--bg-secondary)",
+        border: "1px solid var(--ink-200)",
+        color: isPlaceholder ? "var(--ink-400)" : "var(--ink-900)",
+      }}
+    >
+      <span className="truncate text-left font-medium">{label}</span>
+      <ChevronDownIcon />
+    </button>
+  );
+}
+
+function ChevronDownIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="var(--ink-400)"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="shrink-0"
+      aria-hidden
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
   );
 }

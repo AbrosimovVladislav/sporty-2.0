@@ -30,6 +30,18 @@ export type JoinRequestItem = {
   team: { id: string; name: string; city: string; sport: string };
 };
 
+export type FinancesHistoryEntry = {
+  id: string;
+  kind: "event_expense" | "event_payment" | "deposit";
+  team_id: string;
+  team_name: string | null;
+  amount: number;
+  label: string;
+  note: string | null;
+  date: string;
+  event_id: string | null;
+};
+
 export type FinancesPayload = {
   teams: {
     team_id: string;
@@ -41,15 +53,5 @@ export type FinancesPayload = {
     balance: number;
   }[];
   totals: { expected: number; paid: number; balance: number };
-  history: {
-    id: string;
-    team_id: string;
-    team_name: string | null;
-    amount: number;
-    type: "event_payment" | "deposit";
-    label: string;
-    note: string | null;
-    created_at: string;
-    event_id: string | null;
-  }[];
+  history: FinancesHistoryEntry[];
 };

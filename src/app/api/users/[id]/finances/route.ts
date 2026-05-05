@@ -9,7 +9,14 @@ const EVENT_TYPE_LABEL: Record<string, string> = {
 };
 
 type AttendedRow = {
-  events: { team_id: string; price_per_player: number } | null;
+  event_id: string;
+  events: {
+    id: string;
+    team_id: string;
+    type: string;
+    date: string;
+    price_per_player: number;
+  } | null;
 };
 
 type TxRow = {
@@ -20,13 +27,24 @@ type TxRow = {
   event_id: string | null;
   note: string | null;
   created_at: string;
-  events: { id: string; type: string; date: string } | null;
 };
 
 type MembershipRow = {
   team_id: string;
   role: "organizer" | "player";
   teams: { id: string; name: string; logo_url: string | null } | null;
+};
+
+type HistoryEntry = {
+  id: string;
+  kind: "event_expense" | "event_payment" | "deposit";
+  team_id: string;
+  team_name: string | null;
+  amount: number;
+  label: string;
+  note: string | null;
+  date: string;
+  event_id: string | null;
 };
 
 export async function GET(
@@ -45,7 +63,9 @@ export async function GET(
 
   const { data: rawAtt } = await supabase
     .from("event_attendances")
-    .select("events!inner(team_id, price_per_player, status)")
+    .select(
+      "event_id, events!inner(id, team_id, type, date, price_per_player, status)",
+    )
     .eq("user_id", userId)
     .eq("attended", true)
     .eq("events.status", "completed");
@@ -60,9 +80,7 @@ export async function GET(
 
   const { data: rawTx } = await supabase
     .from("financial_transactions")
-    .select(
-      "id, team_id, amount, type, event_id, note, created_at, events(id, type, date)",
-    )
+    .select("id, team_id, amount, type, event_id, note, created_at")
     .eq("player_id", userId)
     .order("created_at", { ascending: false });
 
@@ -101,29 +119,46 @@ export async function GET(
 
   const teamNameById = new Map(teams.map((t) => [t.team_id, t.team_name]));
 
-  const history = txs.map((t) => {
-    const label =
+  const formatEventLabel = (type: string, dateIso: string) =>
+    `${EVENT_TYPE_LABEL[type] ?? type} · ${new Date(dateIso).toLocaleDateString(
+      "ru-RU",
+      { day: "numeric", month: "short" },
+    )}`;
+
+  const expenseEntries: HistoryEntry[] = attended
+    .filter((a) => a.events && (a.events.price_per_player ?? 0) > 0)
+    .map((a) => ({
+      id: `expense-${a.events!.id}`,
+      kind: "event_expense",
+      team_id: a.events!.team_id,
+      team_name: teamNameById.get(a.events!.team_id) ?? null,
+      amount: -(a.events!.price_per_player ?? 0),
+      label: formatEventLabel(a.events!.type, a.events!.date),
+      note: null,
+      date: a.events!.date,
+      event_id: a.events!.id,
+    }));
+
+  const paymentEntries: HistoryEntry[] = txs.map((t) => ({
+    id: t.id,
+    kind: t.type,
+    team_id: t.team_id,
+    team_name: teamNameById.get(t.team_id) ?? null,
+    amount: t.amount,
+    label:
       t.type === "deposit"
         ? t.note
           ? `Депозит: ${t.note}`
           : "Депозит"
-        : t.events
-          ? `${EVENT_TYPE_LABEL[t.events.type] ?? t.events.type} · ${new Date(
-              t.events.date,
-            ).toLocaleDateString("ru-RU", { day: "numeric", month: "short" })}`
-          : "Оплата события";
-    return {
-      id: t.id,
-      team_id: t.team_id,
-      team_name: teamNameById.get(t.team_id) ?? null,
-      amount: t.amount,
-      type: t.type,
-      label,
-      note: t.note,
-      created_at: t.created_at,
-      event_id: t.event_id,
-    };
-  });
+        : "Оплата события",
+    note: t.note,
+    date: t.created_at,
+    event_id: t.event_id,
+  }));
+
+  const history = [...expenseEntries, ...paymentEntries].sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
 
   return NextResponse.json({ teams, totals, history });
 }

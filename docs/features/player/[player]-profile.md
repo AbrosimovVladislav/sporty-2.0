@@ -26,7 +26,7 @@ Underline-табы (state-based, sticky-top), равновесные слоты:
    - Слева: `RatingRing` 80px (v2 — градиент-кольцо, цвет числа от tier)
    - Справа: эйбрау «Рейтинг» + название уровня (по таблице ниже) + список `<PositionTag>` (плоские теги)
 2. **Stats row** (`grid-cols-3 gap-3`): «Сыграно» / «Надёжность» / «Команд» — Oswald 28px, у «Надёжности» цвет `--green-700`
-3. **Info card** — три строки `Возраст / Город / Район` (label слева 14px `--ink-500`, value справа 14px semibold `--ink-900`), border-bottom между, последний без
+3. **Info card** — одна строка `Возраст` (если задана). Город и район не дублируем — они уже в subtitle хедера
 4. **Команды** — `Eyebrow` сверху, затем строки команд: 40×40 лого (или цветной квадрат `rounded-[12px]` с инициалом по `teamFallbackHue`) + название + chevron-right. Тап → `/team/[id]`
 5. **Мои заявки** — секция [(см. ниже)](#мои-заявки)
 
@@ -64,9 +64,15 @@ Rating tier → название (через `ratingTier(rating)` из `src/lib/
    - `balance < 0` → «Вы должны командам»
    - `balance === 0` → «Все расчёты сведены»
 2. **Балансы по командам** — `Eyebrow` + список: 36×36 лого + название + строка-подсказка («Команда должна вам» / «Вы должны команде» / «Расчёт сведён») + сумма справа цветом смысла. Тап → `/team/[id]/finances`
-3. **История** — `Eyebrow` + список транзакций: иконка 32×32 (стрелка-вверх зелёная для `deposit`, стрелка-вниз нейтральная для `event_payment`) + лейбл («Депозит» / «Тип события · дата») + строка «Команда · {когда}» + сумма справа (с `+` для депозита)
+3. **История** — `Eyebrow` + единая лента ledger-записей, мерджит:
+   - **Расходы** (`event_expense`): completed-события, на которых `attended = true` и `price_per_player > 0`. Иконка стрелка-вниз `--danger`, сумма «−N ₸» красным
+   - **Платежи депозита** (`deposit`): транзакции `type = deposit`. Иконка стрелка-вверх `--green-700`, сумма «+N ₸» зелёным
+   - **Платежи за событие** (`event_payment`): транзакции `type = event_payment` (явные платежи без депозита). Иконка чек `--ink-500`, сумма нейтральная
+   - У каждой записи: 32×32 цветная иконка + лейбл («Игра · 5 мая» / «Депозит» / «Оплата события») + «Команда · когда» + сумма
 
-Если у пользователя 0 команд или ни одной транзакции/посещения — показываем empty-state с подсказкой.
+Сортировка по дате desc (для расхода — дата события, для транзакции — `created_at`).
+
+Если у пользователя 0 команд или ни одного посещения/транзакции — показываем empty-state с подсказкой.
 
 Баланс на команду:
 - `expected = Σ price_per_player` за completed-события, где `attended = true`
@@ -91,17 +97,20 @@ Rating tier → название (через `ratingTier(rating)` из `src/lib/
 
 ## Настройки (`/profile/settings`)
 
-Отдельный роут с back-arrow. Форма редактирования:
+Отдельный роут с back-arrow на светлом sticky-хедере. Форма разбита на карточки `bg-card rounded-[16px] shadow-sm`, поля используют ink-токены и `bg-secondary` для инпутов.
 
 | Поле | Контрол |
 |------|---------|
+| `city` | Кнопка-дропдаун (`var(--bg-secondary)` + chevron) → `<CityPickerSheet>` со списком `KZ_CITIES` |
+| `district_id` | `<DistrictPicker>` (показывается если есть город) |
 | `bio` | textarea + счётчик 0/500 |
-| `position` | Multi-select chip-toggles (POSITIONS["football"]) |
+| `position` | Multi-select chip-toggles (POSITIONS["football"]). Активный чип — `--ink-900` фон, белый текст |
 | `skill_level` | `SheetChipGroup` (single-select) — внутреннее поле, не выводится на профиле |
-| `district_id` | `DistrictSelect` (показывается если есть город) |
-| `preferred_time` | Пресет-чипы (Утром / Днём / Вечером / Выходные) + свободный input |
+| `rating` | number input 0–100 + плашка-tier (`Элитный/Продвинутый/Средний/Любитель/Новичок`) от `ratingTier(rating)` |
 | `birth_date` | native date input |
-| `looking_for_team` | toggle-row на всю ширину, активный — green-border |
+| `looking_for_team` | toggle-row на всю ширину, активный — `--green-700` border |
+
+`KZ_CITIES` (см. `src/lib/city-context.tsx`) сейчас — `["Алматы", "Астана"]`. Используется во всех city-пикерах: settings профиля, search, settings команды, создание события.
 
 Сохранение: sticky `BottomActionBar` с primary-кнопкой «Сохранить» → `PUT /api/users/[id]/profile` → редирект на `/profile`.
 
