@@ -36,7 +36,7 @@ export function PageHeader({
 
   return (
     <div
-      className="relative overflow-hidden px-5 pt-2 pb-5"
+      className="relative overflow-hidden px-5 pt-5 pb-5"
       style={{
         background: "var(--green-700)",
         borderRadius: "0 0 18px 18px",
@@ -50,7 +50,7 @@ export function PageHeader({
         }}
       />
       {hasTopRight && (
-        <div className="absolute top-3 right-5 flex items-center gap-2 z-10">
+        <div className="absolute top-[18px] right-5 flex items-center gap-2 z-10">
           {actions}
           {onSettingsClick && (
             <button
