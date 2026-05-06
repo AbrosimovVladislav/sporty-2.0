@@ -189,10 +189,7 @@ function ProfileContent({ initialUser }: { initialUser: User }) {
   );
 
   return (
-    <div
-      className="flex flex-1 flex-col"
-      style={{ background: "var(--bg-secondary)" }}
-    >
+    <div className="flex flex-1 flex-col">
       <PageHeader
         titleSlot={titleSlot}
         subtitle={subtitle || undefined}

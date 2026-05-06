@@ -21,25 +21,39 @@ export async function GET(
 
   const supabase = getServiceClient();
 
-  const { data: memberships } = await supabase
-    .from("team_memberships")
-    .select("team_id")
-    .eq("user_id", userId);
+  const [membershipsRes, votesRes] = await Promise.all([
+    supabase.from("team_memberships").select("team_id").eq("user_id", userId),
+    supabase
+      .from("event_attendances")
+      .select("event_id")
+      .eq("user_id", userId)
+      .eq("vote", "yes"),
+  ]);
 
-  const teamIds = (memberships ?? []).map((m) => m.team_id);
+  const teamIds = (membershipsRes.data ?? []).map((m) => m.team_id);
+  const yesEventIds = (votesRes.data ?? []).map((v) => v.event_id);
 
-  if (teamIds.length === 0) {
+  if (teamIds.length === 0 && yesEventIds.length === 0) {
     return NextResponse.json({ events: [] });
   }
 
   let query = supabase
     .from("events")
     .select("id, type, date, team_id, teams(id, name), venues(id, name, photo_url)")
-    .in("team_id", teamIds)
     .neq("status", "completed")
     .neq("status", "cancelled")
     .order("date", { ascending: true })
     .limit(limit + 1);
+
+  if (teamIds.length > 0 && yesEventIds.length > 0) {
+    query = query.or(
+      `team_id.in.(${teamIds.join(",")}),and(is_public.eq.true,id.in.(${yesEventIds.join(",")}))`,
+    );
+  } else if (teamIds.length > 0) {
+    query = query.in("team_id", teamIds);
+  } else {
+    query = query.eq("is_public", true).in("id", yesEventIds);
+  }
 
   if (excludeId) {
     query = query.neq("id", excludeId);
