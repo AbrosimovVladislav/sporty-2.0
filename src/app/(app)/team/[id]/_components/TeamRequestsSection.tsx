@@ -23,14 +23,12 @@ type OutgoingInvite = {
 type Props = {
   teamId: string;
   userId: string | null;
-  pendingHint: number;
   onResolved: () => void;
 };
 
 export function TeamRequestsSection({
   teamId,
   userId,
-  pendingHint,
   onResolved,
 }: Props) {
   const [incoming, setIncoming] = useState<IncomingRequest[]>([]);
@@ -40,7 +38,10 @@ export function TeamRequestsSection({
   const [busy, setBusy] = useState<string | null>(null);
 
   const fetchAll = useCallback(async () => {
-    if (!userId) return;
+    if (!userId) {
+      setLoaded(true);
+      return;
+    }
     const res = await fetch(`/api/teams/${teamId}/join-requests?userId=${userId}`);
     if (!res.ok) {
       setLoaded(true);
@@ -86,8 +87,10 @@ export function TeamRequestsSection({
     }
   }
 
-  // Если данные ещё не загружены, опираемся на серверный pendingHint (только incoming).
-  const total = loaded ? incoming.length + outgoing.length : pendingHint;
+  // Не рендерим пока не получили актуальные данные с сервера — иначе секция
+  // мерцает: появляется из hint и пропадает когда fetch вернул пусто.
+  if (!loaded) return null;
+  const total = incoming.length + outgoing.length;
   if (total === 0) return null;
 
   const incomingLabel = `${incoming.length} ${pluralize(incoming.length, [
@@ -101,14 +104,12 @@ export function TeamRequestsSection({
     "приглашений",
   ])}`;
 
-  const summary = !loaded
-    ? `${pendingHint} ${pluralize(pendingHint, ["новая", "новых", "новых"])}`
-    : [
-        incoming.length > 0 ? incomingLabel : null,
-        outgoing.length > 0 ? outgoingLabel : null,
-      ]
-        .filter(Boolean)
-        .join(" · ");
+  const summary = [
+    incoming.length > 0 ? incomingLabel : null,
+    outgoing.length > 0 ? outgoingLabel : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
 
   return (
     <div
@@ -158,7 +159,7 @@ export function TeamRequestsSection({
         </span>
       </button>
 
-      {open && loaded && (
+      {open && (
         <div style={{ borderTop: "1px solid var(--ink-100)" }}>
           {incoming.length > 0 && (
             <div className="px-4 pt-3 pb-1">

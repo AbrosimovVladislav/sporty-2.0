@@ -85,7 +85,7 @@ export default function TeamHomePage() {
   }
   if (team.status !== "ready") return null;
 
-  const { role, pendingRequestsCount, teamStats } = team;
+  const { role, teamStats } = team;
   const isOrganizer = role === "organizer";
   const isEmpty =
     teamStats.completedEvents === 0 && teamStats.plannedEvents === 0;
@@ -104,7 +104,6 @@ export default function TeamHomePage() {
         <TeamRequestsSection
           teamId={team.team.id}
           userId={userId}
-          pendingHint={pendingRequestsCount}
           onResolved={team.reload}
         />
       )}
