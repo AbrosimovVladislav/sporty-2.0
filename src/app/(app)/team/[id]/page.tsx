@@ -94,19 +94,19 @@ export default function TeamHomePage() {
     <>
       {role === "guest" && <GuestJoinBar teamId={team.team.id} />}
 
-      {isOrganizer && (
-        <TeamRequestsSection
-          teamId={team.team.id}
-          userId={userId}
-          onResolved={team.reload}
-        />
-      )}
-
       {isEmpty ? (
         <EmptyTeamHome teamId={team.team.id} canCreate={isOrganizer} />
       ) : (
         <>
           <NextEventCard insights={insights} teamId={team.team.id} />
+
+          {isOrganizer && (
+            <TeamRequestsSection
+              teamId={team.team.id}
+              userId={userId}
+              onResolved={team.reload}
+            />
+          )}
 
           <ActivityCard insights={insights} />
 
