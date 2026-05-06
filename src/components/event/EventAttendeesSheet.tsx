@@ -51,14 +51,19 @@ export function EventAttendeesSheet({
   if (!open) return null;
 
   const attByUser = new Map(attendances.map((a) => [a.user_id, a]));
-  const yesIds = new Set(attendances.filter((a) => a.vote === "yes").map((a) => a.user_id));
-  const noIds = new Set(attendances.filter((a) => a.vote === "no").map((a) => a.user_id));
-
-  const yesMembers = members.filter((m) => yesIds.has(m.user.id));
-  const noMembers = members.filter((m) => noIds.has(m.user.id));
-  const waitingMembers = members.filter(
-    (m) => !yesIds.has(m.user.id) && !noIds.has(m.user.id),
+  const respondedIds = new Set(
+    attendances.filter((a) => a.vote !== null).map((a) => a.user_id),
   );
+
+  // yes/no берём из attendances — на публичном событии голосовать могут не только
+  // участники команды, и им тоже нужно быть в списке. waiting — только участники
+  // команды без ответа (гость без ответа просто не попадал на событие).
+  const toEntry = (a: Attendance): Member => ({ id: a.user_id, user: a.user });
+  const yesMembers = attendances
+    .filter((a) => a.vote === "yes")
+    .map(toEntry);
+  const noMembers = attendances.filter((a) => a.vote === "no").map(toEntry);
+  const waitingMembers = members.filter((m) => !respondedIds.has(m.user.id));
 
   return (
     <div
