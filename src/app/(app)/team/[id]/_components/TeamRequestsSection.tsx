@@ -89,8 +89,7 @@ export function TeamRequestsSection({
 
   const total = incoming.length + outgoing.length;
   const hasAny = total > 0;
-
-  if (!loaded || !hasAny) return null;
+  const isEmpty = loaded && !hasAny;
 
   const incomingLabel = `${incoming.length} ${pluralize(incoming.length, [
     "новая",
@@ -103,14 +102,20 @@ export function TeamRequestsSection({
     "приглашений",
   ])}`;
 
-  const summary = [
-    incoming.length > 0 ? incomingLabel : null,
-    outgoing.length > 0 ? outgoingLabel : null,
-  ]
-    .filter(Boolean)
-    .join(" · ");
+  const summary = hasAny
+    ? [
+        incoming.length > 0 ? incomingLabel : null,
+        outgoing.length > 0 ? outgoingLabel : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "Никто не подал заявку, никого не пригласили";
 
-  const headlineText = `${total} ${pluralize(total, ["заявка", "заявки", "заявок"])}`;
+  const headlineText = !loaded
+    ? "Загрузка…"
+    : hasAny
+      ? `${total} ${pluralize(total, ["заявка", "заявки", "заявок"])}`
+      : "Заявок нет";
 
   return (
     <div
@@ -128,7 +133,10 @@ export function TeamRequestsSection({
       >
         <span
           className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-          style={{ background: "var(--green-700)", color: "white" }}
+          style={{
+            background: hasAny ? "var(--green-700)" : "var(--ink-100)",
+            color: hasAny ? "white" : "var(--ink-500)",
+          }}
         >
           <BellIcon />
         </span>
@@ -160,6 +168,23 @@ export function TeamRequestsSection({
 
       {open && (
         <div style={{ borderTop: "1px solid var(--ink-100)" }}>
+          {isEmpty && (
+            <div className="px-4 py-6 text-center">
+              <p
+                className="text-[14px]"
+                style={{ color: "var(--ink-500)" }}
+              >
+                Никаких входящих заявок и отправленных приглашений нет.
+              </p>
+              <p
+                className="text-[12px] mt-1.5"
+                style={{ color: "var(--ink-400)" }}
+              >
+                Игроки могут попроситься со страницы команды,
+                либо ты сам можешь пригласить кого-то с публичного профиля.
+              </p>
+            </div>
+          )}
           {incoming.length > 0 && (
             <div className="px-4 pt-3 pb-1">
               <Eyebrow>Входящие · {incoming.length}</Eyebrow>
