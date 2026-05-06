@@ -22,17 +22,18 @@
 
 ## Шапка команды
 
-В `PageHeader` всех страниц `/team/[id]/*`: лого + название (тап на название → `TeamSwitcherSheet`, если у пользователя ≥2 команд) + stat-row («В составе», «Впереди», «Сыграно»/«Долгов»). Справа сверху для организатора — шестерёнка → `/team/[id]/settings` (red-dot если есть pending-заявки). Для player/guest шестерёнка скрыта.
+В `PageHeader` всех страниц `/team/[id]/*`: лого + название (тап на название → `TeamSwitcherSheet`, если у пользователя ≥2 команд) + stat-row («В составе», «Впереди», «Сыграно»/«Долгов»). Справа сверху для организатора — шестерёнка → `/team/[id]/settings`. Для player/guest шестерёнка скрыта.
 
 ## Настройки команды (`/team/[id]/settings`, organizer-only)
 
-Отдельная страница (паттерн идентичен `/profile/settings`): back-arrow + title «Настройки команды». Содержит:
+Отдельная страница (паттерн идентичен `/profile/settings`): back-arrow + title «Настройки команды». Содержит только параметры команды:
 
 - Загрузка/смена логотипа — JPG/PNG/WebP до 2 МБ через `POST /api/teams/[id]/logo`
 - Toggle «Ищем игроков» (`looking_for_players`) — управляет видимостью команды в каталоге
-- Карточка «Заявки и приглашения» → открывает `TeamRequestsSheet` (см. [[team]-join-requests.md]([team]-join-requests.md))
 - Базовые поля команды — название, спорт, город, район, описание. Сохраняются вместе через `PATCH /api/teams/[id]`
 - Город — кнопка-дропдаун (`var(--bg-secondary)` + chevron) → `<CityPickerSheet>` (`KZ_CITIES`); район — `<DistrictPicker>` под тем же паттерном, что в `/profile/settings`
+
+Заявки в команду живут на главной команды через `TeamRequestsSection` (см. [[team]-join-requests.md]([team]-join-requests.md)) — в настройках их нет, чтобы не дублировать функционал.
 
 ## Экран команды (`/team/[id]`)
 

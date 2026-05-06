@@ -11,8 +11,3 @@ export const TeamPlayerSheet = dynamic(
   () => import("./TeamPlayerSheet").then((m) => m.TeamPlayerSheet),
   { ssr: false },
 );
-
-export const TeamRequestsSheet = dynamic(
-  () => import("./TeamRequestsSheet").then((m) => m.TeamRequestsSheet),
-  { ssr: false },
-);

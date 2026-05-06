@@ -4,11 +4,9 @@ import { use, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Image from "next/image";
 import { TeamProvider, useTeam } from "./team-context";
-import { TeamUIProvider } from "./team-ui-context";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { UnderlineTabs, type UnderlineTab } from "@/components/ui/UnderlineTabs";
 import { TeamSwitcherSheet } from "@/components/teams/TeamSwitcherSheet";
-import { TeamRequestsSheet } from "@/components/team/lazy";
 import { useAuth } from "@/lib/auth-context";
 import { setLastActiveTeamId } from "@/lib/lastActiveTeam";
 import { SPORT_LABEL } from "@/lib/catalogs";
@@ -60,7 +58,7 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
 
   if (team.status !== "ready") return null;
 
-  const { team: t, role, pendingRequestsCount } = team;
+  const { team: t, role } = team;
   const isOrganizer = role === "organizer";
   const sportLabel = SPORT_LABEL[t.sport] ?? t.sport;
   const hasMultiple = myTeamCount >= 2;
@@ -119,7 +117,6 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
         subtitle={`${t.city} · ${sportLabel}`}
         leadingSlot={leadingSlot}
         onSettingsClick={isOrganizer ? () => router.push(`/team/${teamId}/settings`) : undefined}
-        hasSettingsDot={isOrganizer && pendingRequestsCount > 0}
         settingsAriaLabel="Настройки команды"
       />
 
@@ -159,40 +156,17 @@ function TeamSubNav({ id }: { id: string }) {
 
 function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNode }) {
   const pathname = usePathname();
-  const team = useTeam();
-  const auth = useAuth();
   const path = pathname ?? "";
   const isRoster = ROSTER_PATH_RE.test(path);
   const isEventDetail = EVENT_DETAIL_PATH_RE.test(path);
   const isSettings = SETTINGS_PATH_RE.test(path);
-  const [requestsOpen, setRequestsOpen] = useState(false);
-
-  const userId = auth.status === "authenticated" ? auth.user.id : null;
-  const isOrganizer = team.status === "ready" && team.role === "organizer";
 
   useEffect(() => {
     setLastActiveTeamId(id);
   }, [id]);
 
-  const ui = { openRequests: () => setRequestsOpen(true) };
-
-  const requestsSheet = isOrganizer && team.status === "ready" ? (
-    <TeamRequestsSheet
-      open={requestsOpen}
-      teamId={id}
-      userId={userId}
-      onClose={() => setRequestsOpen(false)}
-      onActionDone={() => team.reload()}
-    />
-  ) : null;
-
   if (isEventDetail || isSettings) {
-    return (
-      <TeamUIProvider value={ui}>
-        <div className="flex flex-1 flex-col">{children}</div>
-        {requestsSheet}
-      </TeamUIProvider>
-    );
+    return <div className="flex flex-1 flex-col">{children}</div>;
   }
 
   const contentClass = isRoster
@@ -200,14 +174,11 @@ function TeamLayoutInner({ id, children }: { id: string; children: React.ReactNo
     : "flex flex-1 flex-col px-4 py-4 gap-4";
 
   return (
-    <TeamUIProvider value={ui}>
-      <div className="flex flex-1 flex-col">
-        <TeamPageHeader teamId={id} />
-        <TeamSubNav id={id} />
-        <div className={contentClass}>{children}</div>
-      </div>
-      {requestsSheet}
-    </TeamUIProvider>
+    <div className="flex flex-1 flex-col">
+      <TeamPageHeader teamId={id} />
+      <TeamSubNav id={id} />
+      <div className={contentClass}>{children}</div>
+    </div>
   );
 }
 

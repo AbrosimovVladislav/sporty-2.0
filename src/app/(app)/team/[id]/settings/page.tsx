@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam } from "../team-context";
-import { useTeamUI } from "../team-ui-context";
 import BackButton from "@/components/BackButton";
 import DistrictPicker from "@/components/DistrictPicker";
 import { Button, BottomActionBar, CityPickerSheet } from "@/components/ui";
@@ -47,7 +46,6 @@ export default function TeamSettingsPage() {
 function SettingsContent() {
   const team = useTeam();
   const auth = useAuth();
-  const ui = useTeamUI();
   const router = useRouter();
 
   if (team.status !== "ready" || auth.status !== "authenticated") return null;
@@ -164,7 +162,6 @@ function SettingsContent() {
   }
 
   const initial = t.name.trim().charAt(0).toUpperCase() || "?";
-  const pendingCount = team.pendingRequestsCount;
   const canSave =
     name.trim().length > 0 && !!sport && !!city && !saving;
 
@@ -307,43 +304,6 @@ function SettingsContent() {
               }}
             />
           </div>
-        </button>
-
-        <button
-          type="button"
-          onClick={ui.openRequests}
-          className="flex items-center gap-3 rounded-[16px] px-4 py-3.5 text-left transition-colors active:opacity-90"
-          style={{
-            background: "var(--card)",
-            boxShadow: "var(--shadow-sm)",
-          }}
-        >
-          <span
-            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-            style={{
-              background: pendingCount > 0 ? "var(--green-700)" : "var(--ink-100)",
-              color: pendingCount > 0 ? "white" : "var(--ink-500)",
-            }}
-          >
-            <BellIcon />
-          </span>
-          <div className="flex-1 min-w-0">
-            <p
-              className="text-[15px] font-semibold"
-              style={{ color: "var(--ink-900)" }}
-            >
-              Заявки и приглашения
-            </p>
-            <p
-              className="text-[13px] mt-0.5"
-              style={{ color: "var(--ink-500)" }}
-            >
-              {pendingCount > 0
-                ? `Входящих · ${pendingCount}`
-                : "Открыть список"}
-            </p>
-          </div>
-          <ChevronRight />
         </button>
 
         <Section>
@@ -552,38 +512,3 @@ function ChevronDownIcon() {
   );
 }
 
-function BellIcon() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9" />
-      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-    </svg>
-  );
-}
-
-function ChevronRight() {
-  return (
-    <svg
-      width="16"
-      height="16"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      style={{ color: "var(--ink-400)" }}
-    >
-      <polyline points="9 18 15 12 9 6" />
-    </svg>
-  );
-}
