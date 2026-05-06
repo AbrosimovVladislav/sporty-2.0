@@ -44,7 +44,7 @@ export async function GET(
   const { data: rawRequests, error } = await supabase
     .from("join_requests")
     .select(
-      "id, user_id, status, direction, invited_by, created_at, users(id, name, city, avatar_url)",
+      "id, user_id, status, direction, invited_by, created_at, users:user_id(id, name, city, avatar_url)",
     )
     .eq("team_id", teamId)
     .eq("status", "pending")
