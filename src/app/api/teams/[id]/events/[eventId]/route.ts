@@ -24,7 +24,7 @@ type AttendanceWithUser = {
   user_id: string;
   vote: "yes" | "no" | null;
   attended: boolean | null;
-  users: { id: string; name: string } | null;
+  users: { id: string; name: string; avatar_url: string | null } | null;
 };
 
 type TransactionRow = {
@@ -61,7 +61,7 @@ export async function GET(
   const [{ data: rawAttendances, error: attErr }, { data: rawTx }] = await Promise.all([
     supabase
       .from("event_attendances")
-      .select("id, user_id, vote, attended, users(id, name)")
+      .select("id, user_id, vote, attended, users(id, name, avatar_url)")
       .eq("event_id", eventId),
     supabase
       .from("financial_transactions")

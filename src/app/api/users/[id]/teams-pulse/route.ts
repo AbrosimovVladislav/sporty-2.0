@@ -3,7 +3,13 @@ import { getServiceClient } from "@/lib/supabase-server";
 
 type Membership = {
   role: "organizer" | "player";
-  teams: { id: string; name: string; sport: string; city: string } | null;
+  teams: {
+    id: string;
+    name: string;
+    sport: string;
+    city: string;
+    logo_url: string | null;
+  } | null;
 };
 
 type NextEventRow = {
@@ -24,7 +30,7 @@ export async function GET(
 
   const { data: rawMemberships } = await supabase
     .from("team_memberships")
-    .select("role, teams(id, name, sport, city)")
+    .select("role, teams(id, name, sport, city, logo_url)")
     .eq("user_id", userId);
 
   const memberships = (rawMemberships ?? []) as unknown as Membership[];
@@ -162,6 +168,7 @@ export async function GET(
       name: team.name,
       sport: team.sport,
       city: team.city,
+      logo_url: team.logo_url,
       role: team.role,
       next_event: next
         ? {

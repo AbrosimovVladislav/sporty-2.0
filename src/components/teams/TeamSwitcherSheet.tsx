@@ -1,10 +1,11 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth-context";
-import { Avatar } from "@/components/ui";
+import { teamGradient } from "@/lib/format";
 import { setLastActiveTeamId } from "@/lib/lastActiveTeam";
 
 type MyTeam = {
@@ -13,6 +14,7 @@ type MyTeam = {
   sport: string;
   city: string;
   role: "organizer" | "player";
+  logo_url: string | null;
 };
 
 type Props = {
@@ -94,7 +96,7 @@ export function TeamSwitcherSheet({ open, currentTeamId, onClose }: Props) {
                     className="w-full flex items-center gap-3.5 py-3 text-left transition-colors active:bg-bg-secondary"
                     style={{ borderBottom: "1px solid var(--gray-100)" }}
                   >
-                    <Avatar name={t.name} size="md" />
+                    <TeamLogo team={t} />
                     <div className="flex-1 min-w-0">
                       <p
                         className="text-[15px] font-semibold truncate"
@@ -145,6 +147,37 @@ export function TeamSwitcherSheet({ open, currentTeamId, onClose }: Props) {
           <span>Создать команду</span>
         </Link>
       </div>
+    </div>
+  );
+}
+
+function TeamLogo({ team }: { team: MyTeam }) {
+  const initial = team.name.trim().charAt(0).toUpperCase() || "?";
+  if (team.logo_url) {
+    return (
+      <div
+        className="w-11 h-11 rounded-full overflow-hidden shrink-0"
+        style={{ background: "white" }}
+      >
+        <Image
+          src={team.logo_url}
+          alt=""
+          width={44}
+          height={44}
+          sizes="44px"
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
+  return (
+    <div
+      className="w-11 h-11 rounded-full flex items-center justify-center shrink-0"
+      style={{ background: teamGradient(team.id) }}
+    >
+      <span className="font-display text-[18px] font-bold text-white leading-none">
+        {initial}
+      </span>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import { AvatarStack } from "@/components/ui/Avatar";
 
 type Attendee = {
   user_id: string;
-  user: { id: string; name: string };
+  user: { id: string; name: string; avatar_url: string | null };
 };
 
 type Props = {
@@ -92,7 +92,11 @@ export function EventAttendeesPreview({ yes, no, waiting, minPlayers, onOpen }: 
           <div className="flex items-center gap-2 min-w-0">
             {yesCount > 0 ? (
               <AvatarStack
-                users={yes.map((a) => ({ id: a.user.id, name: a.user.name }))}
+                users={yes.map((a) => ({
+                  id: a.user.id,
+                  name: a.user.name,
+                  avatar_url: a.user.avatar_url,
+                }))}
                 max={5}
                 size="sm"
               />

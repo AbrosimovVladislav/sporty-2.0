@@ -36,7 +36,7 @@ type AttendanceItem = {
   attended: boolean | null;
   paid: boolean | null;
   paid_amount: number | null;
-  user: { id: string; name: string };
+  user: { id: string; name: string; avatar_url: string | null };
 };
 
 export default function EventDetailPage({

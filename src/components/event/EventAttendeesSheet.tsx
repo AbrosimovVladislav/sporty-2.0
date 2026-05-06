@@ -8,12 +8,12 @@ type Attendance = {
   vote: "yes" | "no" | null;
   attended: boolean | null;
   paid: boolean | null;
-  user: { id: string; name: string };
+  user: { id: string; name: string; avatar_url: string | null };
 };
 
 type Member = {
   id: string;
-  user: { id: string; name: string };
+  user: { id: string; name: string; avatar_url: string | null };
 };
 
 type Props = {
@@ -176,7 +176,7 @@ function Section({
           const canEdit = isOrganizer || isMe;
           return (
             <li key={m.user.id} className="flex items-center gap-3 px-2 py-2">
-              <Avatar name={m.user.name} size="sm" />
+              <Avatar src={m.user.avatar_url} name={m.user.name} size="sm" />
               <div className="flex-1 min-w-0">
                 <p
                   className="text-[14px] font-medium truncate"

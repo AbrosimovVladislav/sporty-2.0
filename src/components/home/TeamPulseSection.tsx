@@ -7,6 +7,7 @@ type Team = {
   name: string;
   sport: string;
   city: string;
+  logo_url: string | null;
   role: "organizer" | "player";
   next_event: {
     id: string;
