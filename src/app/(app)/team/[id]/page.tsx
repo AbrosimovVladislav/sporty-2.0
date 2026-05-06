@@ -90,15 +90,9 @@ export default function TeamHomePage() {
   const isEmpty =
     teamStats.completedEvents === 0 && teamStats.plannedEvents === 0;
 
-  if (isEmpty) {
-    return <EmptyTeamHome teamId={team.team.id} canCreate={isOrganizer} />;
-  }
-
   return (
     <>
       {role === "guest" && <GuestJoinBar teamId={team.team.id} />}
-
-      <NextEventCard insights={insights} teamId={team.team.id} />
 
       {isOrganizer && (
         <TeamRequestsSection
@@ -108,12 +102,23 @@ export default function TeamHomePage() {
         />
       )}
 
-      <ActivityCard insights={insights} />
+      {isEmpty ? (
+        <EmptyTeamHome teamId={team.team.id} canCreate={isOrganizer} />
+      ) : (
+        <>
+          <NextEventCard insights={insights} teamId={team.team.id} />
 
-      <TopPlayersCard insights={insights} onPlayerClick={handleLeaderClick} />
+          <ActivityCard insights={insights} />
 
-      {isOrganizer && (
-        <FinanceCard metrics={financeMetrics} teamId={team.team.id} />
+          <TopPlayersCard
+            insights={insights}
+            onPlayerClick={handleLeaderClick}
+          />
+
+          {isOrganizer && (
+            <FinanceCard metrics={financeMetrics} teamId={team.team.id} />
+          )}
+        </>
       )}
 
       {activePlayer && team.status === "ready" && (
