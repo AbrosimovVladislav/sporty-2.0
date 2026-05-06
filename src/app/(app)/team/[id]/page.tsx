@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth-context";
 import { useTeam, type TeamMember } from "./team-context";
@@ -121,6 +122,41 @@ export default function TeamHomePage() {
         </>
       )}
 
+      {role !== "guest" && (
+        <Link
+          href="/teams/create"
+          className="rounded-[16px] px-4 py-3.5 flex items-center gap-3 text-left active:opacity-90 transition-opacity"
+          style={{
+            background: "var(--card)",
+            border: "1px dashed var(--ink-200)",
+          }}
+        >
+          <span
+            className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+            style={{ background: "var(--ink-100)", color: "var(--ink-700)" }}
+          >
+            <PlusIcon />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p
+              className="text-[15px] font-semibold"
+              style={{ color: "var(--ink-900)" }}
+            >
+              Создать новую команду
+            </p>
+            <p
+              className="text-[12px] mt-0.5"
+              style={{ color: "var(--ink-500)" }}
+            >
+              Ты станешь её первым организатором
+            </p>
+          </div>
+          <span className="shrink-0" style={{ color: "var(--ink-400)" }}>
+            <ChevronRightIcon />
+          </span>
+        </Link>
+      )}
+
       {activePlayer && team.status === "ready" && (
         <TeamPlayerSheet
           member={activePlayer}
@@ -135,5 +171,40 @@ export default function TeamHomePage() {
         />
       )}
     </>
+  );
+}
+
+function PlusIcon() {
+  return (
+    <svg
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <line x1="12" y1="5" x2="12" y2="19" />
+      <line x1="5" y1="12" x2="19" y2="12" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon() {
+  return (
+    <svg
+      width="14"
+      height="14"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <polyline points="9 18 15 12 9 6" />
+    </svg>
   );
 }
