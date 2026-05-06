@@ -1,6 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
-import { sendMessage, buildProfileDeepLink } from "@/lib/telegram-bot";
+import {
+  buildProfileDeepLink,
+  getTeamOrganizers,
+  notify,
+} from "@/lib/notifications";
 
 const REJECTION_COOLDOWN_DAYS = 7;
 
@@ -51,7 +55,6 @@ export async function POST(
     return NextResponse.json({ error: "Request already pending" }, { status: 409 });
   }
 
-  // Cooldown after rejection (7 days)
   const { data: lastRejected } = await supabase
     .from("join_requests")
     .select("resolved_at")
@@ -87,50 +90,27 @@ export async function POST(
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  notifyOrganizers(teamId, userId, team.name).catch((e) =>
-    console.error("Notify organizers error:", e),
-  );
+  // Уведомление всем организаторам команды.
+  (async () => {
+    const [{ data: applicant }, organizerIds] = await Promise.all([
+      supabase.from("users").select("name").eq("id", userId).single(),
+      getTeamOrganizers(supabase, teamId),
+    ]);
+    if (!applicant?.name) return;
+    await notify(supabase, {
+      userIds: organizerIds,
+      type: "team_join_request_received",
+      payload: {
+        href: `/team/${teamId}`,
+        team_id: teamId,
+        team_name: team.name,
+        actor_id: userId,
+        actor_name: applicant.name,
+      },
+      telegramText: `🆕 <b>${applicant.name}</b> хочет вступить в команду «${team.name}»\n\nОткрой Sporty, чтобы принять или отклонить заявку.`,
+      telegramDeepLink: buildProfileDeepLink(),
+    });
+  })().catch((e) => console.error("Notify organizers error:", e));
 
   return NextResponse.json({ joinRequest: jr }, { status: 201 });
-}
-
-async function notifyOrganizers(
-  teamId: string,
-  applicantId: string,
-  teamName: string,
-) {
-  const supabase = getServiceClient();
-
-  const [{ data: applicant }, { data: orgRows }] = await Promise.all([
-    supabase.from("users").select("name").eq("id", applicantId).single(),
-    supabase
-      .from("team_memberships")
-      .select("user_id")
-      .eq("team_id", teamId)
-      .eq("role", "organizer"),
-  ]);
-
-  const orgIds = (orgRows ?? []).map((r) => r.user_id);
-  if (orgIds.length === 0 || !applicant?.name) return;
-
-  const { data: orgs } = await supabase
-    .from("users")
-    .select("telegram_id")
-    .in("id", orgIds);
-
-  const text = `🆕 <b>${applicant.name}</b> хочет вступить в команду «${teamName}»\n\nОткрой Sporty, чтобы принять или отклонить заявку.`;
-
-  await Promise.all(
-    (orgs ?? [])
-      .filter((u) => u.telegram_id)
-      .map((u) =>
-        sendMessage(u.telegram_id!, text, {
-          reply_markup: {
-            inline_keyboard: [
-              [{ text: "Открыть Sporty", url: buildProfileDeepLink() }],
-            ],
-          },
-        }),
-      ),
-  );
 }

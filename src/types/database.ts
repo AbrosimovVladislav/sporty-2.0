@@ -307,6 +307,28 @@ export type Database = {
         };
         Relationships: [];
       };
+      notifications: {
+        Row: {
+          id: string;
+          user_id: string;
+          type: string;
+          payload: Record<string, unknown>;
+          read_at: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          type: string;
+          payload?: Record<string, unknown>;
+          read_at?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          read_at?: string | null;
+        };
+        Relationships: [];
+      };
     };
     Views: {};
     Functions: {};
@@ -323,3 +345,4 @@ export type Venue = Database["public"]["Tables"]["venues"]["Row"];
 export type Event = Database["public"]["Tables"]["events"]["Row"];
 export type EventAttendance = Database["public"]["Tables"]["event_attendances"]["Row"];
 export type FinancialTransaction = Database["public"]["Tables"]["financial_transactions"]["Row"];
+export type Notification = Database["public"]["Tables"]["notifications"]["Row"];

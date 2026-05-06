@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { notify } from "@/lib/notifications";
 
 export async function GET(
   req: NextRequest,
@@ -87,6 +88,32 @@ export async function POST(
     .single();
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (player_id !== confirmed_by) {
+    (async () => {
+      const { data: team } = await supabase
+        .from("teams")
+        .select("name")
+        .eq("id", teamId)
+        .single();
+      if (!team?.name) return;
+      const amountNum = Number(amount);
+      const kindLabel = type === "deposit" ? "депозит" : "оплату события";
+      await notify(supabase, {
+        userIds: [player_id],
+        type: "finance_payment_recorded",
+        payload: {
+          href: `/team/${teamId}/finances`,
+          team_id: teamId,
+          team_name: team.name,
+          amount: amountNum,
+          tx_kind: type as "deposit" | "event_payment",
+          event_id: event_id ?? null,
+        },
+        telegramText: `💰 Организатор «${team.name}» отметил твой ${kindLabel}: ${amountNum.toLocaleString("ru-RU")} ₸.`,
+      });
+    })().catch((e) => console.error("Notify finance error:", e));
+  }
 
   return NextResponse.json({ transaction: data }, { status: 201 });
 }

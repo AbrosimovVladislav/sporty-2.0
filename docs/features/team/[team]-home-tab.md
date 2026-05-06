@@ -48,11 +48,13 @@
 
 Скрывается если запрос не вернул `metrics` (не organizer, либо ошибка).
 
-### 5. Заявки (только organizer, если `pendingRequestsCount > 0`)
+### 5. Заявки (`TeamRequestsSection`, только organizer)
 
-One-line карточка `bg-green-50` с иконкой колокола → клик открывает `TeamRequestsSheet` через `useTeamUI().openRequests()`. Sheet монтируется в layout команды (доступен с любой страницы внутри `/team/[id]/*`).
+Inline-аккордеон сразу после `NextEventCard` (организаторам, если `total > 0`). Подробнее — [[team]-join-requests.md]([team]-join-requests.md).
 
-Текст: «N новых заявок» + «Открыть и решить →».
+- Свёрнут: bell-иконка + «N заявок» + breakdown «K новых · M приглашений»
+- Раскрыт: подзаголовок «Входящие» → карточки игроков + Принять/Отклонить; «Отправлены» → карточки + Отозвать
+- Все действия inline, без отдельного шита
 
 ### 6. Гость — `GuestJoinBar` (BottomActionBar)
 

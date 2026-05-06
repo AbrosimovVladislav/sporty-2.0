@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { getTeamOrganizers, notify } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -29,12 +30,10 @@ export async function POST(
     return NextResponse.json({ error: "Request not found or already resolved" }, { status: 404 });
   }
 
-  // Only team_to_player invites can be responded to by the player
   if (jr.direction !== "team_to_player") {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Only the invited player can respond
   if (jr.user_id !== user_id) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
@@ -61,6 +60,33 @@ export async function POST(
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
   }
+
+  (async () => {
+    const [{ data: team }, { data: actor }, organizerIds] = await Promise.all([
+      supabase.from("teams").select("name").eq("id", jr.team_id).single(),
+      supabase.from("users").select("name").eq("id", jr.user_id).single(),
+      getTeamOrganizers(supabase, jr.team_id),
+    ]);
+    if (!team?.name || !actor?.name) return;
+    await notify(supabase, {
+      userIds: organizerIds,
+      type:
+        decision === "accept"
+          ? "team_invitation_accepted"
+          : "team_invitation_rejected",
+      payload: {
+        href: `/team/${jr.team_id}`,
+        team_id: jr.team_id,
+        team_name: team.name,
+        actor_id: jr.user_id,
+        actor_name: actor.name,
+      },
+      telegramText:
+        decision === "accept"
+          ? `✅ <b>${actor.name}</b> принял приглашение в команду «${team.name}».`
+          : `❌ <b>${actor.name}</b> отклонил приглашение в команду «${team.name}».`,
+    });
+  })().catch((e) => console.error("Notify orgs invite respond error:", e));
 
   return NextResponse.json({ status: newStatus });
 }

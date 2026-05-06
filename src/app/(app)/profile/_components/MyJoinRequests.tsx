@@ -8,6 +8,22 @@ import type { JoinRequestItem } from "./types";
 import { Eyebrow } from "./atoms";
 
 const HISTORY_DAYS = 30;
+const REJECTION_COOLDOWN_DAYS = 7;
+
+function pluralDays(n: number): string {
+  if (n === 1) return "день";
+  if (n < 5) return "дня";
+  return "дней";
+}
+
+function cooldownDaysLeft(resolvedAtIso: string | null): number {
+  if (!resolvedAtIso) return 0;
+  const resolved = new Date(resolvedAtIso).getTime();
+  const until = resolved + REJECTION_COOLDOWN_DAYS * 24 * 60 * 60 * 1000;
+  const ms = until - Date.now();
+  if (ms <= 0) return 0;
+  return Math.ceil(ms / (24 * 60 * 60 * 1000));
+}
 
 const STATUS_LABEL: Record<string, string> = {
   pending: "На рассмотрении",
@@ -186,41 +202,58 @@ export function MyJoinRequests({ userId }: { userId: string }) {
               className="mt-2 rounded-[16px] overflow-hidden"
               style={{ background: "var(--card)" }}
             >
-              {history.map((r, i) => (
-                <li
-                  key={r.id}
-                  className="px-4 py-3"
-                  style={{
-                    borderTop: i === 0 ? undefined : "1px solid var(--ink-100)",
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <Link href={`/team/${r.team.id}`} className="flex-1 min-w-0">
-                      <p
-                        className="text-[15px] font-semibold truncate"
-                        style={{ color: "var(--ink-900)" }}
+              {history.map((r, i) => {
+                const isOwnRejected =
+                  r.status === "rejected" && r.direction === "player_to_team";
+                const cd = isOwnRejected ? cooldownDaysLeft(r.resolved_at) : 0;
+                return (
+                  <li
+                    key={r.id}
+                    className="px-4 py-3"
+                    style={{
+                      borderTop:
+                        i === 0 ? undefined : "1px solid var(--ink-100)",
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <Link
+                        href={`/team/${r.team.id}`}
+                        className="flex-1 min-w-0"
                       >
-                        {r.team.name}
-                      </p>
-                      <p
-                        className="text-[12px] mt-0.5"
-                        style={{ color: "var(--ink-400)" }}
-                      >
-                        {r.direction === "team_to_player"
-                          ? "Приглашение"
-                          : "Моя заявка"}{" "}
-                        ·{" "}
-                        {r.resolved_at
-                          ? formatRelative(r.resolved_at)
-                          : formatRelative(r.created_at)}
-                      </p>
-                    </Link>
-                    <Pill variant={STATUS_PILL[r.status] ?? "statusMuted"}>
-                      {STATUS_LABEL[r.status] ?? r.status}
-                    </Pill>
-                  </div>
-                </li>
-              ))}
+                        <p
+                          className="text-[15px] font-semibold truncate"
+                          style={{ color: "var(--ink-900)" }}
+                        >
+                          {r.team.name}
+                        </p>
+                        <p
+                          className="text-[12px] mt-0.5"
+                          style={{ color: "var(--ink-400)" }}
+                        >
+                          {r.direction === "team_to_player"
+                            ? "Приглашение"
+                            : "Моя заявка"}{" "}
+                          ·{" "}
+                          {r.resolved_at
+                            ? formatRelative(r.resolved_at)
+                            : formatRelative(r.created_at)}
+                        </p>
+                        {cd > 0 && (
+                          <p
+                            className="text-[12px] mt-1"
+                            style={{ color: "var(--danger)" }}
+                          >
+                            Можно подать снова через {cd} {pluralDays(cd)}
+                          </p>
+                        )}
+                      </Link>
+                      <Pill variant={STATUS_PILL[r.status] ?? "statusMuted"}>
+                        {STATUS_LABEL[r.status] ?? r.status}
+                      </Pill>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

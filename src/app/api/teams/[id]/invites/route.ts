@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
-import { sendMessage, buildProfileDeepLink } from "@/lib/telegram-bot";
+import { buildProfileDeepLink, notify } from "@/lib/notifications";
 
 export async function POST(
   req: NextRequest,
@@ -11,12 +11,14 @@ export async function POST(
   const { user_id, inviter_id }: { user_id?: string; inviter_id?: string } = body;
 
   if (!user_id || !inviter_id) {
-    return NextResponse.json({ error: "user_id and inviter_id are required" }, { status: 400 });
+    return NextResponse.json(
+      { error: "user_id and inviter_id are required" },
+      { status: 400 },
+    );
   }
 
   const supabase = getServiceClient();
 
-  // Verify inviter is organizer
   const { data: membership } = await supabase
     .from("team_memberships")
     .select("role")
@@ -28,7 +30,6 @@ export async function POST(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Check user is not already a member
   const { data: existingMembership } = await supabase
     .from("team_memberships")
     .select("id")
@@ -40,7 +41,6 @@ export async function POST(
     return NextResponse.json({ error: "User is already a member" }, { status: 409 });
   }
 
-  // Check no pending request exists in either direction
   const { data: existing } = await supabase
     .from("join_requests")
     .select("id")
@@ -70,31 +70,26 @@ export async function POST(
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  // Notify player via Telegram (fire-and-forget)
-  notifyPlayer(supabase, teamId, user_id).catch((e) =>
-    console.error("Notify invite error:", e)
-  );
+  (async () => {
+    const [{ data: team }, { data: inviter }] = await Promise.all([
+      supabase.from("teams").select("name").eq("id", teamId).single(),
+      supabase.from("users").select("name").eq("id", inviter_id).single(),
+    ]);
+    if (!team?.name || !inviter?.name) return;
+    await notify(supabase, {
+      userIds: [user_id],
+      type: "team_invitation_received",
+      payload: {
+        href: `/profile`,
+        team_id: teamId,
+        team_name: team.name,
+        actor_id: inviter_id,
+        actor_name: inviter.name,
+      },
+      telegramText: `🏅 <b>Тебя пригласили в команду «${team.name}»</b>\n\nОткрой профиль и прими или отклони приглашение.`,
+      telegramDeepLink: buildProfileDeepLink(),
+    });
+  })().catch((e) => console.error("Notify invite error:", e));
 
   return NextResponse.json({ invite }, { status: 201 });
-}
-
-async function notifyPlayer(
-  supabase: ReturnType<typeof getServiceClient>,
-  teamId: string,
-  userId: string,
-) {
-  const [{ data: user }, { data: team }] = await Promise.all([
-    supabase.from("users").select("telegram_id").eq("id", userId).single(),
-    supabase.from("teams").select("name").eq("id", teamId).single(),
-  ]);
-
-  if (!user?.telegram_id || !team?.name) return;
-
-  const text = `🏅 <b>Тебя пригласили в команду «${team.name}»</b>\n\nОткрой профиль и прими или отклони приглашение.`;
-
-  await sendMessage(user.telegram_id, text, {
-    reply_markup: {
-      inline_keyboard: [[{ text: "Открыть Sporty", url: buildProfileDeepLink() }]],
-    },
-  });
 }

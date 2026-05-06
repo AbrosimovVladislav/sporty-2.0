@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { getTeamMembers, notify } from "@/lib/notifications";
 
 type EventWithVenue = {
   id: string;
@@ -157,7 +158,7 @@ export async function PATCH(
 
   const { data: event } = await supabase
     .from("events")
-    .select("id, status")
+    .select("id, status, type, date")
     .eq("id", eventId)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -212,6 +213,30 @@ export async function PATCH(
       .eq("event_id", eventId)
       .eq("vote", "yes")
       .is("attended", null);
+  }
+
+  if (hasStatus && status === "cancelled") {
+    (async () => {
+      const [{ data: team }, members] = await Promise.all([
+        supabase.from("teams").select("name").eq("id", teamId).single(),
+        getTeamMembers(supabase, teamId),
+      ]);
+      const recipients = members.filter((id) => id !== userId);
+      if (!team?.name || recipients.length === 0) return;
+      await notify(supabase, {
+        userIds: recipients,
+        type: "event_cancelled",
+        payload: {
+          href: `/team/${teamId}/events/${eventId}`,
+          team_id: teamId,
+          team_name: team.name,
+          event_id: eventId,
+          event_type: event.type,
+          event_date: event.date,
+        },
+        telegramText: `❌ Событие в команде «${team.name}» отменено.`,
+      });
+    })().catch((e) => console.error("Notify event_cancelled error:", e));
   }
 
   return NextResponse.json(update);

@@ -7,8 +7,7 @@ import { ShieldIcon } from "@/components/Icons";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { HomeHero } from "@/components/home/HomeHero";
 import { HeroEventCard } from "@/components/home/HeroEventCard";
-import { RequestsCard } from "@/components/home/RequestsCard";
-import { RequestsSheet } from "@/components/home/RequestsSheet";
+import { NotificationsSheet } from "@/components/home/NotificationsSheet";
 import { QuickActions } from "@/components/home/QuickActions";
 import { TeamPulseSection } from "@/components/home/TeamPulseSection";
 import { ScheduleSection } from "@/components/home/ScheduleSection";
@@ -58,11 +57,6 @@ type ScheduleEvent = {
   user_vote: "yes" | "no" | null;
 };
 
-type RequestSummary = {
-  total: number;
-  by_team: { team_id: string; team_name: string; count: number }[];
-};
-
 export default function HomePage() {
   const auth = useAuth();
   const router = useRouter();
@@ -70,10 +64,10 @@ export default function HomePage() {
   const name = auth.status === "authenticated" ? auth.user.name : "";
 
   const [nextEvent, setNextEvent] = useState<NextEvent | null | undefined>(undefined);
-  const [requests, setRequests] = useState<RequestSummary>({ total: 0, by_team: [] });
+  const [unreadCount, setUnreadCount] = useState(0);
   const [pulseTeams, setPulseTeams] = useState<PulseTeam[]>([]);
   const [schedule, setSchedule] = useState<ScheduleEvent[]>([]);
-  const [requestsOpen, setRequestsOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const { activeCity } = useCity();
 
@@ -97,14 +91,14 @@ export default function HomePage() {
 
     Promise.all([
       fetch(`/api/users/${userId}/next-event`).then((r) => r.json()),
-      fetch(`/api/users/${userId}/pending-requests`).then((r) => r.json()),
+      fetch(`/api/users/${userId}/notifications?limit=1`).then((r) => r.json()),
       fetch(`/api/users/${userId}/teams-pulse`).then((r) => r.json()),
     ])
-      .then(async ([ne, req, pulse]) => {
+      .then(async ([ne, notifs, pulse]) => {
         if (cancelled) return;
         const heroEvent: NextEvent | null = ne.event ?? null;
         setNextEvent(heroEvent);
-        setRequests({ total: req.total ?? 0, by_team: req.by_team ?? [] });
+        setUnreadCount(notifs.unreadCount ?? 0);
         setPulseTeams(pulse.teams ?? []);
 
         const scheduleUrl = heroEvent
@@ -144,7 +138,6 @@ export default function HomePage() {
     });
   }
 
-  const isOrganizer = pulseTeams.some((t) => t.role === "organizer");
   const showEmptyState = !loading && !nextEvent && pulseTeams.length === 0;
 
   return (
@@ -152,8 +145,8 @@ export default function HomePage() {
       <HomeHero
         name={name}
         city={activeCity}
-        hasRequests={isOrganizer && requests.total > 0}
-        onBellClick={() => setRequestsOpen(true)}
+        unreadCount={unreadCount}
+        onBellClick={() => setNotificationsOpen(true)}
         onProfileClick={() => router.push("/profile")}
       >
         {loading ? (
@@ -170,14 +163,6 @@ export default function HomePage() {
           />
         ) : null}
       </HomeHero>
-
-      {isOrganizer && requests.total > 0 && (
-        <RequestsCard
-          total={requests.total}
-          byTeam={requests.by_team}
-          onClick={() => setRequestsOpen(true)}
-        />
-      )}
 
       <QuickActions />
 
@@ -197,10 +182,11 @@ export default function HomePage() {
 
       <div className="h-4" />
 
-      <RequestsSheet
-        open={requestsOpen}
-        byTeam={requests.by_team}
-        onClose={() => setRequestsOpen(false)}
+      <NotificationsSheet
+        open={notificationsOpen}
+        userId={userId}
+        onClose={() => setNotificationsOpen(false)}
+        onUnreadChange={setUnreadCount}
       />
     </div>
   );

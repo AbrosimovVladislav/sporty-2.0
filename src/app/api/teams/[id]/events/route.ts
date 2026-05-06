@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
-import { sendMessage, buildEventUrl } from "@/lib/telegram-bot";
+import { buildEventUrl } from "@/lib/telegram-bot";
+import { getTeamMembers, notify } from "@/lib/notifications";
 import { EVENT_TYPE_LABEL } from "@/lib/catalogs";
 import { decodeCursor, encodeCursor, keysetClause } from "@/lib/cursor";
 
@@ -40,26 +41,18 @@ type NotifyEvent = {
   venue_id: string | null;
 };
 
-type MemberWithTelegram = {
-  user_id: string;
-  users: { telegram_id: number | null } | null;
-};
-
-async function notifyMembers(
+async function notifyEventCreated(
   supabase: ReturnType<typeof getServiceClient>,
   teamId: string,
+  authorId: string,
   event: NotifyEvent,
 ) {
-  const [{ data: rawMembers }, { data: team }] = await Promise.all([
-    supabase
-      .from("team_memberships")
-      .select("user_id, users(telegram_id)")
-      .eq("team_id", teamId),
+  const [{ data: team }, members] = await Promise.all([
     supabase.from("teams").select("name").eq("id", teamId).single(),
+    getTeamMembers(supabase, teamId),
   ]);
-
-  const members = (rawMembers ?? []) as unknown as MemberWithTelegram[];
-  if (!members.length) return;
+  const recipients = members.filter((id) => id !== authorId);
+  if (!team?.name || recipients.length === 0) return;
 
   let venueName: string | null = null;
   if (event.venue_id) {
@@ -71,7 +64,6 @@ async function notifyMembers(
     venueName = venue?.name ?? null;
   }
 
-  const eventUrl = buildEventUrl(teamId, event.id);
   const typeLabel = EVENT_TYPE_LABEL[event.type] ?? event.type;
   const dateStr = new Date(event.date).toLocaleString("ru-RU", {
     day: "numeric",
@@ -81,21 +73,23 @@ async function notifyMembers(
     timeZone: "Asia/Almaty",
   });
 
-  let text = `📅 <b>${typeLabel}`;
-  if (team?.name) text += ` · ${team.name}`;
-  text += `</b>\n${dateStr}`;
-  if (venueName) text += `\n📍 ${venueName}`;
+  let tgText = `📅 <b>${typeLabel} · ${team.name}</b>\n${dateStr}`;
+  if (venueName) tgText += `\n📍 ${venueName}`;
 
-  const replyMarkup = {
-    inline_keyboard: [[{ text: "Открыть в Sporty", web_app: { url: eventUrl } }]],
-  };
-
-  await Promise.allSettled(
-    members
-      .map((m) => m.users?.telegram_id)
-      .filter((id): id is number => typeof id === "number")
-      .map((id) => sendMessage(id, text, { reply_markup: replyMarkup })),
-  );
+  await notify(supabase, {
+    userIds: recipients,
+    type: "event_created",
+    payload: {
+      href: `/team/${teamId}/events/${event.id}`,
+      team_id: teamId,
+      team_name: team.name,
+      event_id: event.id,
+      event_type: event.type,
+      event_date: event.date,
+    },
+    telegramText: tgText,
+    telegramDeepLink: buildEventUrl(teamId, event.id),
+  });
 }
 
 // GET — list team events with cursor pagination.
@@ -313,9 +307,8 @@ export async function POST(
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
-  // Notify team members via Telegram (fire-and-forget)
-  notifyMembers(supabase, teamId, event).catch((e) =>
-    console.error("Notify members error:", e)
+  notifyEventCreated(supabase, teamId, userId, event).catch((e) =>
+    console.error("Notify event_created error:", e),
   );
 
   return NextResponse.json({ event }, { status: 201 });

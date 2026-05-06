@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServiceClient } from "@/lib/supabase-server";
+import { notify } from "@/lib/notifications";
 
 // Promote player to organizer
 export async function PATCH(
@@ -16,7 +17,6 @@ export async function PATCH(
 
   const supabase = getServiceClient();
 
-  // Verify caller is an organizer
   const { data: callerMembership } = await supabase
     .from("team_memberships")
     .select("role")
@@ -28,10 +28,9 @@ export async function PATCH(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Get target membership
   const { data: target } = await supabase
     .from("team_memberships")
-    .select("id, role")
+    .select("id, user_id, role")
     .eq("id", memberId)
     .eq("team_id", teamId)
     .maybeSingle();
@@ -54,6 +53,25 @@ export async function PATCH(
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
 
+  (async () => {
+    const { data: team } = await supabase
+      .from("teams")
+      .select("name")
+      .eq("id", teamId)
+      .single();
+    if (!team?.name) return;
+    await notify(supabase, {
+      userIds: [target.user_id],
+      type: "team_member_promoted",
+      payload: {
+        href: `/team/${teamId}`,
+        team_id: teamId,
+        team_name: team.name,
+      },
+      telegramText: `🎖 Тебя сделали организатором команды «${team.name}».`,
+    });
+  })().catch((e) => console.error("Notify promote error:", e));
+
   return NextResponse.json({ role: "organizer" });
 }
 
@@ -72,7 +90,6 @@ export async function DELETE(
 
   const supabase = getServiceClient();
 
-  // Verify caller is an organizer
   const { data: callerMembership } = await supabase
     .from("team_memberships")
     .select("role")
@@ -84,7 +101,6 @@ export async function DELETE(
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
-  // Get target membership
   const { data: target } = await supabase
     .from("team_memberships")
     .select("id, user_id, role")
@@ -96,12 +112,10 @@ export async function DELETE(
     return NextResponse.json({ error: "Member not found" }, { status: 404 });
   }
 
-  // Cannot remove yourself
   if (target.user_id === userId) {
     return NextResponse.json({ error: "Cannot remove yourself" }, { status: 400 });
   }
 
-  // If target is an organizer, check they're not the last one
   if (target.role === "organizer") {
     const { count } = await supabase
       .from("team_memberships")
@@ -114,6 +128,8 @@ export async function DELETE(
     }
   }
 
+  const removedUserId = target.user_id;
+
   const { error } = await supabase
     .from("team_memberships")
     .delete()
@@ -123,6 +139,25 @@ export async function DELETE(
     console.error("Remove member error:", error);
     return NextResponse.json({ error: "Database error" }, { status: 500 });
   }
+
+  (async () => {
+    const { data: team } = await supabase
+      .from("teams")
+      .select("name")
+      .eq("id", teamId)
+      .single();
+    if (!team?.name) return;
+    await notify(supabase, {
+      userIds: [removedUserId],
+      type: "team_member_removed",
+      payload: {
+        href: `/home`,
+        team_id: teamId,
+        team_name: team.name,
+      },
+      telegramText: `Тебя удалили из команды «${team.name}».`,
+    });
+  })().catch((e) => console.error("Notify remove error:", e));
 
   return NextResponse.json({ removed: true });
 }

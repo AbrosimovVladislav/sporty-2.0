@@ -57,11 +57,14 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
     return (
       <div
         className="flex items-center justify-between gap-3 rounded-[16px] px-4 py-3"
-        style={{ background: "var(--bg-card)" }}
+        style={{
+          background: "var(--card)",
+          border: "1px solid var(--ink-100)",
+        }}
       >
         <span
           className="text-[14px] font-medium"
-          style={{ color: "var(--text-primary)" }}
+          style={{ color: "var(--ink-900)" }}
         >
           Заявка на вступление отправлена
         </span>
@@ -70,7 +73,7 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
           onClick={handleWithdraw}
           disabled={busy}
           className="text-[13px] font-semibold disabled:opacity-50"
-          style={{ color: "var(--text-accent)" }}
+          style={{ color: "var(--green-700)" }}
         >
           Отозвать
         </button>
@@ -94,8 +97,8 @@ export function GuestJoinBar({ teamId }: { teamId: string }) {
         <div
           className="rounded-[16px] px-4 py-3 text-center text-[14px]"
           style={{
-            background: "var(--bg-card)",
-            color: "var(--text-secondary)",
+            background: "var(--danger-soft)",
+            color: "var(--danger)",
           }}
         >
           Подать заявку снова можно через {cooldown} {pluralDays(cooldown)}

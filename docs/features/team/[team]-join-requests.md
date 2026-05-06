@@ -1,61 +1,84 @@
 # Заявки и приглашения
 
-Двунаправленный flow: игрок подаёт заявку в команду → организатор принимает/отклоняет; либо организатор приглашает игрока → игрок принимает/отклоняет. Внутри одной таблицы `join_requests` различаются полем `direction`: `player_to_team` / `team_to_player`.
+Двунаправленный flow: игрок подаёт заявку в команду → организатор принимает/отклоняет; либо организатор приглашает игрока → игрок принимает/отклоняет. Одна таблица `join_requests` с полем `direction`: `player_to_team` / `team_to_player`.
 
 ## Точки создания
 
 | Кто | Откуда | Эффект |
 |-----|--------|--------|
-| Игрок | `/team/[id]` (команда, где он не состоит) → `GuestJoinBar` снизу → «Подать заявку» | `POST /api/teams/[id]/join` → `direction=player_to_team`, `status=pending`. Telegram-уведомление всем организаторам команды |
-| Организатор | `/players/[id]` (страница чужого игрока) → `BottomActionBar` «Пригласить в команду» → шит выбора своей команды | `POST /api/teams/[id]/invites` с `inviter_id` → `direction=team_to_player`. Telegram-уведомление приглашённому игроку |
+| Игрок | `/team/[id]` (где не состоит) → `GuestJoinBar` → «Вступить в команду» | `POST /api/teams/[id]/join` → `direction=player_to_team`, `status=pending`. Notification + Telegram всем organizers |
+| Организатор | `/players/[id]` → `BottomActionBar` «Пригласить в команду» → шит выбора команды | `POST /api/teams/[id]/invites` с `inviter_id` → `direction=team_to_player`. Notification + Telegram приглашённому |
 
-## Где видно (со стороны игрока)
+## Где видит игрок (свои заявки/приглашения)
 
-`/profile`, секция под табами:
-- **«Меня пригласили · N»** — pending team_to_player. Карточка команды + «Пригласил X · вчера» + кнопки «Принять» / «Отклонить» (`POST /api/join-requests/[id]/respond`)
-- **«Мои заявки в команды · N»** — pending player_to_team. Карточка команды + бейдж «На рассмотрении» + кнопка «Отозвать» (`DELETE /api/join-requests/[id]?userId=`)
-- **«Показать историю · K»** — collapsed accordion. Resolved (accepted/rejected) ≤ 30 дней. Старше — скрыто
+**Единственное место — `/profile` → таб «Обо мне» → `MyJoinRequests`**:
+- **«Меня пригласили · N»** — pending `team_to_player`. Карточка команды + «Пригласил X · вчера» + кнопки «Принять»/«Отклонить» (`POST /api/join-requests/[id]/respond`)
+- **«Мои заявки в команды · N»** — pending `player_to_team`. Карточка + пилюля «На рассмотрении» + кнопка «Отозвать» (`DELETE /api/join-requests/[id]?userId=`)
+- **«Показать историю · K»** — collapsed accordion. Resolved за последние 30 дней. У rejected `player_to_team` записей — подсказка «Можно подать снова через N дней» (cooldown 7 дней)
 
-В `/team/[id]`, если зашёл в ту же команду:
-- `GuestJoinBar`: pending → «Заявка отправлена» (disabled) + «Отозвать» (`DELETE`); rejected с активным cooldown → «Можно подать снова через X дней»; rejected с истекшим cooldown → активная primary «Подать заявку снова»
+В `/team/[id]` той же команды (`GuestJoinBar` под контентом):
+- `pending` → «Заявка отправлена» + «Отозвать»
+- `rejected` + cooldown активен → плейт `--danger-soft` «Подать заявку снова можно через N дней»
+- `rejected` + cooldown истёк → primary «Подать заявку снова»
+- `none` → primary «Вступить в команду»
 
-## Где видно (со стороны организатора)
+## Где видит организатор (входящие в команду + свои приглашения)
 
-Точки входа:
-- Шестерёнка в `PageHeader` команды (red-dot если `pendingRequestsCount > 0`) → `/team/[id]/settings` → раздел «Заявки и приглашения» открывает `TeamRequestsSheet`
-- Карточка «N новых заявок» на главной команды (если есть pending) → тот же `TeamRequestsSheet`
+**Главное место — главная команды `/team/[id]`**:
 
-`TeamRequestsSheet`:
-- **Tab «Входящие · N»** — pending player_to_team. Карточка игрока + кнопки «Принять» (`PATCH /api/teams/[id]/join-requests/[requestId]` `action=accept`) / «Отклонить» (`action=reject`)
-- **Tab «Отправлены · M»** — pending team_to_player по этой команде. Карточка игрока + «Приглашён 3 дня назад» + кнопка «Отозвать» (`DELETE`)
-- Если одна сторона пустая — таб-стрип скрыт, рендерится только непустая секция
+`TeamRequestsSection` — inline-аккордеон сразу после `NextEventCard` (только organizer, скрыт если `total === 0`):
+- Свёрнутый: иконка-bell + «N заявок» + подзаголовок «K новых · M приглашений»
+- Раскрытый: подзаголовок «Входящие · N» → карточки игроков + «Принять»/«Отклонить»; затем «Отправлены · M» → карточки + «Отозвать»
+- Все действия inline, без отдельного шита
 
-`pendingRequestsCount` в red-dot шестерёнки и счётчиках на главной — только incoming (player_to_team).
+Резервные точки входа:
+- Шестерёнка в `PageHeader` команды (red-dot если `pendingRequestsCount > 0`) → `/team/[id]/settings` → раздел «Заявки и приглашения» → `TeamRequestsSheet` (тот же компонент с табами как раньше — оставлен для resilience)
+- Из колокольчика-уведомлений (тип `team_join_request_received`) тап ведёт на `/team/[id]`, аккордеон автоматически загружается с актуальным состоянием
+
+`pendingRequestsCount` в red-dot шестерёнки + serverside hint для сворачнутого вида аккордеона — считается только incoming (`player_to_team`).
 
 ## Cooldown после отклонения
 
-7 дней от `resolved_at` rejected-заявки игрока. Логика на сервере: `POST /api/teams/[id]/join` возвращает `409 { error: "cooldown", until: <iso> }` если cooldown активен. UI считывает `joinRequestCooldownUntil` из team-context и показывает обратный отсчёт в `GuestJoinBar`.
+7 дней от `resolved_at` rejected-заявки игрока. На сервере `POST /api/teams/[id]/join` возвращает `409 { error: "cooldown", until: <iso> }`.
+
+Видно игроку:
+- На `/team/[id]` (`GuestJoinBar` показывает дни до возможности повторной подачи)
+- На `/profile` в истории (`MyJoinRequests` подсказка «Можно подать снова через N дней» под rejected-записью)
+
+## Повторное приглашение
+
+На `/players/[id]` показывается секция «Уже приглашён» с активными pending team→player от команд, где смотрящий — organizer:
+- Лого команды + название + «Отправлено N дней назад» + кнопка «Отозвать»
+- В sheet выбора команды для нового приглашения те же команды отфильтрованы (`availableOrgTeams`)
+- Источник — `GET /api/players/[id]/invites?inviterId=`
 
 ## Отзыв (withdraw / revoke)
 
 `DELETE /api/join-requests/[id]?userId=` — единый endpoint для обеих сторон:
-- Игрок может отозвать свою заявку (`direction=player_to_team`, `user_id=userId`)
-- Орг может отозвать своё приглашение (`direction=team_to_player`, у `userId` есть `organizer` membership в `team_id`)
+- Игрок отзывает свою заявку (`direction=player_to_team`, `user_id=userId`)
+- Организатор отзывает своё приглашение (`direction=team_to_player`, у `userId` есть organizer-membership в `team_id`)
 
-Только `status=pending`. Удаляет row физически (история не сохраняется при отзыве).
+Только `status=pending`. Удаляет row физически.
+
+## Уведомления
+
+При accept/reject автору отправляется notification + Telegram (см. [notifications.md](../notifications/notifications.md)). Типы:
+- `team_join_request_accepted` / `team_join_request_rejected` — автору заявки
+- `team_invitation_accepted` / `team_invitation_rejected` — всем organizers команды
 
 ## API
 
-| Endpoint | Назначение |
-|----------|------------|
-| `POST /api/teams/[id]/join` | Игрок подаёт заявку. Cooldown-check + Telegram-уведомление орг |
-| `POST /api/teams/[id]/invites` | Орг приглашает игрока. Telegram-уведомление игроку |
-| `GET /api/teams/[id]/join-requests?userId=` | Возвращает `{ incoming, outgoing }` (только для organizer) |
-| `PATCH /api/teams/[id]/join-requests/[requestId]` | Орг решает по incoming-заявке |
-| `POST /api/join-requests/[id]/respond` | Игрок решает по incoming-приглашению |
-| `DELETE /api/join-requests/[id]?userId=` | Отзыв pending заявки/приглашения |
-| `GET /api/users/[id]/join-requests` | Все заявки пользователя обоих направлений (с `created_at`, `resolved_at`) |
-| `GET /api/users/[id]/pending-requests` | Сводка для главной: total + by_team входящих pending player_to_team по командам, где user — organizer |
+| Endpoint | Метод | Auth | Назначение |
+|----------|-------|------|------------|
+| `/api/teams/[id]/join` | POST | userId | Подать заявку. Cooldown + notify orgs |
+| `/api/teams/[id]/invites` | POST | inviter_id (organizer) | Пригласить игрока. Notify приглашённого |
+| `/api/teams/[id]/join-requests?userId=` | GET | organizer | `{ incoming, outgoing }` команды |
+| `/api/teams/[id]/join-requests/[requestId]` | PATCH | organizer | accept/reject заявки + auto-membership + notify |
+| `/api/join-requests/[id]/respond` | POST | приглашённый | accept/reject приглашения + auto-membership + notify orgs |
+| `/api/join-requests/[id]?userId=` | DELETE | автор или organizer | Отозвать pending |
+| `/api/users/[id]/join-requests` | GET | — | Все заявки игрока (resolved + pending, обе стороны) |
+| `/api/players/[id]/invites?inviterId=` | GET | inviterId (organizer хотя бы в одной команде) | Активные pending team→player к этому игроку от команд смотрящего |
+| `/api/teams/[id]?userId=` | GET | — | Включает `joinRequestStatus`, `joinRequestId`, `joinRequestCooldownUntil`, `pendingRequestsCount` |
 
 ## Поля `join_requests`
 
@@ -68,4 +91,4 @@
 | `direction` | `player_to_team` / `team_to_player` |
 | `invited_by` | uuid организатора, который пригласил (только для team_to_player) |
 | `created_at` | timestamp создания |
-| `resolved_at` | timestamp при переходе из pending в accepted/rejected. Используется для cooldown |
+| `resolved_at` | timestamp перехода из pending. Используется для cooldown |

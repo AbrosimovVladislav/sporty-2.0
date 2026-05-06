@@ -5,13 +5,13 @@ import { ReactNode } from "react";
 type Props = {
   name: string;
   city: string;
-  hasRequests: boolean;
+  unreadCount: number;
   onBellClick: () => void;
   onProfileClick: () => void;
   children?: ReactNode;
 };
 
-export function HomeHero({ name, city, hasRequests, onBellClick, onProfileClick, children }: Props) {
+export function HomeHero({ name, city, unreadCount, onBellClick, onProfileClick, children }: Props) {
   return (
     <div
       className="relative overflow-hidden px-4 pt-4 pb-6"
@@ -50,11 +50,17 @@ export function HomeHero({ name, city, hasRequests, onBellClick, onProfileClick,
             style={{ background: "rgba(255,255,255,0.15)" }}
           >
             <BellIcon />
-            {hasRequests && (
+            {unreadCount > 0 && (
               <span
-                className="absolute top-2 right-2 w-2 h-2 rounded-full"
-                style={{ background: "#ff4444", border: "2px solid var(--green-600)" }}
-              />
+                className="absolute -top-1 -right-1 min-w-[18px] h-[18px] rounded-full px-1 flex items-center justify-center text-[10px] font-bold tabular-nums"
+                style={{
+                  background: "#ff4444",
+                  color: "white",
+                  border: "2px solid var(--green-600)",
+                }}
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
             )}
           </button>
         </div>

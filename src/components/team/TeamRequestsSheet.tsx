@@ -118,8 +118,9 @@ export function TeamRequestsSheet({
         onClick={onClose}
       />
       <div
-        className="relative w-full bg-white pb-8 max-h-[85vh] overflow-y-auto"
+        className="relative w-full pb-8 max-h-[85vh] overflow-y-auto"
         style={{
+          background: "var(--card)",
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
           boxShadow: "0 -8px 24px rgba(0,0,0,0.12)",
@@ -128,20 +129,20 @@ export function TeamRequestsSheet({
         <div className="flex justify-center pt-2 pb-1">
           <span
             className="block w-9 h-1 rounded-full"
-            style={{ background: "var(--gray-300)" }}
+            style={{ background: "var(--ink-300)" }}
           />
         </div>
         <div className="flex items-center justify-between px-4 pt-1 pb-3">
           <h2
             className="text-[16px] font-bold"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: "var(--ink-900)" }}
           >
             Заявки · {totalCount}
           </h2>
           <button
             onClick={onClose}
             className="w-7 h-7 rounded-full flex items-center justify-center"
-            style={{ background: "var(--gray-100)" }}
+            style={{ background: "var(--ink-100)", color: "var(--ink-700)" }}
             aria-label="Закрыть"
           >
             <CloseIcon />
@@ -151,7 +152,7 @@ export function TeamRequestsSheet({
         {showTabs && (
           <div
             className="flex mx-4 mb-3 rounded-[12px] p-1 gap-1"
-            style={{ background: "var(--gray-100)" }}
+            style={{ background: "var(--bg-secondary)" }}
           >
             <TabBtn
               active={tab === "incoming"}
@@ -172,7 +173,7 @@ export function TeamRequestsSheet({
               <div
                 className="w-6 h-6 rounded-full border-2 animate-spin"
                 style={{
-                  borderColor: "var(--green-500)",
+                  borderColor: "var(--green-700)",
                   borderTopColor: "transparent",
                 }}
               />
@@ -180,7 +181,7 @@ export function TeamRequestsSheet({
           ) : totalCount === 0 ? (
             <p
               className="text-[13px] py-6 text-center"
-              style={{ color: "var(--text-tertiary)" }}
+              style={{ color: "var(--ink-400)" }}
             >
               Заявок и приглашений нет
             </p>
@@ -227,8 +228,8 @@ function TabBtn({
       onClick={onClick}
       className="flex-1 py-2 rounded-[10px] text-[13px] font-semibold transition-colors"
       style={{
-        background: active ? "white" : "transparent",
-        color: active ? "var(--text-primary)" : "var(--text-secondary)",
+        background: active ? "var(--card)" : "transparent",
+        color: active ? "var(--ink-900)" : "var(--ink-500)",
         boxShadow: active ? "var(--shadow-sm)" : "none",
       }}
     >
@@ -250,21 +251,21 @@ function IncomingCard({
 }) {
   return (
     <li
-      className="rounded-xl p-3"
-      style={{ background: "var(--gray-50)" }}
+      className="rounded-[12px] p-3"
+      style={{ background: "var(--bg-secondary)" }}
     >
       <div className="flex items-start gap-3">
         <Avatar name={item.user.name} src={item.user.avatar_url} />
         <div className="flex-1 min-w-0">
           <p
             className="text-[14px] font-semibold truncate"
-            style={{ color: "var(--text-primary)" }}
+            style={{ color: "var(--ink-900)" }}
           >
             {item.user.name}
           </p>
           <p
             className="text-[11px] mt-0.5"
-            style={{ color: "var(--text-tertiary)" }}
+            style={{ color: "var(--ink-500)" }}
           >
             {[item.user.city, formatRelative(item.created_at)]
               .filter(Boolean)
@@ -276,19 +277,19 @@ function IncomingCard({
         <button
           onClick={onAccept}
           disabled={busy}
-          className="flex-1 h-9 rounded-lg text-[13px] font-semibold disabled:opacity-50"
-          style={{ background: "var(--green-500)", color: "white" }}
+          className="flex-1 h-9 rounded-[10px] text-[13px] font-semibold disabled:opacity-50 transition-colors active:opacity-80"
+          style={{ background: "var(--green-700)", color: "white" }}
         >
           {busy ? "…" : "Принять"}
         </button>
         <button
           onClick={onReject}
           disabled={busy}
-          className="flex-1 h-9 rounded-lg text-[13px] font-semibold disabled:opacity-50"
+          className="flex-1 h-9 rounded-[10px] text-[13px] font-semibold disabled:opacity-50 transition-colors active:opacity-80"
           style={{
-            background: "white",
-            color: "var(--text-primary)",
-            border: "1px solid var(--gray-200)",
+            background: "var(--card)",
+            color: "var(--ink-900)",
+            border: "1px solid var(--ink-200)",
           }}
         >
           {busy ? "…" : "Отклонить"}
@@ -309,20 +310,20 @@ function OutgoingCard({
 }) {
   return (
     <li
-      className="rounded-xl p-3 flex items-center gap-3"
-      style={{ background: "var(--gray-50)" }}
+      className="rounded-[12px] p-3 flex items-center gap-3"
+      style={{ background: "var(--bg-secondary)" }}
     >
       <Avatar name={item.user.name} src={item.user.avatar_url} />
       <div className="flex-1 min-w-0">
         <p
           className="text-[14px] font-semibold truncate"
-          style={{ color: "var(--text-primary)" }}
+          style={{ color: "var(--ink-900)" }}
         >
           {item.user.name}
         </p>
         <p
           className="text-[11px] mt-0.5"
-          style={{ color: "var(--text-tertiary)" }}
+          style={{ color: "var(--ink-500)" }}
         >
           Приглашён {formatRelative(item.created_at)}
           {item.user.city ? ` · ${item.user.city}` : ""}
@@ -331,11 +332,11 @@ function OutgoingCard({
       <button
         onClick={onWithdraw}
         disabled={busy}
-        className="px-3 h-8 rounded-lg text-[12px] font-semibold disabled:opacity-50 shrink-0"
+        className="px-3 h-8 rounded-[10px] text-[12px] font-semibold disabled:opacity-50 shrink-0"
         style={{
-          background: "white",
-          color: "var(--text-primary)",
-          border: "1px solid var(--gray-200)",
+          background: "var(--card)",
+          color: "var(--ink-700)",
+          border: "1px solid var(--ink-200)",
         }}
       >
         {busy ? "…" : "Отозвать"}
@@ -361,7 +362,7 @@ function Avatar({
     return (
       <div
         className="w-11 h-11 rounded-full overflow-hidden shrink-0"
-        style={{ background: "var(--gray-100)" }}
+        style={{ background: "var(--ink-100)" }}
       >
         <Image
           src={src}

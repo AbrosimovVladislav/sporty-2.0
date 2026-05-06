@@ -54,6 +54,14 @@ type PlayerTeam = {
 
 type OrgTeam = { id: string; name: string; sport: string; city: string };
 
+type ActiveInvite = {
+  id: string;
+  team_id: string;
+  team_name: string;
+  team_logo_url: string | null;
+  created_at: string;
+};
+
 const TIER_LABEL: Record<RatingTier, string> = {
   elite: "Элитный",
   high: "Продвинутый",
@@ -89,8 +97,9 @@ export default function PlayerProfilePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [teams, setTeams] = useState<PlayerTeam[] | null>(null);
   const [orgTeams, setOrgTeams] = useState<OrgTeam[] | null>(null);
+  const [activeInvites, setActiveInvites] = useState<ActiveInvite[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [inviting, setInviting] = useState<string | null>(null);
+  const [busy, setBusy] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   useEffect(() => {
@@ -115,14 +124,27 @@ export default function PlayerProfilePage() {
       .then((d) => setOrgTeams(d.teams ?? []));
   }, [currentUserId]);
 
+  function loadActiveInvites() {
+    if (!currentUserId || !id) return;
+    fetch(`/api/players/${id}/invites?inviterId=${currentUserId}`)
+      .then((r) => (r.ok ? r.json() : { invites: [] }))
+      .then((d) => setActiveInvites(d.invites ?? []))
+      .catch(() => {});
+  }
+
+  useEffect(() => {
+    loadActiveInvites();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, currentUserId]);
+
   function showToast(msg: string) {
     setToast(msg);
     setTimeout(() => setToast(null), 3000);
   }
 
   async function invite(teamId: string) {
-    if (!currentUserId || inviting) return;
-    setInviting(teamId);
+    if (!currentUserId || busy) return;
+    setBusy(teamId);
     try {
       const res = await fetch(`/api/teams/${teamId}/invites`, {
         method: "POST",
@@ -132,6 +154,7 @@ export default function PlayerProfilePage() {
       if (res.ok) {
         showToast("Приглашение отправлено");
         setSheetOpen(false);
+        loadActiveInvites();
       } else {
         const d = await res.json();
         showToast(
@@ -141,12 +164,35 @@ export default function PlayerProfilePage() {
         );
       }
     } finally {
-      setInviting(null);
+      setBusy(null);
+    }
+  }
+
+  async function revoke(requestId: string) {
+    if (!currentUserId || busy) return;
+    setBusy(requestId);
+    try {
+      const res = await fetch(
+        `/api/join-requests/${requestId}?userId=${currentUserId}`,
+        { method: "DELETE" },
+      );
+      if (res.ok) {
+        showToast("Приглашение отозвано");
+        loadActiveInvites();
+      } else {
+        showToast("Не удалось отозвать");
+      }
+    } finally {
+      setBusy(null);
     }
   }
 
   const isOwnProfile = currentUserId === id;
-  const canInvite = !isOwnProfile && orgTeams !== null && orgTeams.length > 0;
+  const invitedTeamIds = new Set(activeInvites.map((i) => i.team_id));
+  const availableOrgTeams =
+    orgTeams?.filter((t) => !invitedTeamIds.has(t.id)) ?? null;
+  const canInvite =
+    !isOwnProfile && (availableOrgTeams?.length ?? 0) > 0;
 
   if (player === undefined) {
     return (
@@ -251,6 +297,52 @@ export default function PlayerProfilePage() {
           <StatCell value={reliabilityText} label="Надёжность" tone="primary" />
           <StatCell value={teamsCount} label="Команд" />
         </div>
+
+        {/* Active invites — "уже приглашён" */}
+        {!isOwnProfile && activeInvites.length > 0 && (
+          <Card className="overflow-hidden">
+            <Eyebrow className="px-4 pt-3.5 pb-1.5">
+              Уже {activeInvites.length === 1 ? "приглашён" : "приглашён в"}
+            </Eyebrow>
+            {activeInvites.map((inv, i) => (
+              <div
+                key={inv.id}
+                className="flex items-center gap-3 px-4 py-3"
+                style={{
+                  borderTop: i === 0 ? undefined : "1px solid var(--ink-100)",
+                }}
+              >
+                <InviteTeamLogo invite={inv} />
+                <div className="flex-1 min-w-0">
+                  <p
+                    className="text-[14px] font-semibold truncate"
+                    style={{ color: "var(--ink-900)" }}
+                  >
+                    {inv.team_name}
+                  </p>
+                  <p
+                    className="text-[12px] mt-0.5"
+                    style={{ color: "var(--ink-500)" }}
+                  >
+                    Отправлено {formatRelativeShort(inv.created_at)}
+                  </p>
+                </div>
+                <button
+                  onClick={() => revoke(inv.id)}
+                  disabled={busy === inv.id}
+                  className="px-3 h-8 rounded-[10px] text-[12px] font-semibold disabled:opacity-50 shrink-0"
+                  style={{
+                    background: "var(--bg-secondary)",
+                    color: "var(--ink-700)",
+                    border: "1px solid var(--ink-200)",
+                  }}
+                >
+                  {busy === inv.id ? "…" : "Отозвать"}
+                </button>
+              </div>
+            ))}
+          </Card>
+        )}
 
         {/* Bio */}
         {player.bio && (
@@ -409,10 +501,10 @@ export default function PlayerProfilePage() {
               Выберите команду
             </p>
             <ul className="flex flex-col gap-2 px-4">
-              {orgTeams!.map((t) => (
+              {availableOrgTeams!.map((t) => (
                 <li key={t.id}>
                   <button
-                    disabled={!!inviting}
+                    disabled={!!busy}
                     onClick={() => invite(t.id)}
                     className="w-full flex items-center justify-between rounded-[12px] px-4 py-3 text-left disabled:opacity-50 transition-colors active:opacity-80"
                     style={{
@@ -434,7 +526,7 @@ export default function PlayerProfilePage() {
                         {t.city}
                       </p>
                     </div>
-                    {inviting === t.id && (
+                    {busy === t.id && (
                       <div
                         className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
                         style={{ borderColor: "var(--green-700)" }}
@@ -661,4 +753,50 @@ function formatLongDate(iso: string): string {
     month: "long",
     year: "numeric",
   });
+}
+
+function formatRelativeShort(iso: string): string {
+  const d = new Date(iso);
+  const diffMs = Date.now() - d.getTime();
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return "сегодня";
+  if (diffDays === 1) return "вчера";
+  if (diffDays < 7) return `${diffDays} дн назад`;
+  if (diffDays < 30) return `${Math.floor(diffDays / 7)} нед назад`;
+  return d.toLocaleDateString("ru-RU", { day: "numeric", month: "short" });
+}
+
+function InviteTeamLogo({ invite }: { invite: ActiveInvite }) {
+  const initial = invite.team_name.trim().charAt(0).toUpperCase() || "?";
+  if (invite.team_logo_url) {
+    return (
+      <span
+        className="inline-block rounded-[10px] overflow-hidden bg-white shrink-0"
+        style={{ width: 36, height: 36 }}
+      >
+        <Image
+          src={invite.team_logo_url}
+          alt={invite.team_name}
+          width={36}
+          height={36}
+          className="w-full h-full object-cover"
+        />
+      </span>
+    );
+  }
+  const hue = teamFallbackHue(invite.team_id);
+  return (
+    <span
+      className="inline-flex items-center justify-center rounded-[10px] text-white font-display font-extrabold shrink-0"
+      style={{
+        width: 36,
+        height: 36,
+        background: `oklch(0.55 0.15 ${hue})`,
+        fontSize: 14,
+        lineHeight: 1,
+      }}
+    >
+      {initial}
+    </span>
+  );
 }
