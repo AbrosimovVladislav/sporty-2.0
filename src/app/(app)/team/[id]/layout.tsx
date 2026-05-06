@@ -67,15 +67,17 @@ function TeamPageHeader({ teamId }: { teamId: string }) {
     <button
       type="button"
       onClick={() => setSwitcherOpen(true)}
-      className="flex items-center gap-1.5 min-w-0"
+      className="flex items-start gap-1.5 min-w-0 w-full text-left"
     >
       <span
-        className="font-display font-bold uppercase text-white text-[30px] leading-none truncate"
+        className="font-display font-bold uppercase text-white text-[22px] leading-[1.1] line-clamp-2 wrap-break-word flex-1 min-w-0"
         style={{ letterSpacing: "0.02em" }}
       >
         {t.name}
       </span>
-      <ChevronDownIcon />
+      <span className="shrink-0 mt-1.5">
+        <ChevronDownIcon />
+      </span>
     </button>
   ) : undefined;
 
